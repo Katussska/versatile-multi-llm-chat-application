@@ -1,5 +1,5 @@
 # Dependencies
-/node_modules
+**/node_modules
 
 # Remix build outputs
 /build
@@ -58,9 +58,6 @@ ehthumbs.db
 Thumbs.db
 
 # Package manager
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 .pnp.*
 
 # Build

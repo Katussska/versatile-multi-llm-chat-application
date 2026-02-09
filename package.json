@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "pnpm dev",
+    "be": "pnpm --filter @cognify/backend",
+    "fe": "pnpm --filter @cognify/frontend",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
