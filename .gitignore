@@ -1,23 +1,18 @@
 # Dependencies
 **/node_modules
 
-# Remix build outputs
-/build
-/public/build
-/.cache
-/api/_build
+# build outputs
+**/build
+**/public/build
+**/.cache
+**/api/_build
+**/dist
+**/out
 
 # Environment variables
 frontend/.env
 .env
 !.env
-
-# Supabase
-.branches
-.temp
-.supabase
-**/supabase/.temp
-**/supabase/.branches
 
 # TypeScript
 *.tsbuildinfo
@@ -59,19 +54,6 @@ Thumbs.db
 
 # Package manager
 .pnp.*
-
-# Build
-/dist
-/build
-/public/build
-
-# Remix
-/.cache
-/build
-/public/build
-/api/build
-.cache/
-app/styles/tailwind.css
 
 # Development SSL certificates
 *.cert

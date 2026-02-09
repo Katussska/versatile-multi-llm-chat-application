@@ -2,10 +2,10 @@ import { Button } from '@/components/ui/button.tsx';
 import { useAuthContext } from '@/lib/authContext.tsx';
 
 export default function ExampleRoute() {
-  const { user, session, logOut } = useAuthContext();
+  const { user, logOut } = useAuthContext();
 
   // this should not get displayed ever
-  if (!user || !session) return <div>Something went wrong.</div>;
+  if (!user) return <div>Something went wrong.</div>;
 
   return (
     <div>
@@ -31,14 +31,14 @@ export default function ExampleRoute() {
       <h1>session</h1>
       <table>
         <tbody>
-          {Object.entries(session).map(([key, value]) => (
-            <tr key={key}>
-              <td>{key}</td>
-              <td>
-                <pre>{JSON.stringify(value, null, 2)}</pre>
-              </td>
-            </tr>
-          ))}
+          {/*{Object.entries(session).map(([key, value]) => (*/}
+          {/*  <tr key={key}>*/}
+          {/*    <td>{key}</td>*/}
+          {/*    <td>*/}
+          {/*      <pre>{JSON.stringify(value, null, 2)}</pre>*/}
+          {/*    </td>*/}
+          {/*  </tr>*/}
+          {/*))}*/}
         </tbody>
       </table>
     </div>

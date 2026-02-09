@@ -24,6 +24,7 @@ export default function UserBadge() {
       />
       <div className="mx-3 flex flex-col items-end">
         <TypographySmall>username</TypographySmall>
+        {/* @ts-ignore*/}
         <TypographyMuted>{user?.email || 'email'}</TypographyMuted>
       </div>
       <Avatar onClick={() => navigate('/profile')} className="cursor-pointer">

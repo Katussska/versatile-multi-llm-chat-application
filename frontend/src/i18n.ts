@@ -12,7 +12,7 @@ i18n
     defaultNS: 'common',
     // resources,
     fallbackLng: 'en',
-    debug: import.meta.env.NODE_ENV === 'development',
+    debug: import.meta.env.DEV,
 
     // Backend configuration
     backend: {
