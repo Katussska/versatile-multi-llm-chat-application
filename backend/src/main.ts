@@ -5,7 +5,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 dotenv.config({ path: resolve(__dirname, '..', '..', '.env'), quiet: true });
-dotenv.config({ path: resolve(__dirname, '..', '.env'), override: true, quiet: true });
+dotenv.config({
+  path: resolve(__dirname, '..', '.env'),
+  override: true,
+  quiet: true,
+});
 
 async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
