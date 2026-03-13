@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm dev",
     "be": "pnpm --filter @cognify/backend",
     "fe": "pnpm --filter @cognify/frontend",
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel --filter @cognify/backend --filter @cognify/frontend dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -62,12 +62,17 @@ pnpm install
 
 ### 3. Nastavení prostředí
 
-Vytvořte `.env` soubor v kořenovém adresáři projektu a přidejte do něj následující proměnné prostředí s vašimi klíči pro
-Supabase:
+Backend používá vlastní `.env` soubor. Zkopírujte [backend/.env.example](backend/.env.example) do `backend/.env` a upravte hodnoty:
 
 ```env
-SUPABASE_URL=<tvůj_supabase_url>
-SUPABASE_ANON_KEY=<tvůj_supabase_anon_key>
+PORT=3000
+HOST=localhost
+MIKRO_ORM_TYPE=postgresql
+MIKRO_ORM_HOST=localhost
+MIKRO_ORM_PORT=5432
+MIKRO_ORM_DB_NAME=cognify
+MIKRO_ORM_USER=postgres
+MIKRO_ORM_PASSWORD=postgres
 ```
 
 ### 4. Spuštění vývojového serveru
@@ -78,7 +83,7 @@ Aplikaci spustíte pomocí následujícího příkazu:
 pnpm dev
 ```
 
-Po spuštění bude aplikace dostupná na `http://localhost:5173`.
+Po spuštění bude frontend dostupný na `http://localhost:5173` a backend standardně na `http://localhost:3000`.
 
 ## Architektura
 
