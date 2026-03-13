@@ -1,13 +1,6 @@
 import { createServer } from 'node:net';
-import { resolve } from 'node:path';
-import dotenv from 'dotenv';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-
-dotenv.config({
-  path: resolve(__dirname, '..', '.env'),
-  quiet: true,
-});
 
 async function findAvailablePort(
   startPort: number,

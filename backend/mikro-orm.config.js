@@ -1,4 +1,6 @@
-require('dotenv').config({ path: require('node:path').resolve(__dirname, '.env') });
+const { resolve } = require('node:path');
+
+process.loadEnvFile(resolve(__dirname, '.env'));
 
 const { defineConfig } = require('@mikro-orm/postgresql');
 
