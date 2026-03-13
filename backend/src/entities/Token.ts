@@ -1,4 +1,4 @@
-import { Entity, ManyToOne, Property } from '@mikro-orm/core';
+import { Entity, ManyToOne, Property } from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { Model } from './Model';
 import { User } from './User';
@@ -11,12 +11,12 @@ export class Token extends Base {
   @ManyToOne(() => User)
   user!: User;
 
-  @Property()
+  @Property({ type: 'number' })
   token_count!: number;
 
-  @Property({ default: 0 })
+  @Property({ type: 'number', default: 0 })
   used_tokens: number = 0;
 
-  @Property()
+  @Property({ type: 'datetime' })
   reset_at!: Date;
 }

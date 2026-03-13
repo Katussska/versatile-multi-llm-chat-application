@@ -1,14 +1,14 @@
 import { Base } from './Base';
-import { Entity, Property } from '@mikro-orm/core';
+import { Entity, Property } from '@mikro-orm/decorators/legacy';
 
 @Entity()
 export class Model extends Base {
-  @Property()
+  @Property({ type: 'string' })
   provider!: string;
 
-  @Property()
+  @Property({ type: 'string' })
   name!: string;
 
-  @Property()
+  @Property({ type: 'string' })
   apiEndpoint!: string;
 }

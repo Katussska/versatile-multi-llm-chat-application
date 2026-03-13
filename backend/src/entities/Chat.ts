@@ -1,10 +1,10 @@
+import { Collection } from '@mikro-orm/core';
 import {
   Entity,
   ManyToOne,
   OneToMany,
   Property,
-  Collection,
-} from '@mikro-orm/core';
+} from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { Model } from './Model';
 import { User } from './User';
@@ -21,6 +21,6 @@ export class Chat extends Base {
   @OneToMany(() => Message, (message) => message.chat)
   messages = new Collection<Message>(this);
 
-  @Property()
+  @Property({ type: 'string' })
   title!: string;
 }

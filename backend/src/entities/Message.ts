@@ -1,4 +1,9 @@
-import { Entity, ManyToOne, OneToMany, Property } from '@mikro-orm/core';
+import {
+  Entity,
+  ManyToOne,
+  OneToMany,
+  Property,
+} from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { Chat } from './Chat';
 
@@ -7,12 +12,12 @@ export class Message extends Base {
   @ManyToOne(() => Chat)
   chat!: Chat;
 
-  @Property({ default: false })
+  @Property({ type: 'boolean', default: false })
   favourite: boolean = false;
 
-  @Property()
+  @Property({ type: 'text' })
   content!: string;
 
-  @Property()
+  @Property({ type: 'text' })
   path!: string;
 }

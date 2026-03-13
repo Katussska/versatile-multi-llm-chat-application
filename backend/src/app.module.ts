@@ -3,13 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 
+const mikroOrmConfig = require('../mikro-orm.config');
+
 @Module({
-  imports: [
-    MikroOrmModule.forRoot({
-      entities: ['./dist/entities'],
-      entitiesTs: ['./src/entities'],
-    }),
-  ],
+  imports: [MikroOrmModule.forRoot(mikroOrmConfig)],
   controllers: [AppController],
   providers: [AppService],
 })
