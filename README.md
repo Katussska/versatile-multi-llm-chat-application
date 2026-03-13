@@ -67,6 +67,7 @@ Backend používá vlastní `.env` soubor. Zkopírujte [backend/.env.example](ba
 ```env
 PORT=3000
 HOST=localhost
+PORT_FALLBACK=false
 MIKRO_ORM_TYPE=postgresql
 MIKRO_ORM_HOST=localhost
 MIKRO_ORM_PORT=5432
@@ -74,6 +75,15 @@ MIKRO_ORM_DB_NAME=cognify
 MIKRO_ORM_USER=postgres
 MIKRO_ORM_PASSWORD=postgres
 ```
+
+Pri spusteni pres `pnpm dev` backend bezi s `NODE_ENV=development`, takze pokud je `PORT` obsazeny, automaticky zkusi dalsi volny port.
+
+`PORT_FALLBACK` je volitelne a slouzi jako explicitni override. Vychozi chovani je:
+
+- `NODE_ENV=development`: pokud je `PORT` obsazeny, backend se pokusi najit dalsi volny port.
+- ostatni prostredi: backend selze s chybou, aby se neporusilo ocekavane bindovani portu (Docker/K8s/health checks).
+
+Nastavenim `PORT_FALLBACK=true` muzete fallback povolit explicitne i mimo development. Nastavenim `PORT_FALLBACK=false` jej naopak vynutene vypnete i v developmentu.
 
 ### 4. Spuštění vývojového serveru
 

@@ -11,12 +11,12 @@ export class Token extends Base {
   @ManyToOne(() => User)
   user!: User;
 
-  @Property({ type: 'number' })
-  token_count!: number;
+  @Property({ type: 'number', fieldName: 'token_count' })
+  tokenCount!: number;
 
-  @Property({ type: 'number', default: 0 })
-  used_tokens: number = 0;
+  @Property({ type: 'number', default: 0, fieldName: 'used_tokens' })
+  usedTokens: number = 0;
 
-  @Property({ type: 'datetime' })
-  reset_at!: Date;
+  @Property({ type: 'datetime', fieldName: 'reset_at' })
+  resetAt!: Date;
 }
