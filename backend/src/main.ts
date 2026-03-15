@@ -1,6 +1,7 @@
 import { createServer } from 'node:net';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { setupOpenApi } from './openapi';
 
 async function findAvailablePort(
   startPort: number,
@@ -88,8 +89,36 @@ function shouldUsePortFallback(): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
+function shouldEnableOpenApi(): boolean {
+  const explicitOpenApiFlag = process.env.OPENAPI_ENABLED;
+
+  if (explicitOpenApiFlag !== undefined) {
+    const normalizedFlag = explicitOpenApiFlag.trim().toLowerCase();
+
+    if (['1', 'true', 'yes', 'on'].includes(normalizedFlag)) {
+      return true;
+    }
+
+    if (['0', 'false', 'no', 'off'].includes(normalizedFlag)) {
+      return false;
+    }
+
+    throw new Error(
+      `Invalid OPENAPI_ENABLED value "${explicitOpenApiFlag}". Use true/false.`,
+    );
+  }
+
+  // Default: enable in non-production, disable in production.
+  return process.env.NODE_ENV !== 'production';
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  if (shouldEnableOpenApi()) {
+    setupOpenApi(app);
+  }
+
   const preferredPort = getPreferredPort();
   const host = process.env.HOST ?? 'localhost';
   const allowFallback = shouldUsePortFallback();
