@@ -41,11 +41,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/plain": string;
+                };
             };
         };
     };

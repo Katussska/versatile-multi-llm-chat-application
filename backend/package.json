@@ -10,7 +10,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "cross-env NODE_ENV=development nest start --watch",
     "dev:debug": "cross-env NODE_ENV=development nest start --debug --watch",
-    "openapi:export": "pnpm build && node dist/export-openapi.js ../frontend/openapi.json",
+    "openapi:export": "pnpm build && cross-env OPENAPI_EXPORT=true node dist/export-openapi.js ../frontend/openapi.json",
     "db:reset": "pnpm build && node ./scripts/db-reset.cjs",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",

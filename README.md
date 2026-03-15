@@ -85,6 +85,9 @@ Pri spusteni pres `pnpm dev` backend bezi s `NODE_ENV=development`, takze pokud 
 
 Nastavenim `PORT_FALLBACK=true` muzete fallback povolit explicitne i mimo development. Nastavenim `PORT_FALLBACK=false` jej naopak vynutene vypnete i v developmentu.
 
+Frontend očekává `VITE_API_BASE_URL` v `frontend/.env` (např. `VITE_API_BASE_URL=http://localhost:3000`).
+Pokud backend při lokálním vývoji přejde kvůli obsazenému portu na jiný port, aktualizujte tuto hodnotu na skutečnou URL backendu.
+
 ### 4. Spuštění vývojového serveru
 
 Aplikaci spustíte pomocí následujícího příkazu:
