@@ -5,7 +5,10 @@ import { AppModule } from './app.module';
 import { createOpenApiDocument } from './openapi';
 
 async function bootstrap() {
-  const outputPath = resolve(process.cwd(), process.argv[2] ?? '../frontend/openapi.json');
+  const outputPath = resolve(
+    process.cwd(),
+    process.argv[2] ?? '../frontend/openapi.json',
+  );
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn'],
   });
