@@ -1,6 +1,7 @@
 import { createServer } from 'node:net';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { setupOpenApi } from './openapi';
 
 async function findAvailablePort(
   startPort: number,
@@ -90,6 +91,8 @@ function shouldUsePortFallback(): boolean {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  setupOpenApi(app);
+
   const preferredPort = getPreferredPort();
   const host = process.env.HOST ?? 'localhost';
   const allowFallback = shouldUsePortFallback();

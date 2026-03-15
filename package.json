@@ -8,6 +8,7 @@
     "fe": "pnpm --filter @cognify/frontend",
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel --filter @cognify/backend --filter @cognify/frontend dev",
+    "openapi:sync": "pnpm --filter @cognify/backend openapi:export && pnpm --filter @cognify/frontend openapi:types",
     "db:reset": "DB_RESET_CONFIRM=true pnpm --filter @cognify/backend db:reset",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
