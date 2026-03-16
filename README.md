@@ -1,73 +1,149 @@
 # Cognify
 
-## Versatile Multi-LLM Chat Application with User Profiles and Group Chats
+## MVP pro chat aplikaci s více modely
 
-Cognify je webová aplikace, která umožňuje uživatelům komunikovat s různými velkými jazykovými modely (LLM) a zároveň
-spravovat své uživatelské profily. Aplikace podporuje skupinové chaty, správu tokenů pro využití LLM, rozvětvování
-konverzací a jejich ukládání.
+Cognify je monorepo aplikace rozdělená na frontend a backend. Aktuální verze projektu je postavená na vlastním backendu v NestJS a na React frontend aplikaci. Repo dnes obsahuje hlavně základ MVP: chat layout, výběr modelu, strom konverzace, lokální API klient generovaný z OpenAPI a připravený datový model pro další rozvoj.
 
-## Cíle projektu
+## Obsah
 
-Cílem této aplikace je nabídnout flexibilní prostředí, kde mohou uživatelé interagovat s více LLM službami a ostatními
-uživateli, přičemž mají plnou kontrolu nad svým profilem a možnostmi interakcí. Aplikace zahrnuje následující klíčové
-funkce:
+- [Cíle projektu (finální vize)](#cíle-projektu-finální-vize)
+- [Použité technologie](#použité-technologie)
+- [Aktuální stav MVP](#aktuální-stav-mvp)
+- [Struktura repozitáře](#struktura-repozitáře)
+- [Požadavky](#požadavky)
+- [Instalace a setup](#instalace-a-setup)
+- [Spuštění projektu](#spuštění-projektu)
+- [Užitečné commandy](#užitečné-commandy)
+- [API a OpenAPI](#api-a-openapi)
+- [Datový model](#datový-model)
+- [Licence](#licence)
 
-- **Multi-LLM chat**: Možnost přepínání mezi různými LLM během chatu.
-- **Groupchaty s LLM**: Uživatelé mohou sdílet chat s více lidmi v jednom chatu, kde každý může přispívat a komunikovat
-  s LLM.
-- **Správa uživatelských profilů**: Uživatelé mohou vytvářet a spravovat své profily.
-- **Admin panel**: Správa tokenů a monitorování limitů (počet requestů/dolarů na určité časové období).
-- **Rozvětvení konverzací**: Uživatelé mohou rozdělit konverzaci do různých větví a vizualizovat historii chatu, přičemž
-  se mohou kdykoliv vrátit k předchozí větvi.
-- **Ukládání zpráv**: Možnost ukládání jednotlivých zpráv nebo celých konverzací.
+## Cíle projektu (finální vize)
 
-## Funkce aplikace
+Cílem finální verze Cognify je nabídnout aplikaci, kde uživatelé mohou pohodlně pracovat s více LLM modely v jednom prostředí, sdílet konverzace a mít dobrou kontrolu nad historií, profilem i limity použití.
 
-1. **Registrace a přihlášení uživatelů**: Uživatelé se mohou registrovat, přihlašovat a spravovat své účty.
-2. **Groupchat s LLM**: Uživatelé mohou vytvářet skupinové konverzace s více lidmi, přičemž každý účastník může
-   interagovat s LLM.
-3. **Správa tokenů (admin)**: Správa počtu requestů nebo dolarového limitu, který každý uživatel může využít během
-   určitého období. Tato možnost je dostupná pouze pro administrátory.
-4. **Rozvětvení konverzace**: Uživatelé mohou větvit konverzace na různé scénáře a vizualizovat celou historii
-   interakcí, s možností vracet se k předchozím větvím.
-5. **Ukládání zpráv a konverzací**: Uživatelé mohou ukládat jednotlivé zprávy nebo celé konverzace pro budoucí
-   reference.
-6. **Základní statistiky**: Zobrazení statistik interakcí s různými LLM modely a přehled uživatelských aktivit.
+Plánovaná cílová funkcionalita:
 
-## Technický stack
+- multi-LLM chat s možností přepínat modely
+- větší podpora větvení konverzací a orientace v historii
+- group chat scénáře (více uživatelů v jedné konverzaci)
+- autentizace a správa uživatelských profilů
+- admin funkce pro monitoring a limity spotřeby
+- robustní backend API pro další rozvoj klienta
 
-- **Frontend**: React
-- **Backend**: Supabase
-- **Jazyk**: TypeScript
-- **Databáze**: PostgreSQL
-- **Styling**: TailwindCSS
-- **UI**: Shadcn UI
+## Použité technologie
 
-## Instalace a spuštění projektu
+### Frontend
 
-### 1. Klonování repozitáře
+- React 18
+- Vite
+- TypeScript
+- Tailwind CSS
+- shadcn/ui a Radix UI
+- React Router
+- TanStack Query
+- React Hook Form + Zod
+- i18next
+- openapi-fetch + openapi-react-query
 
-```bash
-git clone https://github.com/tvuj-username/cognify.git
-cd cognify
+### Backend
+
+- NestJS 11
+- TypeScript
+- MikroORM 7
+- PostgreSQL 16
+- Swagger / OpenAPI
+
+### Tooling
+
+- pnpm workspaces
+- Docker Compose pro lokální PostgreSQL
+- ESLint
+- Prettier
+- Jest
+
+## Aktuální stav MVP
+
+V repozitáři je momentálně hotové nebo připravené hlavně toto:
+
+- chat rozložení aplikace se sidebarem, vstupem zprávy a obsahem konverzace
+- výběr modelu v UI
+- zobrazení a přepínání panelu se stromem konverzace
+- základ témování a přepínání vzhledu
+- lokalizace pro češtinu a angličtinu
+- backend v NestJS s OpenAPI dokumentací
+- export OpenAPI schématu do frontendu a generování TypeScript typů
+- základní entitní model pro `User`, `Chat`, `Message`, `Model` a `Token`
+- příprava rout pro přihlášení a profil
+
+Některé části jsou zatím jen scaffold nebo placeholder a nejsou dokončené end-to-end:
+
+- autentizace je zatím mockovaná ve frontend contextu
+- profilová stránka je zatím jen základní placeholder
+- admin panel zatím není implementovaný
+- group chat workflow zatím není implementovaný
+- reálné napojení na LLM providery a perzistence chatu ještě není dodělaná v produkční podobě
+
+README odlišuje finální vizi od skutečného stavu MVP, aby bylo jasné, co je už implementované a co je ještě plán.
+
+## Struktura repozitáře
+
+```text
+.
+|- backend/    NestJS API, OpenAPI export, MikroORM, testy
+|- frontend/   React aplikace ve Vite, komponenty, routy, generovaný API klient
+|- docker-compose.yml
+|- package.json
 ```
 
-### 2. Instalace závislostí
+## Požadavky
 
-Použijte následující příkaz pro instalaci všech potřebných závislostí projektu:
+- Node.js 20+
+- pnpm 10+
+- Docker + Docker Compose
+
+Pokud nemáte `pnpm`, doporučená instalace je přes Corepack:
+
+```bash
+corepack enable
+corepack prepare pnpm@10.27.0 --activate
+```
+
+## Instalace a setup
+
+### 1. Instalace závislostí
 
 ```bash
 pnpm install
 ```
 
-### 3. Nastavení prostředí
+### 2. Spuštění PostgreSQL
 
-Backend používá vlastní `.env` soubor. Zkopírujte [backend/.env.example](backend/.env.example) do `backend/.env` a upravte hodnoty:
+```bash
+docker compose up -d db
+```
+
+Databáze poběží lokálně na `localhost:5432` s těmito hodnotami:
+
+- database: `cognify`
+- user: `postgres`
+- password: `postgres`
+
+### 3. Nastavení backendu
+
+Zkopírujte env soubor:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Výchozí obsah odpovídá lokálnímu Docker PostgreSQL setupu:
 
 ```env
 PORT=3000
 HOST=localhost
 PORT_FALLBACK=false
+
 MIKRO_ORM_TYPE=postgresql
 MIKRO_ORM_HOST=localhost
 MIKRO_ORM_PORT=5432
@@ -76,61 +152,120 @@ MIKRO_ORM_USER=postgres
 MIKRO_ORM_PASSWORD=postgres
 ```
 
-Pri spusteni pres `pnpm dev` backend bezi s `NODE_ENV=development`, takze pokud je `PORT` obsazeny, automaticky zkusi dalsi volny port.
+Poznámka k portu backendu:
 
-`PORT_FALLBACK` je volitelne a slouzi jako explicitni override. Vychozi chovani je:
+- `pnpm dev` spouští backend s `NODE_ENV=development`
+- pokud chcete, aby backend při obsazeném portu automaticky přešel na další volný port, nastavte `PORT_FALLBACK=true` nebo proměnnou z `backend/.env` odeberte
+- pokud necháte `PORT_FALLBACK=false`, backend při konfliktu portu skončí chybou
 
-- `NODE_ENV=development`: pokud je `PORT` obsazeny, backend se pokusi najit dalsi volny port.
-- ostatni prostredi: backend selze s chybou, aby se neporusilo ocekavane bindovani portu (Docker/K8s/health checks).
+### 4. Nastavení frontendu
 
-Nastavenim `PORT_FALLBACK=true` muzete fallback povolit explicitne i mimo development. Nastavenim `PORT_FALLBACK=false` jej naopak vynutene vypnete i v developmentu.
+Vytvořte soubor `frontend/.env`:
 
-Frontend očekává `VITE_API_BASE_URL` v `frontend/.env` (např. `VITE_API_BASE_URL=http://localhost:3000`).
-Pokud backend při lokálním vývoji přejde kvůli obsazenému portu na jiný port, aktualizujte tuto hodnotu na skutečnou URL backendu.
+```env
+VITE_API_BASE_URL=http://localhost:3000
+```
 
-### 4. Spuštění vývojového serveru
+Frontend tuto proměnnou vyžaduje explicitně. Pokud backend v lokálním vývoji poběží na jiném portu, aktualizujte i `VITE_API_BASE_URL`.
 
-Aplikaci spustíte pomocí následujícího příkazu:
+### 5. Co se instaluje
+
+Po `pnpm install` se nainstalují všechny balíčky ze všech workspace částí:
+
+- root tooling a workspace skripty
+- backend dependencies (`@nestjs/*`, `@mikro-orm/*`, `jest`, `eslint`...)
+- frontend dependencies (`react`, `vite`, `tailwindcss`, `radix`, `zod`...)
+
+Není potřeba instalovat balíčky ručně po jednotlivých složkách.
+
+## Spuštění projektu
+
+### Vývojový režim celého monorepa
 
 ```bash
 pnpm dev
 ```
 
-Po spuštění bude frontend dostupný na `http://localhost:5173` a backend standardně na `http://localhost:3000`.
+Tím se paralelně spustí:
 
-## Architektura
+- backend na `http://localhost:3000`
+- frontend na `http://localhost:5173`
 
-### Frontend
+### Spuštění jen backendu
 
-Aplikace využívá **React** pro komponentově orientovaný vývoj.
+```bash
+pnpm be dev
+```
 
-### Backend
+### Spuštění jen frontendu
 
-**Supabase** zajišťuje autentizaci uživatelů, ukládání dat a poskytování backend API. Používá **PostgreSQL** databázi,
-která ukládá uživatelské profily, zprávy, tokeny, statistiky a další interakce.
+```bash
+pnpm fe dev
+```
 
-### Styling
+## Užitečné commandy
 
-Pro rychlou a efektivní tvorbu uživatelského rozhraní aplikace používá **TailwindCSS**, což zjednodušuje správu
-responzivního designu a umožňuje dynamické přizpůsobení stylů přímo ve vývoji. Pro komponenty a UI design je využíván *
-*Shadcn UI**.
+### Build celého projektu
 
-### Databáze
+```bash
+pnpm build
+```
 
-Databázová vrstva využívá **PostgreSQL** a spravuje ji Supabase. Data zahrnují:
+### Synchronizace OpenAPI a frontend typů
 
-- Uživatelé (profily, přístupové role, statistiky)
-- Chaty (groupchaty, jednotlivé zprávy, LLM interakce)
-- Správa tokenů (limit počtu requestů a dolarových částek)
-- Ukládání a historie konverzací
+```bash
+pnpm openapi:sync
+```
 
-## Správa tokenů (Admin panel)
+Tento command:
 
-**Admin účet** poskytuje možnost spravovat využití LLM tokenů pro jednotlivé uživatele, nastavit limity pro počet
-požadavků nebo finanční náklady za určité časové období. Administrátor může sledovat využití tokenů v reálném čase a
-upravovat limity pro každého uživatele.
+1. vyexportuje OpenAPI schéma z backendu do `frontend/openapi.json`
+2. vygeneruje TypeScript typy do `frontend/src/api/generated/schema.d.ts`
+
+Backend kvůli tomu nemusí běžet.
+
+### Reset databáze
+
+```bash
+pnpm db:reset
+```
+
+Reset je chráněný bezpečnostními proměnnými a je určený hlavně pro lokální development.
+
+### Backend testy
+
+```bash
+pnpm --filter @cognify/backend test
+pnpm --filter @cognify/backend test:e2e
+```
+
+### Frontend kontrola
+
+```bash
+pnpm --filter @cognify/frontend lint
+pnpm --filter @cognify/frontend typecheck
+```
+
+## API a OpenAPI
+
+- Swagger UI je v developmentu dostupné na `http://localhost:3000/api`
+- runtime OpenAPI je standardně zapnuté mimo production
+- export schématu pro frontend řeší skript `pnpm openapi:sync`
+
+## Datový model
+
+Backend už obsahuje základní entity pro další implementaci aplikace:
+
+- `User`
+- `Chat`
+- `Message`
+- `Model`
+- `Token`
+
+Tyto entity jsou spravované přes MikroORM a ukládají se do PostgreSQL.
 
 ## Licence
 
-Tento projekt je licencován pod licencí **MIT**. Jedná se o bakalářskou práci na Fakultě informatiky a elektroniky na
-VŠB - Technické univerzitě Ostrava.
+Projekt je součástí bakalářské práce na Fakultě informatiky a elektroniky VSB-TUO.
+
+Licence je MIT, viz soubor `LICENSE`.
