@@ -20,10 +20,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/examples/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Example GET endpoint with DTO response */
+        get: operations["AppController_getExampleStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/examples/echo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Example POST endpoint with DTO request/response */
+        post: operations["AppController_createExample"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        ExampleGetResponseDto: {
+            /**
+             * @description Simple health-like status value.
+             * @example ok
+             */
+            status: string;
+            /**
+             * @description Human-readable info message.
+             * @example Example GET endpoint is working.
+             */
+            message: string;
+        };
+        ExampleRequestDto: {
+            /**
+             * @description Text, ktery se ma vratit zpet v odpovedi.
+             * @example Ahoj Cognify
+             */
+            message: string;
+        };
+        ExampleResponseDto: {
+            /**
+             * @description Stejna hodnota jako ve vstupnim DTO.
+             * @example Ahoj Cognify
+             */
+            echoedMessage: string;
+            /**
+             * @description Delka textu ze vstupu.
+             * @example 12
+             */
+            length: number;
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -48,6 +114,50 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+        };
+    };
+    AppController_getExampleStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Simple status payload for OpenAPI/Swagger demo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleGetResponseDto"];
+                };
+            };
+        };
+    };
+    AppController_createExample: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExampleRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Echoed payload for OpenAPI/Swagger demo */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleResponseDto"];
                 };
             };
         };
