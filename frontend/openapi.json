@@ -21,6 +21,60 @@
           "App"
         ]
       }
+    },
+    "/examples/status": {
+      "get": {
+        "operationId": "AppController_getExampleStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Simple status payload for OpenAPI/Swagger demo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleGetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Example GET endpoint with DTO response",
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/examples/echo": {
+      "post": {
+        "operationId": "AppController_createExample",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExampleRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Echoed payload for OpenAPI/Swagger demo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Example POST endpoint with DTO request/response",
+        "tags": [
+          "App"
+        ]
+      }
     }
   },
   "info": {
@@ -32,6 +86,58 @@
   "tags": [],
   "servers": [],
   "components": {
-    "schemas": {}
+    "schemas": {
+      "ExampleGetResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok",
+            "description": "Simple health-like status value."
+          },
+          "message": {
+            "type": "string",
+            "example": "Example GET endpoint is working.",
+            "description": "Human-readable info message."
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ]
+      },
+      "ExampleRequestDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Ahoj Cognify",
+            "description": "Text, ktery se ma vratit zpet v odpovedi."
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ExampleResponseDto": {
+        "type": "object",
+        "properties": {
+          "echoedMessage": {
+            "type": "string",
+            "example": "Ahoj Cognify",
+            "description": "Stejna hodnota jako ve vstupnim DTO."
+          },
+          "length": {
+            "type": "number",
+            "example": 12,
+            "description": "Delka textu ze vstupu."
+          }
+        },
+        "required": [
+          "echoedMessage",
+          "length"
+        ]
+      }
+    }
   }
 }

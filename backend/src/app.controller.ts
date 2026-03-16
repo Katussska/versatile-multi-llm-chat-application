@@ -1,6 +1,14 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiProduces } from '@nestjs/swagger';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+} from '@nestjs/swagger';
 import { AppService } from './app.service';
+import { ExampleGetResponseDto } from './dto/example-get-response.dto';
+import { ExampleRequestDto } from './dto/example-request.dto';
+import { ExampleResponseDto } from './dto/example-response.dto';
 
 @Controller()
 export class AppController {
@@ -18,5 +26,31 @@ export class AppController {
   })
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('examples/status')
+  @ApiOperation({ summary: 'Example GET endpoint with DTO response' })
+  @ApiOkResponse({
+    description: 'Simple status payload for OpenAPI/Swagger demo',
+    type: ExampleGetResponseDto,
+  })
+  getExampleStatus(): ExampleGetResponseDto {
+    return {
+      status: 'ok',
+      message: 'Example GET endpoint is working.',
+    };
+  }
+
+  @Post('examples/echo')
+  @ApiOperation({ summary: 'Example POST endpoint with DTO request/response' })
+  @ApiCreatedResponse({
+    description: 'Echoed payload for OpenAPI/Swagger demo',
+    type: ExampleResponseDto,
+  })
+  createExample(@Body() body: ExampleRequestDto): ExampleResponseDto {
+    return {
+      echoedMessage: body.message,
+      length: body.message.length,
+    };
   }
 }
