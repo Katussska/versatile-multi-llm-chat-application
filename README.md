@@ -42,6 +42,8 @@ Plánovaná cílová funkcionalita:
 - shadcn/ui a Radix UI
 - React Router
 - TanStack Query
+- better-auth
+- @daveyplate/better-auth-tanstack
 - React Hook Form + Zod
 - i18next
 - openapi-fetch + openapi-react-query
@@ -75,10 +77,12 @@ V repozitáři je momentálně hotové nebo připravené hlavně toto:
 - export OpenAPI schématu do frontendu a generování TypeScript typů
 - základní entitní model pro `User`, `Chat`, `Message`, `Model` a `Token`
 - příprava rout pro přihlášení a profil
+- připravený React Query auth wiring (`AuthQueryProvider`, `createAuthClient`, `createAuthHooks`)
+- smoke test `useSession` na route `/profile`
 
 Některé části jsou zatím jen scaffold nebo placeholder a nejsou dokončené end-to-end:
 
-- autentizace je zatím mockovaná ve frontend contextu
+- Better Auth endpointy zatím nejsou implementované na backendu (např. `/api/auth/get-session` vrací 404)
 - profilová stránka je zatím jen základní placeholder
 - admin panel zatím není implementovaný
 - group chat workflow zatím není implementovaný
@@ -143,6 +147,7 @@ Výchozí obsah odpovídá lokálnímu Docker PostgreSQL setupu:
 PORT=3000
 HOST=localhost
 PORT_FALLBACK=false
+FRONTEND_ORIGIN=http://localhost:5173
 
 MIKRO_ORM_TYPE=postgresql
 MIKRO_ORM_HOST=localhost
@@ -163,10 +168,15 @@ Poznámka k portu backendu:
 Vytvořte soubor `frontend/.env`:
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3000
 ```
 
-Frontend tuto proměnnou vyžaduje explicitně. Pokud backend v lokálním vývoji poběží na jiném portu, aktualizujte i `VITE_API_BASE_URL`.
+Frontend tuto proměnnou vyžaduje explicitně. Pokud backend v lokálním vývoji poběží na jiném portu, aktualizujte i `VITE_API_URL`.
+
+Poznámka k Better Auth:
+
+- frontend je připravený na TanStack Query auth hooky
+- dokud backend neobsahuje Better Auth handler, session requesty budou končit 404 (to je v této fázi očekávané)
 
 ### 5. Co se instaluje
 
@@ -251,6 +261,7 @@ pnpm --filter @cognify/frontend typecheck
 - Swagger UI je v developmentu dostupné na `http://localhost:3000/api`
 - runtime OpenAPI je standardně zapnuté mimo production
 - export schématu pro frontend řeší skript `pnpm openapi:sync`
+- backend má povolené CORS pro `FRONTEND_ORIGIN` (default `http://localhost:5173`)
 
 ## Datový model
 

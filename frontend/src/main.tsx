@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 
 import '@/i18n.ts';
+import { AuthQueryProvider } from '@daveyplate/better-auth-tanstack';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import App from './App.tsx';
@@ -11,7 +12,9 @@ import { createRoot } from 'react-dom/client';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <AuthQueryProvider>
+        <App />
+      </AuthQueryProvider>
     </QueryClientProvider>
   </StrictMode>,
 );
