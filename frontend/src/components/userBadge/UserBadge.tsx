@@ -27,7 +27,7 @@ export default function UserBadge() {
         {/* @ts-ignore*/}
         <TypographyMuted>{user?.email || 'email'}</TypographyMuted>
       </div>
-      <Avatar onClick={() => navigate('/profile')} className="cursor-pointer">
+      <Avatar onClick={() => navigate('/')} className="cursor-pointer">
         <AvatarImage src="/avatar.png" />
         <AvatarFallback>CN</AvatarFallback>
       </Avatar>

@@ -37,6 +37,15 @@ importers:
       '@nestjs/swagger':
         specifier: ^11.2.6
         version: 11.2.6(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)
+      '@thallesp/nestjs-better-auth':
+        specifier: ^2.5.1
+        version: 2.5.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(express@5.2.1)(qs@6.15.0)(typescript@5.9.3)
+      better-auth:
+        specifier: ^1.5.5
+        version: 1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1968,6 +1977,29 @@ packages:
     resolution: {integrity: sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@thallesp/nestjs-better-auth@2.5.1':
+    resolution: {integrity: sha512-pEp7om4KOD7sE9CmzpAXsCppzed24NY/TNwbmA8Gomjbn30SrxNfapUFMg/Dw1z2do51dGP7QVNF4oEXNVjsCQ==}
+    engines: {node: '>=22.22.1'}
+    peerDependencies:
+      '@nestjs/common': ^11.1.6
+      '@nestjs/core': ^11.1.6
+      '@nestjs/graphql': ^13.1.0
+      '@nestjs/websockets': ^11.1.6
+      better-auth: '>=1.5.0 <2.0.0'
+      express: ^5.1.0
+      graphql: ^16.11.0
+      qs: ^6.14.0
+      typescript: ^5.9.2
+    peerDependenciesMeta:
+      '@nestjs/graphql':
+        optional: true
+      '@nestjs/websockets':
+        optional: true
+      graphql:
+        optional: true
+      qs:
+        optional: true
 
   '@tokenizer/inflate@0.4.1':
     resolution: {integrity: sha512-2mAv+8pkG6GIZiF1kNg1jAjh27IDxEPKwdGul3snfztFerfPGI1LjDezZp3i7BElXompqEtPmoPx6c2wgtWsOA==}
@@ -7558,6 +7590,16 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.90.20
       react: 18.3.1
+
+  '@thallesp/nestjs-better-auth@2.5.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(express@5.2.1)(qs@6.15.0)(typescript@5.9.3)':
+    dependencies:
+      '@nestjs/common': 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      better-auth: 1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      express: 5.2.1
+      typescript: 5.9.3
+    optionalDependencies:
+      qs: 6.15.0
 
   '@tokenizer/inflate@0.4.1':
     dependencies:

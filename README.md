@@ -82,7 +82,7 @@ V repozitáři je momentálně hotové nebo připravené hlavně toto:
 
 Některé části jsou zatím jen scaffold nebo placeholder a nejsou dokončené end-to-end:
 
-- Better Auth endpointy zatím nejsou implementované na backendu (např. `/api/auth/get-session` vrací 404)
+- Better Auth je napojený na backend (`/api/auth/*`) a připravený pro FE integraci
 - profilová stránka je zatím jen základní placeholder
 - admin panel zatím není implementovaný
 - group chat workflow zatím není implementovaný
@@ -155,6 +155,16 @@ MIKRO_ORM_PORT=5432
 MIKRO_ORM_DB_NAME=cognify
 MIKRO_ORM_USER=postgres
 MIKRO_ORM_PASSWORD=postgres
+
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SCHEMA=auth
+BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
+```
+
+Po nastavení `.env` vytvořte Better Auth tabulky v DB:
+
+```bash
+pnpm --filter @cognify/backend auth:migrate
 ```
 
 Poznámka k portu backendu:
@@ -176,7 +186,8 @@ Frontend tuto proměnnou vyžaduje explicitně. Pokud backend v lokálním vývo
 Poznámka k Better Auth:
 
 - frontend je připravený na TanStack Query auth hooky
-- dokud backend neobsahuje Better Auth handler, session requesty budou končit 404 (to je v této fázi očekávané)
+- backend vystavuje Better Auth endpointy na `/api/auth/*`
+- FE auth klient (`createAuthClient`) komunikuje s backendem přes `VITE_API_URL`
 
 ### 5. Co se instaluje
 
@@ -241,6 +252,14 @@ pnpm db:reset
 ```
 
 Reset je chráněný bezpečnostními proměnnými a je určený hlavně pro lokální development.
+
+### Better Auth migrace
+
+```bash
+pnpm --filter @cognify/backend auth:migrate
+```
+
+Vytvoří (nebo doplní) tabulky potřebné pro Better Auth v PostgreSQL.
 
 ### Backend testy
 
