@@ -22,10 +22,10 @@ pnpm install
 cp backend/.env.example backend/.env
 ```
 
-3. Ensure PostgreSQL is running and create Better Auth schema/tables:
+3. Ensure PostgreSQL is running and apply database migrations:
 
 ```bash
-pnpm --filter @cognify/backend auth:migrate
+pnpm --filter @cognify/backend db:migrate
 ```
 
 4. Start backend in watch mode:
@@ -37,6 +37,8 @@ pnpm --filter @cognify/backend dev
 Backend defaults to `http://localhost:3000`.
 
 ## Better Auth Setup
+
+Better Auth core tables are defined as MikroORM entities and are migrated together with the rest of the backend schema.
 
 Better Auth endpoints are mounted under:
 
@@ -70,7 +72,6 @@ MIKRO_ORM_USER=postgres
 MIKRO_ORM_PASSWORD=postgres
 
 BETTER_AUTH_URL=http://localhost:3000
-BETTER_AUTH_SCHEMA=auth
 BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
 
 DB_RESET_CONFIRM=false
@@ -80,8 +81,6 @@ DB_RESET_ALLOW_NON_DEVELOPMENT=false
 Notes:
 
 - `BETTER_AUTH_SECRET` must be at least 32 characters in production.
-- `BETTER_AUTH_SCHEMA` defaults to `auth`.
-- Better Auth CLI config (`src/auth.config.ts`) loads `backend/.env` automatically.
 
 ## Scripts
 
@@ -94,12 +93,20 @@ pnpm --filter @cognify/backend test
 pnpm --filter @cognify/backend test:e2e
 ```
 
-Better Auth helpers:
+Database helpers:
 
 ```bash
-pnpm --filter @cognify/backend auth:prepare-db
-pnpm --filter @cognify/backend auth:migrate
-pnpm --filter @cognify/backend auth:generate
+# Apply all pending migrations.
+pnpm --filter @cognify/backend db:migrate
+
+# Create a new migration from entity schema diff (and print generated SQL).
+pnpm --filter @cognify/backend db:migration:create
+
+# Roll back the latest executed migration.
+pnpm --filter @cognify/backend db:migration:down
+
+# List executed and pending migrations.
+pnpm --filter @cognify/backend db:migration:list
 ```
 
 Database reset (development-safe):
@@ -121,6 +128,6 @@ pnpm --filter @cognify/backend openapi:export
 
 ## Troubleshooting
 
-- If `auth:migrate` fails with connection errors, verify PostgreSQL host/port and credentials in `backend/.env`.
+- If `db:migrate` fails with connection errors, verify PostgreSQL host/port and credentials in `backend/.env`.
 - If backend fails on secret in production, set a strong `BETTER_AUTH_SECRET`.
 - If port 3000 is occupied and fallback is disabled, set `PORT_FALLBACK=true` or change `PORT`.

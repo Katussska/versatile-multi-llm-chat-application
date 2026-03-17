@@ -1,5 +1,6 @@
-import { Pool } from 'pg';
 import { betterAuth } from 'better-auth';
+import { mikroOrmAdapter } from 'better-auth-mikro-orm';
+import type { MikroORM } from '@mikro-orm/core';
 
 type AuthEnvironment = NodeJS.ProcessEnv;
 
@@ -30,37 +31,64 @@ function getAuthSecret(env: AuthEnvironment): string {
   return 'dev-only-better-auth-secret-change-me-please';
 }
 
-function getAuthSchema(env: AuthEnvironment): string {
-  const rawSchema = env.BETTER_AUTH_SCHEMA ?? 'auth';
-  const schema = rawSchema.trim();
-
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema)) {
-    throw new Error(
-      `Invalid BETTER_AUTH_SCHEMA value "${rawSchema}". Use a valid PostgreSQL schema identifier.`,
-    );
-  }
-
-  return schema;
-}
-
-export function getAuth(env: AuthEnvironment = process.env) {
-  const authSchema = getAuthSchema(env);
-
-  const database = new Pool({
-    host: env.MIKRO_ORM_HOST ?? 'localhost',
-    port: Number(env.MIKRO_ORM_PORT ?? 5432),
-    database: env.MIKRO_ORM_DB_NAME ?? 'cognify',
-    user: env.MIKRO_ORM_USER ?? 'postgres',
-    password: env.MIKRO_ORM_PASSWORD ?? 'postgres',
-    options: `-c search_path=${authSchema},public`,
-  });
-
+export function getAuth(env: AuthEnvironment = process.env, orm: MikroORM) {
   return betterAuth({
-    database,
+    database: mikroOrmAdapter(orm),
     baseURL: env.BETTER_AUTH_URL ?? getDefaultAuthUrl(env),
     basePath: '/api/auth',
     secret: getAuthSecret(env),
+    advanced: {
+      database: {
+        generateId: false,
+      },
+    },
     trustedOrigins: [env.FRONTEND_ORIGIN ?? 'http://localhost:5173'],
+    user: {
+      fields: {
+        emailVerified: 'email_verified',
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+      },
+      additionalFields: {
+        admin: {
+          type: 'boolean',
+          required: false,
+          defaultValue: false,
+          input: false,
+        },
+      },
+    },
+    session: {
+      fields: {
+        userId: 'user_id',
+        expiresAt: 'expires_at',
+        ipAddress: 'ip_address',
+        userAgent: 'user_agent',
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+      },
+    },
+    account: {
+      fields: {
+        accountId: 'account_id',
+        providerId: 'provider_id',
+        userId: 'user_id',
+        accessToken: 'access_token',
+        refreshToken: 'refresh_token',
+        idToken: 'id_token',
+        accessTokenExpiresAt: 'access_token_expires_at',
+        refreshTokenExpiresAt: 'refresh_token_expires_at',
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+      },
+    },
+    verification: {
+      fields: {
+        expiresAt: 'expires_at',
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+      },
+    },
     emailAndPassword: {
       enabled: true,
     },

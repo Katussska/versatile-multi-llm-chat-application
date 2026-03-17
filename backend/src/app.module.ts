@@ -4,6 +4,7 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { MikroORM } from '@mikro-orm/core';
 import { defineConfig } from '@mikro-orm/postgresql';
 import { getAuth } from './auth';
 
@@ -40,23 +41,25 @@ const authImport = isOpenApiExportMode()
   ? []
   : [
       AuthModule.forRootAsync({
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          auth: getAuth({
-            ...process.env,
-            BETTER_AUTH_SECRET: config.get<string>('BETTER_AUTH_SECRET'),
-            BETTER_AUTH_SCHEMA: config.get<string>('BETTER_AUTH_SCHEMA'),
-            BETTER_AUTH_URL: config.get<string>('BETTER_AUTH_URL'),
-            FRONTEND_ORIGIN: config.get<string>('FRONTEND_ORIGIN'),
-            HOST: config.get<string>('HOST'),
-            PORT: config.get<string>('PORT'),
-            MIKRO_ORM_HOST: config.get<string>('MIKRO_ORM_HOST'),
-            MIKRO_ORM_PORT: config.get<string>('MIKRO_ORM_PORT'),
-            MIKRO_ORM_DB_NAME: config.get<string>('MIKRO_ORM_DB_NAME'),
-            MIKRO_ORM_USER: config.get<string>('MIKRO_ORM_USER'),
-            MIKRO_ORM_PASSWORD: config.get<string>('MIKRO_ORM_PASSWORD'),
-            NODE_ENV: config.get<string>('NODE_ENV') ?? process.env.NODE_ENV,
-          }),
+        inject: [ConfigService, MikroORM],
+        useFactory: (config: ConfigService, orm: MikroORM) => ({
+          auth: getAuth(
+            {
+              ...process.env,
+              BETTER_AUTH_SECRET: config.get<string>('BETTER_AUTH_SECRET'),
+              BETTER_AUTH_URL: config.get<string>('BETTER_AUTH_URL'),
+              FRONTEND_ORIGIN: config.get<string>('FRONTEND_ORIGIN'),
+              HOST: config.get<string>('HOST'),
+              PORT: config.get<string>('PORT'),
+              MIKRO_ORM_HOST: config.get<string>('MIKRO_ORM_HOST'),
+              MIKRO_ORM_PORT: config.get<string>('MIKRO_ORM_PORT'),
+              MIKRO_ORM_DB_NAME: config.get<string>('MIKRO_ORM_DB_NAME'),
+              MIKRO_ORM_USER: config.get<string>('MIKRO_ORM_USER'),
+              MIKRO_ORM_PASSWORD: config.get<string>('MIKRO_ORM_PASSWORD'),
+              NODE_ENV: config.get<string>('NODE_ENV') ?? process.env.NODE_ENV,
+            },
+            orm,
+          ),
           disableGlobalAuthGuard: true,
         }),
       }),

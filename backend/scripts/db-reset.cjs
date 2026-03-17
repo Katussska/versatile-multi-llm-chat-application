@@ -3,7 +3,6 @@ const { resolve } = require('node:path');
 process.loadEnvFile(resolve(__dirname, '..', '.env'));
 
 const { MikroORM } = require('@mikro-orm/postgresql');
-const mikroOrmConfig = require('../mikro-orm.config.js');
 
 const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
@@ -37,6 +36,8 @@ function assertSafeResetEnvironment(config) {
 }
 
 async function run() {
+  const { default: mikroOrmConfig } = await import('../mikro-orm.config.mjs');
+
   assertSafeResetEnvironment(mikroOrmConfig);
 
   const orm = await MikroORM.init(mikroOrmConfig);

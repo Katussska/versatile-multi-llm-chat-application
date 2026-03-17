@@ -43,6 +43,9 @@ importers:
       better-auth:
         specifier: ^1.5.5
         version: 1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      better-auth-mikro-orm:
+        specifier: ^0.4.3
+        version: 0.4.3(@mikro-orm/core@7.0.1(dataloader@2.2.3))(better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -68,6 +71,9 @@ importers:
       '@mikro-orm/cli':
         specifier: ^7.0.1
         version: 7.0.1(dataloader@2.2.3)
+      '@mikro-orm/migrations':
+        specifier: ^7.0.1
+        version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))
       '@nestjs/cli':
         specifier: ^11.0.16
         version: 11.0.16(@swc/core@1.15.18)(@types/node@25.5.0)
@@ -1146,6 +1152,12 @@ packages:
     peerDependenciesMeta:
       reflect-metadata:
         optional: true
+
+  '@mikro-orm/migrations@7.0.1':
+    resolution: {integrity: sha512-57raRvjLxm/b+iEvIOI4vQ8vEf4qSffucalHI0fx2lrKapICFh/JCGS56m4MaTt3iO3eoJEzI0rqrvz5A7X2YA==}
+    engines: {node: '>= 22.17.0'}
+    peerDependencies:
+      '@mikro-orm/core': 7.0.1
 
   '@mikro-orm/nestjs@7.0.1':
     resolution: {integrity: sha512-0VWaGIsVLMI6XDrrblX5om5lyf4msjlRu405jtuUYQ+nULK+XU2gb2mvzo7UvYZd//eEoXtMlkY5oEykm5Hriw==}
@@ -2652,6 +2664,13 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  better-auth-mikro-orm@0.4.3:
+    resolution: {integrity: sha512-lP0Ej4GIgF0kUq+opPQDv6UVRyRpPpcHIyZAxn7u+MtvI1VfVhLWAEwy3AV/YrX6aTKfMlVmv1hdKEtNDE8XHA==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      '@mikro-orm/core': ^6.0.0
+      better-auth: ^1.0.0
+
   better-auth@1.5.5:
     resolution: {integrity: sha512-GpVPaV1eqr3mOovKfghJXXk6QvlcVeFbS3z+n+FPDid5rK/2PchnDtiaVCzWyXA9jH2KkirOfl+JhAUvnja0Eg==}
     peerDependencies:
@@ -3120,6 +3139,10 @@ packages:
   dotenv@17.2.3:
     resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
     engines: {node: '>=12'}
+
+  dset@3.1.4:
+    resolution: {integrity: sha512-2QF/g9/zTaPDc3BjNcVTGoBbXBgYfMTTceLaYcFJ/W9kggFUkhxD/hMEeuLKbugyef9SqAx8cpgwlIP/jinUTA==}
+    engines: {node: '>=4'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -6836,6 +6859,11 @@ snapshots:
     optionalDependencies:
       reflect-metadata: 0.2.2
 
+  '@mikro-orm/migrations@7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))':
+    dependencies:
+      '@mikro-orm/core': 7.0.1(dataloader@2.2.3)
+      '@mikro-orm/sql': 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))
+
   '@mikro-orm/nestjs@7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)':
     dependencies:
       '@mikro-orm/core': 7.0.1(dataloader@2.2.3)
@@ -8359,6 +8387,12 @@ snapshots:
 
   baseline-browser-mapping@2.10.7: {}
 
+  better-auth-mikro-orm@0.4.3(@mikro-orm/core@7.0.1(dataloader@2.2.3))(better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
+    dependencies:
+      '@mikro-orm/core': 7.0.1(dataloader@2.2.3)
+      better-auth: 1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      dset: 3.1.4
+
   better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@better-auth/core': 1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.11)(nanostores@1.2.0)
@@ -8761,6 +8795,8 @@ snapshots:
   dotenv@16.6.1: {}
 
   dotenv@17.2.3: {}
+
+  dset@3.1.4: {}
 
   dunder-proto@1.0.1:
     dependencies:
