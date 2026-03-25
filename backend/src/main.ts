@@ -156,4 +156,5 @@ async function bootstrap() {
     console.info(`Backend is running at http://${host}:${fallbackPort}`);
   }
 }
-bootstrap();
+
+void bootstrap();

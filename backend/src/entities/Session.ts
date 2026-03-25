@@ -1,6 +1,7 @@
 import { Entity, ManyToOne, Property } from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { User } from './User';
+import type { Rel } from '@mikro-orm/core';
 
 @Entity({ tableName: 'session' })
 export class Session extends Base {
@@ -9,7 +10,7 @@ export class Session extends Base {
     fieldName: 'user_id',
     index: true,
   })
-  user!: User;
+  user!: Rel<User>;
 
   @Property({ type: 'text', unique: true })
   token!: string;

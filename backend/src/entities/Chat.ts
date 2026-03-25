@@ -1,4 +1,4 @@
-import { Collection } from '@mikro-orm/core';
+import { Collection, type Rel } from '@mikro-orm/core';
 import {
   Entity,
   ManyToOne,
@@ -16,7 +16,7 @@ export class Chat extends Base {
   model!: Model;
 
   @ManyToOne(() => User)
-  user!: User;
+  user!: Rel<User>;
 
   @OneToMany(() => Message, (message) => message.chat)
   messages = new Collection<Message>(this);
