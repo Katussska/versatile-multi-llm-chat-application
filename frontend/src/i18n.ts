@@ -12,6 +12,7 @@ i18n
     defaultNS: 'common',
     // resources,
     fallbackLng: 'en',
+    load: 'languageOnly',
     debug: import.meta.env.DEV,
 
     // Backend configuration

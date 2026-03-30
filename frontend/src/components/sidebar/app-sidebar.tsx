@@ -13,10 +13,12 @@ import { useAuthContext } from '@/lib/authContext.tsx';
 
 import { Bug, LogOut, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 export function AppSidebar() {
   const { logOut } = useAuthContext();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   return (
     <Sidebar>
@@ -52,6 +54,7 @@ export function AppSidebar() {
           className="my-2 flex cursor-pointer flex-row items-center"
           onClick={async () => {
             await logOut();
+            navigate('/login');
           }}>
           <LogOut className="mr-3" size={16} />
           {t('sidebar.logout')}

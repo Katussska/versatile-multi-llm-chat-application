@@ -2,14 +2,15 @@ import { Entity, ManyToOne, Property } from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { Model } from './Model';
 import { User } from './User';
+import type { Rel } from '@mikro-orm/core';
 
 @Entity()
 export class Token extends Base {
   @ManyToOne(() => Model)
-  model!: Model;
+  model!: Rel<Model>;
 
   @ManyToOne(() => User)
-  user!: User;
+  user!: Rel<User>;
 
   @Property({ type: 'number', fieldName: 'token_count' })
   tokenCount!: number;

@@ -113,7 +113,14 @@ function shouldEnableOpenApi(): boolean {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
+
+  app.enableCors({
+    origin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
+    credentials: true,
+  });
 
   if (shouldEnableOpenApi()) {
     setupOpenApi(app);
@@ -149,4 +156,5 @@ async function bootstrap() {
     console.info(`Backend is running at http://${host}:${fallbackPort}`);
   }
 }
-bootstrap();
+
+void bootstrap();

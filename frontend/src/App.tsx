@@ -3,13 +3,12 @@ import ChatSection from '@/components/chat/ChatSection.tsx';
 import { Layout } from '@/components/layout.tsx';
 import TreeSection from '@/components/tree/TreeSection.tsx';
 import UserBadge from '@/components/userBadge/UserBadge.tsx';
-import Profile from '@/routes/profile.tsx';
 
 import { ThemeProvider } from './components/userBadge/theme-provider.tsx';
 import { AuthProvider } from './lib/authContext.tsx';
 import Login from './routes/login.tsx';
 import ProtectedRoute from './routes/protected-route.tsx';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 const router = createBrowserRouter([
   {
@@ -29,16 +28,6 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
-  },
-  {
-    path: '/profile',
-    element: (
-      <ProtectedRoute>
-        <Layout>
-          <Profile />
-        </Layout>
-      </ProtectedRoute>
-    ),
   },
 ]);
 

@@ -23,11 +23,10 @@ export default function UserBadge() {
         onClick={() => setShowConversationTree(!showConversationTree)}
       />
       <div className="mx-3 flex flex-col items-end">
-        <TypographySmall>username</TypographySmall>
-        {/* @ts-ignore*/}
-        <TypographyMuted>{user?.email || 'email'}</TypographyMuted>
+        <TypographySmall>{user?.name ?? 'User'}</TypographySmall>
+        <TypographyMuted>{user?.email ?? 'No email'}</TypographyMuted>
       </div>
-      <Avatar onClick={() => navigate('/profile')} className="cursor-pointer">
+      <Avatar onClick={() => navigate('/')} className="cursor-pointer">
         <AvatarImage src="/avatar.png" />
         <AvatarFallback>CN</AvatarFallback>
       </Avatar>
