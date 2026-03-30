@@ -157,14 +157,19 @@ MIKRO_ORM_USER=postgres
 MIKRO_ORM_PASSWORD=postgres
 
 BETTER_AUTH_URL=http://localhost:3000
-BETTER_AUTH_SCHEMA=auth
 BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
+
+DB_RESET_CONFIRM=false
+DB_RESET_ALLOW_NON_DEVELOPMENT=false
+
+GEMINI_API_KEY=replace-with-api-key
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Po nastavení `.env` vytvořte Better Auth tabulky v DB:
+Po nastavení `.env` aplikujte migrace databáze (včetně Better Auth tabulek):
 
 ```bash
-pnpm --filter @cognify/backend auth:migrate
+pnpm --filter @cognify/backend db:migration:up
 ```
 
 Poznámka k portu backendu:
@@ -235,10 +240,11 @@ pnpm build
 ### Synchronizace OpenAPI a frontend typů
 
 ```bash
-pnpm openapi:sync
+pnpm --filter @cognify/backend exec ts-node src/export-openapi.ts ../frontend/openapi.json
+pnpm --filter @cognify/frontend openapi:types
 ```
 
-Tento command:
+Tyto commandy:
 
 1. vyexportuje OpenAPI schéma z backendu do `frontend/openapi.json`
 2. vygeneruje TypeScript typy do `frontend/src/api/generated/schema.d.ts`
@@ -248,18 +254,18 @@ Backend kvůli tomu nemusí běžet.
 ### Reset databáze
 
 ```bash
-pnpm db:reset
+pnpm --filter @cognify/backend db:reset
 ```
 
-Reset je chráněný bezpečnostními proměnnými a je určený hlavně pro lokální development.
+Reset používá `mikro-orm migration:fresh` a je určený hlavně pro lokální development.
 
-### Better Auth migrace
+### Migrace databáze (včetně Better Auth)
 
 ```bash
-pnpm --filter @cognify/backend auth:migrate
+pnpm --filter @cognify/backend db:migration:up
 ```
 
-Vytvoří (nebo doplní) tabulky potřebné pro Better Auth v PostgreSQL.
+Aplikuje všechny pending migrace v PostgreSQL.
 
 ### Backend testy
 
@@ -279,7 +285,9 @@ pnpm --filter @cognify/frontend typecheck
 
 - Swagger UI je v developmentu dostupné na `http://localhost:3000/api`
 - runtime OpenAPI je standardně zapnuté mimo production
-- export schématu pro frontend řeší skript `pnpm openapi:sync`
+- export schématu pro frontend proveďte přes:
+	`pnpm --filter @cognify/backend exec ts-node src/export-openapi.ts ../frontend/openapi.json`
+	a následně `pnpm --filter @cognify/frontend openapi:types`
 - backend má povolené CORS pro `FRONTEND_ORIGIN` (default `http://localhost:5173`)
 
 ## Datový model

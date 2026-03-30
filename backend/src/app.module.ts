@@ -8,6 +8,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import mikroOrmConfig from '../mikro-orm.config';
 import { betterAuth } from 'better-auth';
 import { Pool } from 'pg';
+import { GeminiModule } from './llm/gemini/gemini.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { Pool } from 'pg';
         };
       },
     }),
+    GeminiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
