@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { Auth } from '@/components/auth.tsx';
 import { Button } from '@/components/ui/button.tsx';
@@ -22,9 +22,7 @@ import { Link, useNavigate } from 'react-router-dom';
 export default function _authLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuthContext();
-  // todo: loading use loading state on button or somethign
-  const [, setLoading] = useState(false);
+  const { isAuthenticated, isPending, logIn, loginError } = useAuthContext();
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema(t)),
@@ -34,30 +32,23 @@ export default function _authLogin() {
     },
   });
 
-  const onSubmit = form.handleSubmit(async ({}) => {
-    setLoading(true);
-
-    // todo: sign in
-    // const { error } = await supabase.auth.signInWithPassword({
-    //   email,
-    //   password,
-    // });
-    // if (error) {
-    //   console.error(error);
-    //   form.setError('root', {
-    //     type: 'custom',
-    //     message: error.message,
-    //   });
-    // }
-    setLoading(false);
-    navigate('/');
+  const onSubmit = form.handleSubmit(async ({ email, password }) => {
+    try {
+      await logIn({ email, password, rememberMe: true });
+      navigate('/');
+    } catch (error) {
+      form.setError('root', {
+        type: 'custom',
+        message: error instanceof Error ? error.message : 'Unable to sign in right now.',
+      });
+    }
   });
 
   useEffect(() => {
-    if (user) {
+    if (isAuthenticated) {
       navigate('/');
     }
-  }, [navigate, user]);
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
@@ -97,8 +88,13 @@ export default function _authLogin() {
               )}
             />
             <Button type="submit" className="mx-auto mt-5 flex w-full">
-              {t('auth.login.submit')}
+              {isPending ? 'Signing in...' : t('auth.login.submit')}
             </Button>
+            {(form.formState.errors.root?.message || loginError) && (
+              <p className="text-destructive mt-3 text-sm font-medium">
+                {form.formState.errors.root?.message ?? loginError}
+              </p>
+            )}
           </Form>
         </Auth>
       </div>

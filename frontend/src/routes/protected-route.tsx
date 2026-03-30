@@ -1,19 +1,17 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '@/lib/authContext.tsx';
+
+import { Navigate } from 'react-router-dom';
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
-  const [isAuthed, setIsAuthed] = useState(false);
+  const { isAuthenticated, isPending } = useAuthContext();
 
-  useEffect(() => {
-    // todo: check if user is logged in
-    setIsAuthed(true);
-    // supabase.auth.getSession().then(({ data, error }) => {
-    //   if (error || !data.session) navigate('/login');
-    //   else setIsAuthed(true);
-    // });
-  }, [navigate]);
+  if (isPending) return null;
 
-  return isAuthed ? children : null;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 }

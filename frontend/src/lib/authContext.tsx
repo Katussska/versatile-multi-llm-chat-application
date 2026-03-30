@@ -1,52 +1,92 @@
-import { ReactNode, createContext, useContext } from 'react';
+import { ReactNode, createContext, useContext, useMemo } from 'react';
 
-interface AuthContextType {
-  user: unknown;
-  // session: unknown;
+import { useSession } from '@/hooks/auth-hooks';
+import { authClient } from '@/lib/auth-client';
+import { useMutation } from '@tanstack/react-query';
+
+type AuthSessionData = NonNullable<ReturnType<typeof useSession>['data']>;
+
+interface LoginInput {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null });
+interface AuthContextType {
+  user: AuthSessionData['user'] | null;
+  session: AuthSessionData['session'] | null;
+  isAuthenticated: boolean;
+  isPending: boolean;
+  loginError: string | null;
+  logoutError: string | null;
+  logIn: (input: LoginInput) => Promise<void>;
+  logOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // const [user, setUser] = useState<AuthUser | null>(null);
-  // const [session, setSession] = useState<AuthSession | null>(null);
+  const { data, isPending, isRefetching, refetch } = useSession();
 
-  // useEffect(() => {
-  //   // const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-  //   //   setSession(session);
-  //   //   if (session?.user) setUser(session?.user);
-  //   //   else setUser(null);
-  //   // });
-  //
-  //   return () => {
-  //     // authListener.subscription.unsubscribe();
-  //   };
-  // }, []);
+  const signInMutation = useMutation({
+    mutationFn: async (input: LoginInput) => {
+      const response = await authClient.signIn.email({
+        email: input.email,
+        password: input.password,
+        rememberMe: input.rememberMe ?? true,
+      });
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user: {
-          id: '433c4c22-9cd3-4203-97d8-56e7d387f44f',
-          email: 'metr.pacinka@psp.cz',
-        },
-      }}>
-      {children}
-    </AuthContext.Provider>
+      if (response.error) {
+        throw new Error(response.error.message ?? 'Unable to sign in.');
+      }
+
+      await refetch();
+    },
+  });
+
+  const signOutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authClient.signOut();
+
+      if (response.error) {
+        throw new Error(response.error.message ?? 'Unable to sign out.');
+      }
+
+      await refetch();
+    },
+  });
+
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user: data?.user ?? null,
+      session: data?.session ?? null,
+      isAuthenticated: Boolean(data?.session && data?.user),
+      isPending:
+        isPending ||
+        isRefetching ||
+        signInMutation.isPending ||
+        signOutMutation.isPending,
+      loginError: signInMutation.error?.message ?? null,
+      logoutError: signOutMutation.error?.message ?? null,
+      logIn: async (input: LoginInput) => {
+        await signInMutation.mutateAsync(input);
+      },
+      logOut: async () => {
+        await signOutMutation.mutateAsync();
+      },
+    }),
+    [data?.session, data?.user, isPending, isRefetching, signInMutation, signOutMutation],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuthContext() {
-  const { user } = useContext(AuthContext);
-  // const navigate = useNavigate();
+  const context = useContext(AuthContext);
 
-  const logOut = async () => {
-    // const { error } = await supabase.auth.signOut({ scope: 'local' });
-    // if (error) {
-    //   throw Error(error.message);
-    // }
-    // navigate('/login');
-  };
+  if (!context) {
+    throw new Error('useAuthContext must be used within AuthProvider.');
+  }
 
-  return { user, logOut };
+  return context;
 }

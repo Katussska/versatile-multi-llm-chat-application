@@ -46,9 +46,6 @@ importers:
       better-auth:
         specifier: ^1.5.5
         version: 1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      better-auth-mikro-orm:
-        specifier: ^0.4.3
-        version: 0.4.3(@mikro-orm/core@7.0.1(dataloader@2.2.3))(better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -77,6 +74,9 @@ importers:
       '@mikro-orm/migrations':
         specifier: ^7.0.1
         version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))
+      '@mikro-orm/seeder':
+        specifier: ^7.0.1
+        version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))
       '@nestjs/cli':
         specifier: ^11.0.16
         version: 11.0.16(@swc/core@1.15.18)(@types/node@25.5.0)
@@ -95,6 +95,9 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       '@types/supertest':
         specifier: ^7.2.0
         version: 7.2.0
@@ -1180,6 +1183,12 @@ packages:
     peerDependencies:
       '@mikro-orm/core': 7.0.1
 
+  '@mikro-orm/seeder@7.0.1':
+    resolution: {integrity: sha512-i0GFL1KL7dv1MQBD00omAPPWWSKsmGjDX7yPN0n1tSvWw4meR0x7PhmSeQAGLOdIuSBcVB2d265Sm5TFceqbAQ==}
+    engines: {node: '>= 22.17.0'}
+    peerDependencies:
+      '@mikro-orm/core': 7.0.1
+
   '@mikro-orm/sql@7.0.1':
     resolution: {integrity: sha512-mSe33DrTDRYUzSbczBdtpOfkoaDDSEnpS5Y3wWqvXfu4e2qKFnov2dvHxiO5UqzNG2LHGd9CwBUY2If4CBblYg==}
     engines: {node: '>= 22.17.0'}
@@ -2235,6 +2244,9 @@ packages:
   '@types/node@25.5.0':
     resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
 
+  '@types/pg@8.20.0':
+    resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
+
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
 
@@ -2789,13 +2801,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  better-auth-mikro-orm@0.4.3:
-    resolution: {integrity: sha512-lP0Ej4GIgF0kUq+opPQDv6UVRyRpPpcHIyZAxn7u+MtvI1VfVhLWAEwy3AV/YrX6aTKfMlVmv1hdKEtNDE8XHA==}
-    engines: {node: '>= 18'}
-    peerDependencies:
-      '@mikro-orm/core': ^6.0.0
-      better-auth: ^1.0.0
-
   better-auth@1.5.5:
     resolution: {integrity: sha512-GpVPaV1eqr3mOovKfghJXXk6QvlcVeFbS3z+n+FPDid5rK/2PchnDtiaVCzWyXA9jH2KkirOfl+JhAUvnja0Eg==}
     peerDependencies:
@@ -3275,10 +3280,6 @@ packages:
   dotenv@17.3.1:
     resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
     engines: {node: '>=12'}
-
-  dset@3.1.4:
-    resolution: {integrity: sha512-2QF/g9/zTaPDc3BjNcVTGoBbXBgYfMTTceLaYcFJ/W9kggFUkhxD/hMEeuLKbugyef9SqAx8cpgwlIP/jinUTA==}
-    engines: {node: '>=4'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -7023,6 +7024,10 @@ snapshots:
     transitivePeerDependencies:
       - pg-native
 
+  '@mikro-orm/seeder@7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))':
+    dependencies:
+      '@mikro-orm/core': 7.0.1(dataloader@2.2.3)
+
   '@mikro-orm/sql@7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))':
     dependencies:
       '@mikro-orm/core': 7.0.1(dataloader@2.2.3)
@@ -7982,6 +7987,12 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
+  '@types/pg@8.20.0':
+    dependencies:
+      '@types/node': 25.5.0
+      pg-protocol: 1.13.0
+      pg-types: 2.2.0
+
   '@types/prop-types@15.7.15': {}
 
   '@types/qs@6.15.0': {}
@@ -8620,12 +8631,6 @@ snapshots:
 
   baseline-browser-mapping@2.10.7: {}
 
-  better-auth-mikro-orm@0.4.3(@mikro-orm/core@7.0.1(dataloader@2.2.3))(better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
-    dependencies:
-      '@mikro-orm/core': 7.0.1(dataloader@2.2.3)
-      better-auth: 1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dset: 3.1.4
-
   better-auth@1.5.5(mongodb@7.1.0)(pg@8.20.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@better-auth/core': 1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.11)(nanostores@1.2.0)
@@ -9039,8 +9044,6 @@ snapshots:
   dotenv@17.2.3: {}
 
   dotenv@17.3.1: {}
-
-  dset@3.1.4: {}
 
   dunder-proto@1.0.1:
     dependencies:
