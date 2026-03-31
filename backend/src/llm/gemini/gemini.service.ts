@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ChatSession,
@@ -9,20 +9,32 @@ import { GetAIMessageDTO } from './model/get_ai_response.dto';
 import { v4 } from 'uuid';
 
 @Injectable()
-export class GeminiService {
+export class GeminiService implements OnModuleInit {
   private readonly googleAI: GoogleGenerativeAI;
   private readonly model: GenerativeModel;
   private chatSessions: { [sessionId: string]: ChatSession } = {};
 
   private readonly logger = new Logger(GeminiService.name);
+  private readonly geminiApiKey: string;
+  private readonly geminiModel: string;
 
   constructor(configService: ConfigService) {
-    const geminiApiKey = configService.get('GEMINI_API_KEY');
-    const geminiModel = configService.get('GEMINI_MODEL');
-    this.googleAI = new GoogleGenerativeAI(geminiApiKey);
+    this.geminiApiKey = configService.get('GEMINI_API_KEY') || '';
+    this.geminiModel = configService.get('GEMINI_MODEL') || '';
+    this.googleAI = new GoogleGenerativeAI(this.geminiApiKey);
     this.model = this.googleAI.getGenerativeModel({
-      model: geminiModel,
+      model: this.geminiModel,
     });
+  }
+
+  onModuleInit() {
+    if (!this.geminiApiKey || this.geminiApiKey.trim() === '') {
+      throw new Error('GEMINI_API_KEY is not set in environment variables');
+    }
+    if (!this.geminiModel || this.geminiModel.trim() === '') {
+      throw new Error('GEMINI_MODEL is not set in environment variables');
+    }
+    this.logger.log('Gemini configuration validated');
   }
 
   private getChatSession(sessionId?: string) {
