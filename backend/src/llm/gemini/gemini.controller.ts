@@ -6,7 +6,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { GeminiService } from './gemini.service';
-import { GetAIMessageDTO } from './model/get_ai_response.dto';
+import { GetAIMessageDTO } from './model/get-ai-response.dto';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 
 @Controller('gemini')

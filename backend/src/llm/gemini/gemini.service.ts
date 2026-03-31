@@ -5,7 +5,7 @@ import {
   GenerativeModel,
   GoogleGenerativeAI,
 } from '@google/generative-ai';
-import { GetAIMessageDTO } from './model/get_ai_response.dto';
+import { GetAIMessageDTO } from './model/get-ai-response.dto';
 import { v4 } from 'uuid';
 
 @Injectable()
