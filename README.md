@@ -159,9 +159,6 @@ MIKRO_ORM_PASSWORD=postgres
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
 
-DB_RESET_CONFIRM=false
-DB_RESET_ALLOW_NON_DEVELOPMENT=false
-
 GEMINI_API_KEY=replace-with-api-key
 GEMINI_MODEL=gemini-2.5-flash
 ```

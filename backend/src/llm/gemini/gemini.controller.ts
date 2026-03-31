@@ -13,11 +13,10 @@ import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 export class GeminiController {
   constructor(private readonly service: GeminiService) {}
 
+  // TODO: remove AllowAnonymous implementation with FE
   @Post('')
-  //   @UsePipes(new ValidationPipe({ transform: true }))
   @AllowAnonymous()
   getResponse(@Body() data: GetAIMessageDTO) {
-    console.log('BODY:', data, 'TYPE:', typeof data);
     return this.service.generateText(data);
   }
 }
