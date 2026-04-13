@@ -9,6 +9,7 @@ import mikroOrmConfig from '../mikro-orm.config';
 import { betterAuth } from 'better-auth';
 import { Pool } from 'pg';
 import { GeminiModule } from './llm/gemini/gemini.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { GeminiModule } from './llm/gemini/gemini.module';
       },
     }),
     GeminiModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
