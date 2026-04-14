@@ -26,6 +26,7 @@ import {
 } from '@thallesp/nestjs-better-auth';
 import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/create-chat.dto';
+import { CreateMessageRequestDto } from './dto/create-message-request.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
@@ -121,12 +122,12 @@ export class ChatController {
   async addMessage(
     @Session() session: UserSession,
     @Param('id') chatId: string,
-    @Body() messageDto: MessageCreateDto,
+    @Body() requestDto: CreateMessageRequestDto,
   ): Promise<MessageResponseDto> {
-    const updatedDto = { ...messageDto, chatId };
+    const messageDto: MessageCreateDto = { ...requestDto, chatId };
     const message = await this.chatService.addMessage(
       session.user.id,
-      updatedDto,
+      messageDto,
     );
     return {
       id: message.id,

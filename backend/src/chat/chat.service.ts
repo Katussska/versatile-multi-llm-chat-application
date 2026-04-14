@@ -8,12 +8,14 @@ import { User } from '../entities/User';
 import { Model } from '../entities/Model';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
+import { ChatRepository } from './repositories/chat.repository';
+import { MessageRepository } from './repositories/message.repository';
 
 @Injectable()
 export class ChatService {
   constructor(
-    @InjectRepository(Chat)
-    private readonly chatRepository: EntityRepository<Chat>,
+    private readonly chatRepository: ChatRepository,
+    private readonly messageRepository: MessageRepository,
     private readonly em: EntityManager,
   ) {}
 
@@ -36,8 +38,6 @@ export class ChatService {
       user,
       model,
       title: createChatDto.title,
-      createdAt: now,
-      updatedAt: now,
     });
 
     this.em.persist(chat);
@@ -99,8 +99,6 @@ export class ChatService {
       content: messageDto.content,
       path: messageDto.path,
       favourite: false,
-      createdAt: now,
-      updatedAt: now,
     });
 
     this.em.persist(message);

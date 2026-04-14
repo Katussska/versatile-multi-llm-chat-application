@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsNotEmpty } from 'class-validator';
+import { IsString, IsUUID, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateChatDto {
   @IsNotEmpty()
@@ -6,6 +6,7 @@ export class CreateChatDto {
   modelId!: string;
 
   @IsString()
+  @IsOptional()
   @IsNotEmpty()
   title: string = 'New Chat';
 }
