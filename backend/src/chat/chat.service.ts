@@ -8,14 +8,12 @@ import { User } from '../entities/User';
 import { Model } from '../entities/Model';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
-import { ChatRepository } from './repositories/chat.repository';
-import { MessageRepository } from './repositories/message.repository';
 
 @Injectable()
 export class ChatService {
   constructor(
-    private readonly chatRepository: ChatRepository,
-    private readonly messageRepository: MessageRepository,
+    @InjectRepository(Chat)
+    private readonly chatRepository: EntityRepository<Chat>,
     private readonly em: EntityManager,
   ) {}
 
@@ -33,7 +31,6 @@ export class ChatService {
       throw new NotFoundException('Model not found');
     }
 
-    const now = new Date();
     const chat = this.chatRepository.create({
       user,
       model,
@@ -47,7 +44,7 @@ export class ChatService {
 
   async getUserChats(userId: string): Promise<Chat[]> {
     const chats = await this.chatRepository.find(
-      { user: { id: userId } },
+      { user: { id: userId }, deletedAt: null },
       { orderBy: { createdAt: 'DESC' } },
     );
     return chats;
@@ -55,7 +52,7 @@ export class ChatService {
 
   async getChatMessages(chatId: string, userId: string): Promise<Message[]> {
     const chat = await this.chatRepository.findOne(
-      { id: chatId },
+      { id: chatId, deletedAt: null },
       { populate: ['user'] },
     );
 
@@ -81,7 +78,7 @@ export class ChatService {
     messageDto: MessageCreateDto,
   ): Promise<Message> {
     const chat = await this.chatRepository.findOne(
-      { id: messageDto.chatId },
+      { id: messageDto.chatId, deletedAt: null },
       { populate: ['user'] },
     );
 
@@ -93,7 +90,6 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const now = new Date();
     const message = this.em.create(Message, {
       chat,
       content: messageDto.content,
@@ -108,7 +104,7 @@ export class ChatService {
 
   async deleteChat(chatId: string, userId: string): Promise<void> {
     const chat = await this.chatRepository.findOne(
-      { id: chatId },
+      { id: chatId, deletedAt: null },
       { populate: ['user'] },
     );
 
@@ -120,7 +116,7 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    this.em.remove(chat);
+    chat.deletedAt = new Date();
     await this.em.flush();
   }
 }
