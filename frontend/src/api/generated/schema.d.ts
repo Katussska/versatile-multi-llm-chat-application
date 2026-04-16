@@ -159,7 +159,12 @@ export interface components {
             length: number;
         };
         GetAIMessageDTO: Record<string, never>;
-        CreateChatDto: Record<string, never>;
+        CreateChatDto: {
+            /** Format: uuid */
+            modelId?: string;
+            /** @default New Chat */
+            title: string;
+        };
         ChatResponseDto: {
             id: string;
             title: string;
@@ -180,7 +185,10 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        CreateMessageRequestDto: Record<string, never>;
+        CreateMessageRequestDto: {
+            content: string;
+            path: string;
+        };
     };
     responses: never;
     parameters: never;

@@ -1,4 +1,4 @@
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { createContext, Dispatch, SetStateAction, useEffect, useState, type ReactNode } from 'react';
 
 import { $api } from '@/api/client.ts';
 
@@ -22,7 +22,7 @@ interface TreeContextType {
   isNewConversation: boolean;
 }
 
-export const TreeContext = React.createContext<TreeContextType>({
+export const TreeContext = createContext<TreeContextType>({
   showConversationTree: false,
   setShowConversationTree: () => {},
   chats: [],
@@ -34,7 +34,7 @@ export const TreeContext = React.createContext<TreeContextType>({
   isNewConversation: false,
 });
 
-export default function TreeProvider({ children }: { children: React.ReactNode }) {
+export default function TreeProvider({ children }: { children: ReactNode }) {
   const [showConversationTree, setShowConversationTree] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState('');
   const [isNewConversation, setIsNewConversation] = useState(false);

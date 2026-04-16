@@ -347,7 +347,16 @@
       },
       "CreateChatDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "modelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "default": "New Chat"
+          }
+        }
       },
       "ChatResponseDto": {
         "type": "object",
@@ -417,7 +426,18 @@
       },
       "CreateMessageRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "path"
+        ]
       }
     }
   }

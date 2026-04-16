@@ -15,21 +15,11 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar.tsx';
 import { useAuthContext } from '@/lib/authContext.tsx';
+import { formatChatTitle } from '@/lib/chatTitle.ts';
 
 import { Bug, LogOut, MessageSquare, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-
-const CHAT_TITLE_MAX_LENGTH = 34;
-
-function truncateChatTitle(title: string): string {
-  const normalizedTitle = title.trim();
-  if (normalizedTitle.length <= CHAT_TITLE_MAX_LENGTH) {
-    return normalizedTitle;
-  }
-
-  return `${normalizedTitle.slice(0, CHAT_TITLE_MAX_LENGTH).trimEnd()}...`;
-}
 
 export function AppSidebar() {
   const { logOut } = useAuthContext();
@@ -74,7 +64,7 @@ export function AppSidebar() {
                       isActive={!isNewConversation && selectedChatId === chat.id}
                       onClick={() => setSelectedChatId(chat.id)}>
                       <MessageSquare />
-                      <span>{truncateChatTitle(chat.title)}</span>
+                      <span>{formatChatTitle(chat.title)}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))

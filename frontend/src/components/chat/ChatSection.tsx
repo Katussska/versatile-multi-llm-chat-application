@@ -5,6 +5,7 @@ import { TreeContext } from '@/components/TreeProvider.tsx';
 import ChatContent from '@/components/chat/ChatContent.tsx';
 import ChatInput from '@/components/chat/ChatInput.tsx';
 import ModelSelector from '@/components/chat/ModelSelector.tsx';
+import { formatChatTitle } from '@/lib/chatTitle.ts';
 import { useQueryClient } from '@tanstack/react-query';
 
 export interface Message {
@@ -12,17 +13,6 @@ export interface Message {
   content: string;
   role: 'user' | 'model';
   createdAt: Date;
-}
-
-const CHAT_TITLE_MAX_LENGTH = 34;
-
-function createChatTitle(firstMessage: string): string {
-  const trimmedMessage = firstMessage.trim();
-  if (trimmedMessage.length <= CHAT_TITLE_MAX_LENGTH) {
-    return trimmedMessage;
-  }
-
-  return `${trimmedMessage.slice(0, CHAT_TITLE_MAX_LENGTH).trimEnd()}...`;
 }
 
 export default function ChatSection() {
@@ -93,10 +83,9 @@ export default function ChatSection() {
   const isInitialMessagesLoading =
     isChatsPending ||
     (Boolean(selectedChatId) && isMessagesPending && messages.length === 0);
-  const errorMessage =
-    localErrorMessage || hasChatsError || messagesError
-      ? 'Nepodařilo se načíst zprávy.'
-      : null;
+  const fetchErrorMessage =
+    hasChatsError || messagesError ? 'Nepodařilo se načíst zprávy.' : null;
+  const errorMessage = localErrorMessage ?? fetchErrorMessage;
 
   const handleSendMessage = async (content: string) => {
     const trimmedContent = content.trim();
@@ -125,9 +114,9 @@ export default function ChatSection() {
         const fallbackModelId = chats[0]?.modelId;
         const createdChat = await createChatMutation.mutateAsync({
           body: {
-            ...(fallbackModelId ? { modelId: fallbackModelId } : {}),
-            title: createChatTitle(trimmedContent),
-          } as any,
+            title: formatChatTitle(trimmedContent),
+            ...(fallbackModelId && { modelId: fallbackModelId }),
+          },
         });
 
         chatId = createdChat.id;
@@ -143,7 +132,7 @@ export default function ChatSection() {
         body: {
           content: trimmedContent,
           path: 'user',
-        } as any,
+        },
       });
 
       await queryClient.invalidateQueries({

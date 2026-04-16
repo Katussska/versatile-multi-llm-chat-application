@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import MessageFunctions from '@/components/chat/MessageFunctions.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 
@@ -22,7 +23,7 @@ export default function ModelMessage({ message }: { message: string }) {
                 return isBlock ? (
                   <SyntaxHighlighter
                     language={match[1]}
-                    style={oneDark as { [key: string]: React.CSSProperties }}
+                    style={oneDark as { [key: string]: CSSProperties }}
                     className="rounded-lg text-sm">
                     {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>

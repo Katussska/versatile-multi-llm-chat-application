@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 import type { Message } from '@/components/chat/ChatSection';
 import ModelMessage from '@/components/chat/ModelMessage.tsx';
@@ -8,7 +8,7 @@ interface ChatContentProps {
   messages: Message[];
   isLoading?: boolean;
   errorMessage?: string | null;
-  scrollContainerRef: React.RefObject<HTMLDivElement>;
+  scrollContainerRef: RefObject<HTMLDivElement>;
 }
 
 export default function ChatContent({
