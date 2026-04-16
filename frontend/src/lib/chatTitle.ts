@@ -1,4 +1,4 @@
-const CHAT_TITLE_MAX_LENGTH = 34;
+const CHAT_TITLE_MAX_LENGTH = 20;
 
 export function formatChatTitle(title: string): string {
   const normalized = title.trim();

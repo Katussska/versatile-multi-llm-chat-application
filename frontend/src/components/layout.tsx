@@ -15,7 +15,7 @@ export function Layout({
     <SidebarProvider>
       <AppSidebar />
       <main className={cn('w-full', className)}>
-        <SidebarTrigger className="absolute" />
+        <SidebarTrigger className="fixed left-3 top-3 z-50 md:hidden" />
         {children}
       </main>
     </SidebarProvider>

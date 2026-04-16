@@ -8,6 +8,8 @@ import ModelSelector from '@/components/chat/ModelSelector.tsx';
 import { formatChatTitle } from '@/lib/chatTitle.ts';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { useNavigate, useParams } from 'react-router-dom';
+
 export interface Message {
   id: string;
   content: string;
@@ -17,6 +19,8 @@ export interface Message {
 
 export default function ChatSection() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { id: routeChatId } = useParams<{ id: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -24,6 +28,13 @@ export default function ChatSection() {
 
   const { chats, selectedChatId, setSelectedChatId, isChatsPending, hasChatsError } =
     useContext(TreeContext);
+  const activeChatId = routeChatId ?? selectedChatId;
+
+  useEffect(() => {
+    if (routeChatId && routeChatId !== selectedChatId) {
+      setSelectedChatId(routeChatId);
+    }
+  }, [routeChatId, selectedChatId, setSelectedChatId]);
 
   const {
     data: chatMessages,
@@ -35,17 +46,17 @@ export default function ChatSection() {
     {
       params: {
         path: {
-          id: selectedChatId,
+          id: activeChatId,
         },
       },
     },
     {
-      enabled: Boolean(selectedChatId),
+      enabled: Boolean(activeChatId),
     },
   );
 
   useEffect(() => {
-    if (!selectedChatId && !isCreatingConversation) {
+    if (!activeChatId && !isCreatingConversation) {
       setMessages([]);
       return;
     }
@@ -60,7 +71,7 @@ export default function ChatSection() {
         })),
       );
     }
-  }, [chatMessages, selectedChatId, isCreatingConversation]);
+  }, [chatMessages, activeChatId, isCreatingConversation]);
 
   const createChatMutation = $api.useMutation('post', '/chats', {
     onSuccess: async (createdChat) => {
@@ -82,7 +93,7 @@ export default function ChatSection() {
 
   const isInitialMessagesLoading =
     isChatsPending ||
-    (Boolean(selectedChatId) && isMessagesPending && messages.length === 0);
+    (Boolean(activeChatId) && isMessagesPending && messages.length === 0);
   const fetchErrorMessage =
     hasChatsError || messagesError ? 'Nepodařilo se načíst zprávy.' : null;
   const errorMessage = localErrorMessage ?? fetchErrorMessage;
@@ -107,7 +118,7 @@ export default function ChatSection() {
 
     setMessages((prev) => [...prev, userMessage]);
 
-    let chatId = selectedChatId;
+    let chatId = activeChatId;
 
     try {
       if (!chatId) {
@@ -123,6 +134,7 @@ export default function ChatSection() {
         startTransition(() => {
           setSelectedChatId(chatId!);
         });
+        navigate(`/chat/${chatId}`);
       }
 
       await addMessageMutation.mutateAsync({
