@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { startTransition, useContext } from 'react';
 
 import { TreeContext } from '@/components/TreeProvider.tsx';
 import { Button } from '@/components/ui/button.tsx';
@@ -62,7 +62,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton
                       isActive={!isNewConversation && selectedChatId === chat.id}
-                      onClick={() => setSelectedChatId(chat.id)}>
+                      onClick={() => startTransition(() => setSelectedChatId(chat.id))}>
                       <MessageSquare />
                       <span>{formatChatTitle(chat.title)}</span>
                     </SidebarMenuButton>

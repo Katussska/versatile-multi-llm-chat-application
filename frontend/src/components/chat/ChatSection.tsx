@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { startTransition, useContext, useEffect, useRef, useState } from 'react';
 
 import { $api } from '@/api/client.ts';
 import { TreeContext } from '@/components/TreeProvider.tsx';
@@ -115,12 +115,14 @@ export default function ChatSection() {
         const createdChat = await createChatMutation.mutateAsync({
           body: {
             title: formatChatTitle(trimmedContent),
-            ...(fallbackModelId && { modelId: fallbackModelId }),
+            modelId: fallbackModelId,
           },
         });
 
         chatId = createdChat.id;
-        setSelectedChatId(chatId);
+        startTransition(() => {
+          setSelectedChatId(chatId!);
+        });
       }
 
       await addMessageMutation.mutateAsync({
