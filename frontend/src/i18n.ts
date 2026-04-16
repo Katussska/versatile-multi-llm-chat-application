@@ -1,26 +1,28 @@
 import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import Backend from 'i18next-http-backend';
 import { initReactI18next } from 'react-i18next';
 
+import cs from '../public/locales/cs/common.json';
+import en from '../public/locales/en/common.json';
+
 i18n
-  .use(Backend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
+    resources: {
+      en: { common: en },
+      cs: { common: cs },
+    },
     ns: ['common'],
     defaultNS: 'common',
-    // resources,
     fallbackLng: 'en',
     load: 'languageOnly',
     debug: import.meta.env.DEV,
 
-    // Backend configuration
-    backend: {
-      loadPath: '/locales/{{lng}}/{{ns}}.json',
+    react: {
+      useSuspense: false,
     },
 
-    // Detection options
     detection: {
       order: [
         'navigator',
@@ -34,7 +36,7 @@ i18n
       lookupCookie: 'i18next',
       lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage', 'cookie'],
-      cookieMinutes: 10080, // 7 days
+      cookieMinutes: 10080,
     },
   });
 

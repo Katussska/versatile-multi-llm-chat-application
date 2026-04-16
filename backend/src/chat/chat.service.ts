@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -15,7 +16,34 @@ export class ChatService {
     @InjectRepository(Chat)
     private readonly chatRepository: EntityRepository<Chat>,
     private readonly em: EntityManager,
+    private readonly configService: ConfigService,
   ) {}
+
+  private async getOrCreateDefaultModel(): Promise<Model> {
+    const existingModel = await this.em.findOne(
+      Model,
+      { deletedAt: null },
+      { orderBy: { createdAt: 'ASC' } },
+    );
+
+    if (existingModel) {
+      return existingModel;
+    }
+
+    const geminiModelName =
+      this.configService.get<string>('GEMINI_MODEL')?.trim() ||
+      'gemini-2.5-flash';
+    const defaultModel = this.em.create(Model, {
+      provider: 'gemini',
+      name: geminiModelName,
+      apiEndpoint: `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}`,
+    });
+
+    this.em.persist(defaultModel);
+    await this.em.flush();
+
+    return defaultModel;
+  }
 
   async createChat(
     userId: string,
@@ -26,7 +54,13 @@ export class ChatService {
       throw new NotFoundException('User not found');
     }
 
-    const model = await this.em.findOne(Model, { id: createChatDto.modelId });
+    const model = createChatDto.modelId
+      ? await this.em.findOne(Model, {
+          id: createChatDto.modelId,
+          deletedAt: null,
+        })
+      : await this.getOrCreateDefaultModel();
+
     if (!model) {
       throw new NotFoundException('Model not found');
     }

@@ -1,147 +1,154 @@
 # Cognify
 
-## MVP pro chat aplikaci s více modely
+Multi-model AI chat application — NestJS backend + React frontend as a pnpm monorepo.
 
-Cognify je monorepo aplikace rozdělená na frontend a backend. Aktuální verze projektu je postavená na vlastním backendu v NestJS a na React frontend aplikaci. Repo dnes obsahuje hlavně základ MVP: chat layout, výběr modelu, strom konverzace, lokální API klient generovaný z OpenAPI a připravený datový model pro další rozvoj.
+## Contents
 
-## Obsah
+- [Project Goals](#project-goals)
+- [Tech Stack](#tech-stack)
+- [Current State](#current-state)
+- [Repo Structure](#repo-structure)
+- [Quick Setup (for testing)](#quick-setup-for-testing)
+- [Running the Project](#running-the-project)
+- [Useful Commands](#useful-commands)
+- [API & OpenAPI](#api--openapi)
+- [Data Model](#data-model)
+- [License](#license)
 
-- [Cíle projektu (finální vize)](#cíle-projektu-finální-vize)
-- [Použité technologie](#použité-technologie)
-- [Aktuální stav MVP](#aktuální-stav-mvp)
-- [Struktura repozitáře](#struktura-repozitáře)
-- [Požadavky](#požadavky)
-- [Instalace a setup](#instalace-a-setup)
-- [Spuštění projektu](#spuštění-projektu)
-- [Užitečné commandy](#užitečné-commandy)
-- [API a OpenAPI](#api-a-openapi)
-- [Datový model](#datový-model)
-- [Licence](#licence)
+---
 
-## Cíle projektu (finální vize)
+## Project Goals
 
-Cílem finální verze Cognify je nabídnout aplikaci, kde uživatelé mohou pohodlně pracovat s více LLM modely v jednom prostředí, sdílet konverzace a mít dobrou kontrolu nad historií, profilem i limity použití.
+Cognify aims to be a comfortable environment for working with multiple LLM models in one place, with conversation history, branching, user profiles, and admin controls.
 
-Plánovaná cílová funkcionalita:
+Planned features:
 
-- multi-LLM chat s možností přepínat modely
-- větší podpora větvení konverzací a orientace v historii
-- group chat scénáře (více uživatelů v jedné konverzaci)
-- autentizace a správa uživatelských profilů
-- admin funkce pro monitoring a limity spotřeby
-- robustní backend API pro další rozvoj klienta
+- multi-LLM chat with model switching
+- conversation branching and history navigation
+- group chat (multiple users in one conversation)
+- user auth and profile management
+- admin panel with usage monitoring and limits
+- robust backend API for further client development
 
-## Použité technologie
+---
+
+## Tech Stack
 
 ### Frontend
 
-- React 18
-- Vite
-- TypeScript
-- Tailwind CSS
-- shadcn/ui a Radix UI
-- React Router
+- React 18 + Vite + TypeScript
+- Tailwind CSS + shadcn/ui + Radix UI
+- React Router 6
 - TanStack Query
-- better-auth
-- @daveyplate/better-auth-tanstack
+- Better Auth + @daveyplate/better-auth-tanstack
 - React Hook Form + Zod
-- i18next
+- i18next (Czech / English)
 - openapi-fetch + openapi-react-query
 
 ### Backend
 
-- NestJS 11
-- TypeScript
-- MikroORM 7
-- PostgreSQL 16
+- NestJS 11 + TypeScript
+- MikroORM 7 + PostgreSQL 16
+- Better Auth (session-based, mounted at `/api/auth/*`)
+- Google Generative AI (Gemini)
 - Swagger / OpenAPI
 
 ### Tooling
 
 - pnpm workspaces
-- Docker Compose pro lokální PostgreSQL
-- ESLint
-- Prettier
+- Docker Compose (local PostgreSQL)
+- ESLint + Prettier
 - Jest
 
-## Aktuální stav MVP
+---
 
-V repozitáři je momentálně hotové nebo připravené hlavně toto:
+## Current State
 
-- chat rozložení aplikace se sidebarem, vstupem zprávy a obsahem konverzace
-- výběr modelu v UI
-- zobrazení a přepínání panelu se stromem konverzace
-- základ témování a přepínání vzhledu
-- lokalizace pro češtinu a angličtinu
-- backend v NestJS s OpenAPI dokumentací
-- export OpenAPI schématu do frontendu a generování TypeScript typů
-- základní entitní model pro `User`, `Chat`, `Message`, `Model` a `Token`
-- příprava rout pro přihlášení a profil
-- připravený React Query auth wiring (`AuthQueryProvider`, `createAuthClient`, `createAuthHooks`)
-- smoke test `useSession` na route `/profile`
+What is implemented end-to-end:
 
-Některé části jsou zatím jen scaffold nebo placeholder a nejsou dokončené end-to-end:
+- full auth flow: register, login, session management (Better Auth)
+- sidebar with chat list and new chat creation
+- chat history: list, create, soft delete
+- message sending and receiving with Gemini AI
+- per-session Gemini chat history (context preserved within a session)
+- markdown rendering of AI responses
+- model selector UI (Gemini models)
+- dark/light theme switching
+- Czech/English localization
 
-- Better Auth je napojený na backend (`/api/auth/*`) a připravený pro FE integraci
-- profilová stránka je zatím jen základní placeholder
-- admin panel zatím není implementovaný
-- group chat workflow zatím není implementovaný
-- reálné napojení na LLM providery a perzistence chatu ještě není dodělaná v produkční podobě
+Work in progress / placeholders:
 
-README odlišuje finální vizi od skutečného stavu MVP, aby bylo jasné, co je už implementované a co je ještě plán.
+- conversation branching (data model is ready, UI is not)
+- profile page (basic placeholder)
+- admin panel (not yet implemented)
+- group chat (not yet implemented)
 
-## Struktura repozitáře
+---
+
+## Repo Structure
 
 ```text
 .
-|- backend/    NestJS API, OpenAPI export, MikroORM, testy
-|- frontend/   React aplikace ve Vite, komponenty, routy, generovaný API klient
-|- docker-compose.yml
-|- package.json
+├── backend/          NestJS API, entities, migrations, Gemini integration
+├── frontend/         React app, components, routes, generated API client
+├── docker-compose.yml
+└── package.json
 ```
 
-## Požadavky
+---
+
+## Quick Setup (for testing)
+
+### Prerequisites
 
 - Node.js 20+
 - pnpm 10+
 - Docker + Docker Compose
 
-Pokud nemáte `pnpm`, doporučená instalace je přes Corepack:
+Install pnpm via Corepack if needed:
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.27.0 --activate
 ```
 
-## Instalace a setup
-
-### 1. Instalace závislostí
+### Step 1 — Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2. Spuštění PostgreSQL
+### Step 2 — Start PostgreSQL
 
 ```bash
 docker compose up -d db
 ```
 
-Databáze poběží lokálně na `localhost:5432` s těmito hodnotami:
+Database runs at `localhost:5432`:
 
-- database: `cognify`
-- user: `postgres`
-- password: `postgres`
+| Key      | Value      |
+|----------|------------|
+| database | `cognify`  |
+| user     | `postgres` |
+| password | `postgres` |
 
-### 3. Nastavení backendu
-
-Zkopírujte env soubor:
+### Step 3 — Configure backend
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-Výchozí obsah odpovídá lokálnímu Docker PostgreSQL setupu:
+Open `backend/.env` and fill in these two values (everything else works out of the box for local dev):
+
+```env
+# Generate a strong secret: openssl rand -base64 32
+BETTER_AUTH_SECRET=your-secret-here
+
+# Get a free API key at https://aistudio.google.com/apikey
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+Full default `.env` for reference:
 
 ```env
 PORT=3000
@@ -161,146 +168,144 @@ BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
 
 GEMINI_API_KEY=replace-with-api-key
 GEMINI_MODEL=gemini-2.5-flash
+
+DB_RESET_CONFIRM=false
+DB_RESET_ALLOW_NON_DEVELOPMENT=false
 ```
 
-Po nastavení `.env` aplikujte migrace databáze (včetně Better Auth tabulek):
+### Step 4 — Run database migrations
 
 ```bash
-pnpm --filter @cognify/backend db:migration:up
+pnpm be db:migration:up
 ```
 
-Poznámka k portu backendu:
+This applies all pending MikroORM migrations, including Better Auth session/account tables.
 
-- `pnpm dev` spouští backend s `NODE_ENV=development`
-- pokud chcete, aby backend při obsazeném portu automaticky přešel na další volný port, nastavte `PORT_FALLBACK=true` nebo proměnnou z `backend/.env` odeberte
-- pokud necháte `PORT_FALLBACK=false`, backend při konfliktu portu skončí chybou
+### Step 5 — Configure frontend
 
-### 4. Nastavení frontendu
-
-Vytvořte soubor `frontend/.env`:
+Create `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:3000
 ```
 
-Frontend tuto proměnnou vyžaduje explicitně. Pokud backend v lokálním vývoji poběží na jiném portu, aktualizujte i `VITE_API_URL`.
+### Step 6 — Seed a test account
 
-Poznámka k Better Auth:
+```bash
+pnpm be db:seed
+```
 
-- frontend je připravený na TanStack Query auth hooky
-- backend vystavuje Better Auth endpointy na `/api/auth/*`
-- FE auth klient (`createAuthClient`) komunikuje s backendem přes `VITE_API_URL`
+This creates a ready-to-use account:
 
-### 5. Co se instaluje
+| Field    | Value                |
+|----------|----------------------|
+| Email    | `test@cognify.local` |
+| Password | `Test123456!`        |
 
-Po `pnpm install` se nainstalují všechny balíčky ze všech workspace částí:
+You can override the defaults via env vars in `backend/.env`:
 
-- root tooling a workspace skripty
-- backend dependencies (`@nestjs/*`, `@mikro-orm/*`, `jest`, `eslint`...)
-- frontend dependencies (`react`, `vite`, `tailwindcss`, `radix`, `zod`...)
+```env
+SEED_TEST_USER_EMAIL=you@example.com
+SEED_TEST_USER_PASSWORD=YourPassword123!
+SEED_TEST_USER_NAME=Your Name
+```
 
-Není potřeba instalovat balíčky ručně po jednotlivých složkách.
+Running the seeder again is safe — it updates the existing user instead of creating a duplicate.
 
-## Spuštění projektu
-
-### Vývojový režim celého monorepa
+### Step 7 — Start the app
 
 ```bash
 pnpm dev
 ```
 
-Tím se paralelně spustí:
+- Frontend: <http://localhost:5173>
+- Backend API: <http://localhost:3000>
+- Swagger UI: <http://localhost:3000/api/docs>
 
-- backend na `http://localhost:3000`
-- frontend na `http://localhost:5173`
+Log in at <http://localhost:5173/login> with the credentials from Step 6 and start chatting.
 
-### Spuštění jen backendu
+---
+
+## Running the Project
+
+| Command          | What it does                          |
+|------------------|---------------------------------------|
+| `pnpm dev`       | Backend + frontend concurrently       |
+| `pnpm be dev`    | Backend only (NestJS watch mode)      |
+| `pnpm fe dev`    | Frontend only (Vite, port 5173)       |
+| `pnpm build`     | Build both packages                   |
+
+> If `PORT_FALLBACK=false` (default), the backend will error on port conflict. Set `PORT_FALLBACK=true` to auto-pick the next free port.
+
+---
+
+## Useful Commands
+
+### Database
 
 ```bash
-pnpm be dev
+pnpm be db:migration:up      # Apply pending migrations
+pnpm be db:migration:create  # Generate migration from entity diff
+pnpm be db:migration:down    # Rollback last migration
+pnpm be db:reset             # Drop and re-run all migrations (dev only)
+pnpm be db:seed              # Seed data
 ```
 
-### Spuštění jen frontendu
-
-```bash
-pnpm fe dev
-```
-
-## Užitečné commandy
-
-### Build celého projektu
-
-```bash
-pnpm build
-```
-
-### Synchronizace OpenAPI a frontend typů
+### OpenAPI sync (run after backend contract changes)
 
 ```bash
 pnpm --filter @cognify/backend exec ts-node src/export-openapi.ts ../frontend/openapi.json
-pnpm --filter @cognify/frontend openapi:types
+pnpm fe openapi:types
 ```
 
-Tyto commandy:
+Step 1 exports the schema to `frontend/openapi.json`, step 2 regenerates TypeScript types in `frontend/src/api/generated/schema.d.ts`. The backend does not need to be running for this.
 
-1. vyexportuje OpenAPI schéma z backendu do `frontend/openapi.json`
-2. vygeneruje TypeScript typy do `frontend/src/api/generated/schema.d.ts`
-
-Backend kvůli tomu nemusí běžet.
-
-### Reset databáze
+### Tests
 
 ```bash
-pnpm --filter @cognify/backend db:reset
+pnpm be test          # Unit tests
+pnpm be test:e2e      # E2E tests
+pnpm be test:cov      # Coverage
 ```
 
-Reset používá `mikro-orm migration:fresh` a je určený hlavně pro lokální development.
-
-### Migrace databáze (včetně Better Auth)
+### Lint & type check
 
 ```bash
-pnpm --filter @cognify/backend db:migration:up
+pnpm be lint          # Backend ESLint (auto-fix)
+pnpm be format        # Backend Prettier
+pnpm fe lint          # Frontend ESLint
+pnpm fe typecheck     # Frontend TypeScript check
 ```
 
-Aplikuje všechny pending migrace v PostgreSQL.
+---
 
-### Backend testy
+## API & OpenAPI
 
-```bash
-pnpm --filter @cognify/backend test
-pnpm --filter @cognify/backend test:e2e
-```
+- Swagger UI (dev only): <http://localhost:3000/api/docs>
+- OpenAPI JSON export: `frontend/openapi.json`
+- CORS is controlled by `FRONTEND_ORIGIN` in `backend/.env` (default: `http://localhost:5173`)
 
-### Frontend kontrola
+---
 
-```bash
-pnpm --filter @cognify/frontend lint
-pnpm --filter @cognify/frontend typecheck
-```
+## Data Model
 
-## API a OpenAPI
+Entities managed by MikroORM and stored in PostgreSQL:
 
-- Swagger UI je v developmentu dostupné na `http://localhost:3000/api`
-- runtime OpenAPI je standardně zapnuté mimo production
-- export schématu pro frontend proveďte přes:
-	`pnpm --filter @cognify/backend exec ts-node src/export-openapi.ts ../frontend/openapi.json`
-	a následně `pnpm --filter @cognify/frontend openapi:types`
-- backend má povolené CORS pro `FRONTEND_ORIGIN` (default `http://localhost:5173`)
+| Entity        | Purpose                                          |
+|---------------|--------------------------------------------------|
+| `User`        | App users                                        |
+| `Chat`        | Conversations (soft delete supported)            |
+| `Message`     | Individual messages, with `path` for branching   |
+| `Model`       | Available LLM models                             |
+| `Token`       | Usage tracking                                   |
+| `Session`     | Better Auth sessions                             |
+| `Account`     | Better Auth OAuth accounts                       |
+| `Verification`| Better Auth email verification                   |
 
-## Datový model
+---
 
-Backend už obsahuje základní entity pro další implementaci aplikace:
+## License
 
-- `User`
-- `Chat`
-- `Message`
-- `Model`
-- `Token`
+This project is part of a bachelor's thesis at FEI VSB-TUO.
 
-Tyto entity jsou spravované přes MikroORM a ukládají se do PostgreSQL.
-
-## Licence
-
-Projekt je součástí bakalářské práce na Fakultě informatiky a elektroniky VSB-TUO.
-
-Licence je MIT, viz soubor `LICENSE`.
+Licensed under MIT — see `LICENSE`.

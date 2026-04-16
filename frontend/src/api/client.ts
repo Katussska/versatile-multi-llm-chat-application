@@ -12,6 +12,7 @@ if (!baseUrl) {
 
 const fetchClient = createFetchClient<paths>({
   baseUrl,
+  credentials: 'include',
 });
 
 export const $api = createClient(fetchClient);

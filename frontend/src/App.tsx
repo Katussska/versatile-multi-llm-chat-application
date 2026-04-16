@@ -8,25 +8,28 @@ import { ThemeProvider } from './components/userBadge/theme-provider.tsx';
 import { AuthProvider } from './lib/authContext.tsx';
 import Login from './routes/login.tsx';
 import ProtectedRoute from './routes/protected-route.tsx';
+import RouteError from './routes/route-error.tsx';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 const router = createBrowserRouter([
   {
     path: '/',
+    errorElement: <RouteError />,
     element: (
       <ProtectedRoute>
-        <Layout className="flex flex-row">
-          <TreeProvider>
+        <TreeProvider>
+          <Layout className="flex flex-row">
             <UserBadge />
             <ChatSection />
             <TreeSection />
-          </TreeProvider>
-        </Layout>
+          </Layout>
+        </TreeProvider>
       </ProtectedRoute>
     ),
   },
   {
     path: '/login',
+    errorElement: <RouteError />,
     element: <Login />,
   },
 ]);
