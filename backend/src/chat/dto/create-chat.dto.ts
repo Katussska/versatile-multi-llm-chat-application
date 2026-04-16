@@ -1,9 +1,9 @@
 import { IsString, IsUUID, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateChatDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID()
-  modelId!: string;
+  modelId?: string;
 
   @IsString()
   @IsOptional()
