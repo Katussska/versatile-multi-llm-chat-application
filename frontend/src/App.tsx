@@ -11,21 +11,28 @@ import ProtectedRoute from './routes/protected-route.tsx';
 import RouteError from './routes/route-error.tsx';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 
+const appShell = (
+  <ProtectedRoute>
+    <TreeProvider>
+      <Layout className="flex flex-row">
+        <UserBadge />
+        <ChatSection />
+        <TreeSection />
+      </Layout>
+    </TreeProvider>
+  </ProtectedRoute>
+);
+
 const router = createBrowserRouter([
   {
     path: '/',
     errorElement: <RouteError />,
-    element: (
-      <ProtectedRoute>
-        <TreeProvider>
-          <Layout className="flex flex-row">
-            <UserBadge />
-            <ChatSection />
-            <TreeSection />
-          </Layout>
-        </TreeProvider>
-      </ProtectedRoute>
-    ),
+    element: appShell,
+  },
+  {
+    path: '/chat/:id',
+    errorElement: <RouteError />,
+    element: appShell,
   },
   {
     path: '/login',

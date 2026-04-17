@@ -22,6 +22,10 @@
   },
   "sidebar": {
     "chats": "Chats",
+    "newChat": "New chat",
+    "loading": "Loading...",
+    "loadError": "Failed to load chats.",
+    "empty": "No chats yet",
     "groupChats": "Group chats",
     "bugReport": "Bug report",
     "logout": "Logout"

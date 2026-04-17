@@ -22,6 +22,10 @@
   },
   "sidebar": {
     "chats": "Konverzace",
+    "newChat": "Nový chat",
+    "loading": "Načítám...",
+    "loadError": "Nepodařilo se načíst chaty.",
+    "empty": "Zatím žádné chaty",
     "groupChats": "Skupinové konverzace",
     "bugReport": "Nahlásit chybu",
     "logout": "Odhlásit se"

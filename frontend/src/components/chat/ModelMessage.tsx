@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 import MessageFunctions from '@/components/chat/MessageFunctions.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 
