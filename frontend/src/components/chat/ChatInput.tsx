@@ -45,15 +45,15 @@ export default function ChatInput({ onSendMessage, onStop, isStreaming }: ChatIn
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       handleSend();
     }
   };
 
   return (
-    <div className="flex w-full shrink-0 flex-row items-end justify-center px-4 pb-5 pt-2">
-      <Paperclip className="" />
+    <div className="flex w-full shrink-0 flex-row items-center justify-center px-4 py-[21px]">
+      <Paperclip className="self-end mb-[7px]" />
       <textarea
         ref={textareaRef}
         className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring mx-8 max-h-40 w-full max-w-3xl resize-none overflow-y-hidden rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50"
@@ -62,14 +62,13 @@ export default function ChatInput({ onSendMessage, onStop, isStreaming }: ChatIn
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        disabled={isStreaming}
       />
       {isStreaming ? (
-        <button onClick={onStop} className="cursor-pointer" title={t('chat.stopGenerating')}>
-          <Square className="fill-current" />
+        <button onClick={onStop} className="self-end mb-[7px] cursor-pointer" title={t('chat.stopGenerating')} aria-label={t('chat.stopGenerating')}>
+          <Square aria-hidden="true" />
         </button>
       ) : (
-        <button onClick={handleSend} className="cursor-pointer">
+        <button onClick={handleSend} className="self-end mb-[7px] cursor-pointer">
           <SendHorizontal />
         </button>
       )}

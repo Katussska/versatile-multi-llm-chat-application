@@ -21,7 +21,8 @@ export default function ModelMessage({
           <AvatarImage src="/chatGPT.png" />
           <AvatarFallback>MD</AvatarFallback>
         </Avatar>
-        <div className="bg-sidebar mr-5 w-max max-w-3xl rounded-3xl p-4">
+        <div className="mr-5 flex w-max max-w-3xl flex-col">
+        <div className="bg-sidebar-accent rounded-3xl p-4">
           {isStreaming && !message && (
             <Loader2 className="text-muted-foreground size-5 animate-spin" />
           )}
@@ -85,8 +86,10 @@ export default function ModelMessage({
             {message}
           </ReactMarkdown>
         </div>
+          <MessageFunctions />
+        </div>
       </div>
-      <MessageFunctions />
     </div>
+
   );
 }

@@ -68,6 +68,22 @@ export default function ChatSection() {
     setSelectedChatId,
   ]);
 
+  useEffect(() => {
+    return () => {
+      if (drainTimerRef.current) {
+        clearTimeout(drainTimerRef.current);
+        drainTimerRef.current = null;
+      }
+      wordQueueRef.current = [];
+      if (drainResolveRef.current) {
+        drainResolveRef.current();
+        drainResolveRef.current = null;
+      }
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
+
   const {
     data: chatMessages,
     isPending: isMessagesPending,
@@ -176,7 +192,7 @@ export default function ChatSection() {
 
   const patchModelMessage = async (chatId: string, content: string) => {
     const messageId = streamedMessageIdRef.current;
-    if (!messageId || !content) return;
+    if (!messageId) return;
     await fetch(`${API_BASE}/chats/${chatId}/messages/${messageId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -187,18 +203,21 @@ export default function ChatSection() {
 
   const handleAbort = async (chatId: string) => {
     wasAbortedRef.current = true;
+    if (!streamedMessageIdRef.current) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== STREAMING_MESSAGE_ID));
+      return;
+    }
     await patchModelMessage(chatId, streamedContentRef.current + '...');
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === STREAMING_MESSAGE_ID
-          ? { ...msg, content: msg.content + '...', isStreaming: false }
+          ? { ...msg, content: streamedContentRef.current + '...', isStreaming: false }
           : msg,
       ),
     );
   };
 
   const handleStopStreaming = () => {
-    clearQueue();
     abortControllerRef.current?.abort();
   };
 
@@ -338,7 +357,7 @@ export default function ChatSection() {
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
       <ModelSelector />
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto p-4 [mask-image:linear-gradient(to_top,transparent_0%,black_50px)]">
         <ChatContent
           messages={messages}
           isLoading={isInitialMessagesLoading}

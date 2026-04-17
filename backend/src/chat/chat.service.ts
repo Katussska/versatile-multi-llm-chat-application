@@ -189,9 +189,7 @@ export class ChatService {
     );
 
     if (!chat || chat.user.id !== userId) {
-      res.write(`data: ${JSON.stringify({ error: 'Chat not found' })}\n\n`);
-      res.end();
-      return;
+      throw new NotFoundException('Chat not found');
     }
 
     const userMessage = this.em.create(Message, {
@@ -229,10 +227,23 @@ export class ChatService {
         assistantMessage.content = fullResponse;
         await this.em.flush();
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      } else if (fullResponse) {
+        assistantMessage.content = fullResponse;
+        await this.em.flush();
+      } else {
+        this.em.remove(assistantMessage);
+        await this.em.flush();
       }
     } catch {
       if (!clientDisconnected) {
         res.write(`data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`);
+      }
+      if (fullResponse) {
+        assistantMessage.content = fullResponse;
+        await this.em.flush();
+      } else {
+        this.em.remove(assistantMessage);
+        await this.em.flush();
       }
     } finally {
       res.end();

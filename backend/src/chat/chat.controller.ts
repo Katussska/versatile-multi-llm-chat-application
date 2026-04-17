@@ -177,6 +177,7 @@ export class ChatController {
   }
 
   @Post(':id/stream')
+  @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Stream LLM response for a chat message' })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
