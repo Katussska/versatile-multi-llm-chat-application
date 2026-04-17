@@ -61,15 +61,15 @@ export function AppSidebar() {
               <SidebarMenu>
                 {isChatsPending ? (
                   <div className="text-muted-foreground px-2 py-1 text-sm">
-                    Načítám...
+                    {t('sidebar.loading')}
                   </div>
                 ) : hasChatsError ? (
                   <div className="text-destructive px-2 py-1 text-sm">
-                    Nepodařilo se načíst chaty.
+                    {t('sidebar.loadError')}
                   </div>
                 ) : chats.length === 0 ? (
                   <div className="text-muted-foreground px-2 py-1 text-sm">
-                    Zatím žádné chaty
+                    {t('sidebar.empty')}
                   </div>
                 ) : (
                   chats.map((chat) => (

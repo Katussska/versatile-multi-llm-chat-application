@@ -31,10 +31,28 @@ export default function ChatSection() {
   const activeChatId = routeChatId ?? selectedChatId;
 
   useEffect(() => {
-    if (routeChatId && routeChatId !== selectedChatId) {
-      setSelectedChatId(routeChatId);
+    if (!routeChatId || routeChatId === selectedChatId || isChatsPending) {
+      return;
     }
-  }, [routeChatId, selectedChatId, setSelectedChatId]);
+
+    const routeChatExists = chats.some((chat) => chat.id === routeChatId);
+    if (routeChatExists) {
+      setSelectedChatId(routeChatId);
+      return;
+    }
+
+    if (!hasChatsError) {
+      navigate('/', { replace: true });
+    }
+  }, [
+    chats,
+    hasChatsError,
+    isChatsPending,
+    navigate,
+    routeChatId,
+    selectedChatId,
+    setSelectedChatId,
+  ]);
 
   const {
     data: chatMessages,
