@@ -66,4 +66,20 @@ export class GeminiService {
       throw new InternalServerErrorException('AI Generation failed');
     }
   }
+
+  async *generateTextStream(prompt: string, sessionId?: string): AsyncGenerator<string> {
+    const { chat } = this.getChatSession(sessionId);
+    try {
+      const result = await chat.sendMessageStream(prompt);
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          yield text;
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error streaming from Gemini API >> ', error);
+      throw new InternalServerErrorException('AI Generation failed');
+    }
+  }
 }
