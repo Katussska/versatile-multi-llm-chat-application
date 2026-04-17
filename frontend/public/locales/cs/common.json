@@ -31,7 +31,12 @@
     "logout": "Odhlásit se"
   },
   "chat": {
-    "inputPlaceholder": "Napište zprávu..."
+    "inputPlaceholder": "Napište zprávu...",
+    "loadingMessages": "Načítám zprávy...",
+    "noMessages": "Žádné zprávy. Začni psát!",
+    "loadError": "Nepodařilo se načíst zprávy.",
+    "sendError": "Nepodařilo se odeslat zprávu.",
+    "stopGenerating": "Zastavit generování"
   },
   "profile": {
     "picture": "Profilový obrázek",

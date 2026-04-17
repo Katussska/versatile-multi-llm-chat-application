@@ -1,11 +1,19 @@
 import MessageFunctions from '@/components/chat/MessageFunctions.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
+import { Loader2 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkGfm from 'remark-gfm';
 
-export default function ModelMessage({ message }: { message: string }) {
+export default function ModelMessage({
+  message,
+  isStreaming,
+}: {
+  message: string;
+  isStreaming?: boolean;
+}) {
   return (
     <div className="my-10 flex flex-col">
       <div className="flex">
@@ -13,8 +21,13 @@ export default function ModelMessage({ message }: { message: string }) {
           <AvatarImage src="/chatGPT.png" />
           <AvatarFallback>MD</AvatarFallback>
         </Avatar>
-        <div className="bg-sidebar mr-5 w-max max-w-3xl rounded-3xl p-4">
+        <div className="mr-5 flex w-max max-w-3xl flex-col">
+        <div className="bg-sidebar-accent rounded-3xl p-4">
+          {isStreaming && !message && (
+            <Loader2 className="text-muted-foreground size-5 animate-spin" />
+          )}
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               code({ className, children }) {
                 const match = /language-(\w+)/.exec(className || '');
@@ -73,8 +86,10 @@ export default function ModelMessage({ message }: { message: string }) {
             {message}
           </ReactMarkdown>
         </div>
+          <MessageFunctions />
+        </div>
       </div>
-      <MessageFunctions />
     </div>
+
   );
 }

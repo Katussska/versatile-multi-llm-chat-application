@@ -9,6 +9,8 @@ import { User } from '../entities/User';
 import { Model } from '../entities/Model';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
+import { GeminiService } from '../llm/gemini/gemini.service';
+import type { Response } from 'express';
 
 @Injectable()
 export class ChatService {
@@ -17,6 +19,7 @@ export class ChatService {
     private readonly chatRepository: EntityRepository<Chat>,
     private readonly em: EntityManager,
     private readonly configService: ConfigService,
+    private readonly geminiService: GeminiService,
   ) {}
 
   private async getOrCreateDefaultModel(): Promise<Model> {
@@ -152,5 +155,98 @@ export class ChatService {
 
     chat.deletedAt = new Date();
     await this.em.flush();
+  }
+
+  async patchMessageContent(
+    messageId: string,
+    chatId: string,
+    userId: string,
+    content: string,
+  ): Promise<void> {
+    const message = await this.em.findOne(
+      Message,
+      { id: messageId },
+      { populate: ['chat', 'chat.user'] },
+    );
+
+    if (!message || message.chat.id !== chatId || message.chat.user.id !== userId) {
+      throw new NotFoundException('Message not found');
+    }
+
+    message.content = content;
+    await this.em.flush();
+  }
+
+  async streamResponse(
+    chatId: string,
+    userId: string,
+    content: string,
+    res: Response,
+  ): Promise<void> {
+    const chat = await this.chatRepository.findOne(
+      { id: chatId, deletedAt: null },
+      { populate: ['user'] },
+    );
+
+    if (!chat || chat.user.id !== userId) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    const userMessage = this.em.create(Message, {
+      chat,
+      content,
+      path: 'user',
+      favourite: false,
+    });
+    const assistantMessage = this.em.create(Message, {
+      chat,
+      content: '',
+      path: 'model',
+      favourite: false,
+    });
+    this.em.persist(userMessage);
+    this.em.persist(assistantMessage);
+    await this.em.flush();
+
+    res.write(`data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`);
+
+    let fullResponse = '';
+    let clientDisconnected = false;
+    res.on('close', () => {
+      clientDisconnected = true;
+    });
+
+    try {
+      for await (const chunk of this.geminiService.generateTextStream(content, chatId)) {
+        if (clientDisconnected) break;
+        fullResponse += chunk;
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      }
+
+      if (!clientDisconnected) {
+        assistantMessage.content = fullResponse;
+        await this.em.flush();
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      } else if (fullResponse) {
+        assistantMessage.content = fullResponse;
+        await this.em.flush();
+      } else {
+        this.em.remove(assistantMessage);
+        await this.em.flush();
+      }
+    } catch {
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`);
+      }
+      if (fullResponse) {
+        assistantMessage.content = fullResponse;
+        await this.em.flush();
+      } else {
+        this.em.remove(assistantMessage);
+        await this.em.flush();
+      }
+    } finally {
+      res.end();
+    }
   }
 }

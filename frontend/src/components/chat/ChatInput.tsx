@@ -1,13 +1,15 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 
-import { Paperclip, SendHorizontal } from 'lucide-react';
+import { Paperclip, SendHorizontal, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
+  onStop: () => void;
+  isStreaming: boolean;
 }
 
-export default function ChatInput({ onSendMessage }: ChatInputProps) {
+export default function ChatInput({ onSendMessage, onStop, isStreaming }: ChatInputProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,6 +35,7 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.overflowY = 'hidden';
+      textareaRef.current.focus();
     }
   };
 
@@ -42,27 +45,33 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       handleSend();
     }
   };
 
   return (
-    <div className="flex w-full shrink-0 flex-row items-end justify-center px-4 pb-5 pt-2">
-      <Paperclip className="" />
+    <div className="flex w-full shrink-0 flex-row items-center justify-center px-4 py-[21px]">
+      <Paperclip className="self-end mb-[7px]" />
       <textarea
         ref={textareaRef}
-        className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring mx-8 max-h-40 w-full max-w-3xl resize-none overflow-y-hidden rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring mx-8 max-h-40 w-full max-w-3xl resize-none overflow-y-hidden rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50"
         placeholder={t('chat.inputPlaceholder')}
         rows={1}
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
       />
-      <button onClick={handleSend} className="cursor-pointer">
-        <SendHorizontal />
-      </button>
+      {isStreaming ? (
+        <button onClick={onStop} className="self-end mb-[7px] cursor-pointer" title={t('chat.stopGenerating')} aria-label={t('chat.stopGenerating')}>
+          <Square aria-hidden="true" />
+        </button>
+      ) : (
+        <button onClick={handleSend} className="self-end mb-[7px] cursor-pointer">
+          <SendHorizontal />
+        </button>
+      )}
     </div>
   );
 }

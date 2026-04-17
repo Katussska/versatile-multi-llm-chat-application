@@ -69,8 +69,11 @@ What is implemented end-to-end:
 - full auth flow: register, login, session management (Better Auth)
 - sidebar with chat list and new chat creation
 - chat history: list, create, soft delete
-- message sending and receiving with Gemini AI
+- real-time streaming chat via SSE (`POST /chats/:id/stream`) — response streams word-by-word with animated rendering
+- stop-streaming button to abort an in-flight response
+- user message saved to DB before streaming; assistant reply saved after stream completes
 - per-session Gemini chat history (context preserved within a session)
+- auto-scroll to latest message during streaming
 - markdown rendering of AI responses
 - model selector UI (Gemini models)
 - dark/light theme switching
@@ -187,6 +190,7 @@ Create `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:3000
 ```
 
 ### Step 6 — Seed a test account

@@ -3,6 +3,7 @@ import { useEffect, type RefObject } from 'react';
 import type { Message } from '@/components/chat/ChatSection';
 import ModelMessage from '@/components/chat/ModelMessage.tsx';
 import UserMessage from '@/components/chat/UserMessage.tsx';
+import { useTranslation } from 'react-i18next';
 
 interface ChatContentProps {
   messages: Message[];
@@ -17,6 +18,8 @@ export default function ChatContent({
   errorMessage = null,
   scrollContainerRef,
 }: ChatContentProps) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (scrollContainerRef.current) {
       requestAnimationFrame(() => {
@@ -33,7 +36,7 @@ export default function ChatContent({
       <div className="mt-1 w-full max-w-5xl">
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-gray-400">
-            Načítám zprávy...
+            {t('chat.loadingMessages')}
           </div>
         ) : errorMessage ? (
           <div className="flex h-full items-center justify-center text-red-400">
@@ -41,14 +44,18 @@ export default function ChatContent({
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-gray-400">
-            Žádné zprávy. Začni psát!
+            {t('chat.noMessages')}
           </div>
         ) : (
           messages.map((message) =>
             message.role === 'user' ? (
               <UserMessage key={message.id} message={message.content} />
             ) : (
-              <ModelMessage key={message.id} message={message.content} />
+              <ModelMessage
+                key={message.id}
+                message={message.content}
+                isStreaming={message.isStreaming}
+              />
             ),
           )
         )}

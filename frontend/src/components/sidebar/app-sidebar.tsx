@@ -2,7 +2,6 @@ import { useContext } from 'react';
 
 import { TreeContext } from '@/components/TreeProvider.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +15,6 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar.tsx';
 import { useAuthContext } from '@/lib/authContext.tsx';
-import { formatChatTitle } from '@/lib/chatTitle.ts';
 
 import { Bug, LogOut, MessageSquare, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -53,12 +51,11 @@ export function AppSidebar() {
           {t('sidebar.newChat')}
         </Button>
       </SidebarHeader>
-      <SidebarContent className="m-2.5">
-        <SidebarGroup>
+      <SidebarContent className="mx-2.5 mt-2.5">
+        <SidebarGroup className="flex-1 min-h-0">
           <SidebarGroupLabel>{t('sidebar.chats')}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <ScrollArea className="max-h-[calc(100svh-16rem)]">
-              <SidebarMenu>
+          <SidebarGroupContent className="relative flex flex-1 flex-col min-h-0">
+            <SidebarMenu className="flex-1 min-h-0 overflow-y-auto">
                 {isChatsPending ? (
                   <div className="text-muted-foreground px-2 py-1 text-sm">
                     {t('sidebar.loading')}
@@ -84,19 +81,19 @@ export function AppSidebar() {
                           navigate(`/chat/${chat.id}`);
                         }}>
                         <MessageSquare />
-                        <span>{formatChatTitle(chat.title)}</span>
+                        <span className="min-w-0 truncate">{chat.title}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))
                 )}
-              </SidebarMenu>
-            </ScrollArea>
+            </SidebarMenu>
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[50px] bg-gradient-to-t from-sidebar via-sidebar/60 to-transparent" />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="m-2.5">
+      <SidebarFooter className="mx-2.5 h-[80px] justify-center gap-3 p-2">
         <div
-          className="flex cursor-pointer flex-row items-center"
+          className="flex cursor-pointer flex-row items-center px-2"
           onClick={() =>
             window.open('https://github.com/Katussska/Cognify/issues', '_blank')
           }>
@@ -104,7 +101,7 @@ export function AppSidebar() {
           {t('sidebar.bugReport')}
         </div>
         <div
-          className="my-2 flex cursor-pointer flex-row items-center"
+          className="flex cursor-pointer flex-row items-center px-2"
           onClick={async () => {
             await logOut();
             navigate('/login');

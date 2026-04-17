@@ -31,7 +31,12 @@
     "logout": "Logout"
   },
   "chat": {
-    "inputPlaceholder": "Type a message..."
+    "inputPlaceholder": "Type a message...",
+    "loadingMessages": "Loading messages...",
+    "noMessages": "No messages yet. Start typing!",
+    "loadError": "Failed to load messages.",
+    "sendError": "Failed to send message.",
+    "stopGenerating": "Stop generating"
   },
   "profile": {
     "picture": "Profile",

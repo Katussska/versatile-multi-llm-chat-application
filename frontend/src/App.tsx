@@ -10,6 +10,7 @@ import Login from './routes/login.tsx';
 import ProtectedRoute from './routes/protected-route.tsx';
 import RouteError from './routes/route-error.tsx';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
 const appShell = (
   <ProtectedRoute>
@@ -46,6 +47,7 @@ export default function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AuthProvider>
         <RouterProvider router={router} />
+        <Toaster richColors position="top-right" />
       </AuthProvider>
     </ThemeProvider>
   );
