@@ -22,21 +22,37 @@
   },
   "sidebar": {
     "chats": "Chats",
+    "favorites": "Favorites",
     "newChat": "New chat",
     "loading": "Loading...",
     "loadError": "Failed to load chats.",
-    "empty": "No chats yet",
+    "empty": "No chats",
+    "emptyFavorites": "No favorites",
     "groupChats": "Group chats",
     "bugReport": "Bug report",
-    "logout": "Logout"
+    "logout": "Logout",
+    "chatMenu": {
+      "rename": "Rename",
+      "delete": "Delete",
+      "addFavorite": "Add to favorites",
+      "removeFavorite": "Remove from favorites",
+      "renamePlaceholder": "Conversation name"
+    }
   },
   "chat": {
     "inputPlaceholder": "Type a message...",
     "loadingMessages": "Loading messages...",
-    "noMessages": "No messages yet. Start typing!",
+    "noMessages": "No messages. Start typing!",
     "loadError": "Failed to load messages.",
     "sendError": "Failed to send message.",
-    "stopGenerating": "Stop generating"
+    "stopGenerating": "Stop generating",
+    "editMessage": "Edit message",
+    "cancel": "Cancel",
+    "saveAndSend": "Save and send",
+    "copy": "Copy",
+    "favourite": "Add to favourites",
+    "unfavourite": "Remove from favourites",
+    "regenerate": "Regenerate"
   },
   "profile": {
     "picture": "Profile",

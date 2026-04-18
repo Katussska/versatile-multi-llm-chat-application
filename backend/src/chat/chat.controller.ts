@@ -21,6 +21,7 @@ import {
   ApiNotFoundResponse,
   ApiBadRequestResponse,
   ApiOperation,
+  ApiNoContentResponse,
 } from '@nestjs/swagger';
 import {
   AuthGuard,
@@ -31,7 +32,9 @@ import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { CreateMessageRequestDto } from './dto/create-message-request.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
+import { PatchChatDto } from './dto/patch-chat.dto';
 import { PatchMessageDto } from './dto/patch-message.dto';
+import { StreamMessageDto } from './dto/stream-message.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
 
@@ -61,6 +64,7 @@ export class ChatController {
       id: chat.id,
       title: chat.title,
       modelId: chat.model.id,
+      favourite: chat.favourite,
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
     };
@@ -81,6 +85,7 @@ export class ChatController {
       id: chat.id,
       title: chat.title,
       modelId: chat.model.id,
+      favourite: chat.favourite,
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
     }));
@@ -108,6 +113,7 @@ export class ChatController {
       content: msg.content,
       path: msg.path,
       favourite: msg.favourite,
+      parentMessageId: msg.parentMessageId,
       createdAt: msg.createdAt,
       updatedAt: msg.updatedAt,
     }));
@@ -139,8 +145,32 @@ export class ChatController {
       content: message.content,
       path: message.path,
       favourite: message.favourite,
+      parentMessageId: message.parentMessageId,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
+    };
+  }
+
+  @Patch(':id')
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update chat title or favourite status' })
+  @ApiOkResponse({ description: 'Chat successfully updated', type: ChatResponseDto })
+  @ApiUnauthorizedResponse({ description: 'User not authenticated' })
+  @ApiNotFoundResponse({ description: 'Chat not found or access denied' })
+  async patchChat(
+    @Session() session: UserSession,
+    @Param('id') chatId: string,
+    @Body() body: PatchChatDto,
+  ): Promise<ChatResponseDto> {
+    const chat = await this.chatService.patchChat(chatId, session.user.id, body);
+    return {
+      id: chat.id,
+      title: chat.title,
+      modelId: chat.model.id,
+      favourite: chat.favourite,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
     };
   }
 
@@ -159,7 +189,8 @@ export class ChatController {
   @Patch(':chatId/messages/:messageId')
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Update message content' })
+  @ApiOperation({ summary: 'Update message content or favourite status' })
+  @ApiNoContentResponse({ description: 'Message successfully updated' })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiNotFoundResponse({ description: 'Message not found or access denied' })
   async patchMessage(
@@ -168,11 +199,11 @@ export class ChatController {
     @Param('messageId') messageId: string,
     @Body() body: PatchMessageDto,
   ): Promise<void> {
-    await this.chatService.patchMessageContent(
+    await this.chatService.patchMessage(
       messageId,
       chatId,
       session.user.id,
-      body.content,
+      body,
     );
   }
 
@@ -185,12 +216,19 @@ export class ChatController {
   async streamMessage(
     @Session() session: UserSession,
     @Param('id') chatId: string,
-    @Body() body: PatchMessageDto,
+    @Body() body: StreamMessageDto,
     @Res() res: Response,
   ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    await this.chatService.streamResponse(chatId, session.user.id, body.content, res);
+    await this.chatService.streamResponse(
+      chatId,
+      session.user.id,
+      body.content,
+      res,
+      body.parentMessageId,
+      body.regenerate,
+    );
   }
 }

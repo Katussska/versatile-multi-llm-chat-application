@@ -67,10 +67,10 @@ export class GeminiService {
     }
   }
 
-  async *generateTextStream(prompt: string, sessionId?: string): AsyncGenerator<string> {
+  async *generateTextStream(prompt: string, sessionId?: string, signal?: AbortSignal): AsyncGenerator<string> {
     const { chat } = this.getChatSession(sessionId);
     try {
-      const result = await chat.sendMessageStream(prompt);
+      const result = await chat.sendMessageStream(prompt, { signal });
       for await (const chunk of result.stream) {
         const text = chunk.text();
         if (text) {
@@ -78,6 +78,9 @@ export class GeminiService {
         }
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       this.logger.error('Error streaming from Gemini API >> ', error);
       throw new InternalServerErrorException('AI Generation failed');
     }

@@ -9,14 +9,22 @@ interface ChatContentProps {
   messages: Message[];
   isLoading?: boolean;
   errorMessage?: string | null;
+  isStreaming?: boolean;
   scrollContainerRef: RefObject<HTMLDivElement>;
+  onEditMessage?: (messageIndex: number, newContent: string) => void;
+  onRegenerateMessage?: (messageIndex: number) => void;
+  onToggleFavourite?: (messageId: string, currentValue: boolean) => void;
 }
 
 export default function ChatContent({
   messages,
   isLoading = false,
   errorMessage = null,
+  isStreaming = false,
   scrollContainerRef,
+  onEditMessage,
+  onRegenerateMessage,
+  onToggleFavourite,
 }: ChatContentProps) {
   const { t } = useTranslation();
 
@@ -25,11 +33,11 @@ export default function ChatContent({
       requestAnimationFrame(() => {
         scrollContainerRef.current?.scrollTo({
           top: scrollContainerRef.current!.scrollHeight,
-          behavior: 'smooth',
+          behavior: isStreaming ? 'smooth' : 'instant',
         });
       });
     }
-  }, [messages, scrollContainerRef]);
+  }, [messages, isStreaming, scrollContainerRef]);
 
   return (
     <div className="flex flex-1 flex-col items-center">
@@ -47,14 +55,32 @@ export default function ChatContent({
             {t('chat.noMessages')}
           </div>
         ) : (
-          messages.map((message) =>
+          messages.map((message, index) =>
             message.role === 'user' ? (
-              <UserMessage key={message.id} message={message.content} />
+              <UserMessage
+                key={message.id}
+                message={message}
+                onEdit={
+                  onEditMessage
+                    ? (newContent) => onEditMessage(index, newContent)
+                    : undefined
+                }
+              />
             ) : (
               <ModelMessage
                 key={message.id}
-                message={message.content}
+                message={message}
                 isStreaming={message.isStreaming}
+                onRegenerate={
+                  onRegenerateMessage && !message.isStreaming
+                    ? () => onRegenerateMessage(index)
+                    : undefined
+                }
+                onFavourite={
+                  onToggleFavourite && !message.isStreaming
+                    ? () => onToggleFavourite(message.id, message.favourite)
+                    : undefined
+                }
               />
             ),
           )
