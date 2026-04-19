@@ -13,8 +13,6 @@ export interface ChatListItem {
 }
 
 interface TreeContextType {
-  showConversationTree: boolean;
-  setShowConversationTree: Dispatch<SetStateAction<boolean>>;
   chats: ChatListItem[];
   isChatsPending: boolean;
   hasChatsError: boolean;
@@ -30,8 +28,6 @@ interface TreeContextType {
 }
 
 export const TreeContext = createContext<TreeContextType>({
-  showConversationTree: false,
-  setShowConversationTree: () => {},
   chats: [],
   isChatsPending: false,
   hasChatsError: false,
@@ -48,7 +44,6 @@ export const TreeContext = createContext<TreeContextType>({
 
 export default function TreeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [showConversationTree, setShowConversationTree] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState('');
   const [isNewConversation, setIsNewConversation] = useState(false);
 
@@ -146,8 +141,6 @@ export default function TreeProvider({ children }: { children: ReactNode }) {
   return (
     <TreeContext.Provider
       value={{
-        showConversationTree,
-        setShowConversationTree,
         chats,
         isChatsPending,
         hasChatsError: Boolean(chatsError),
