@@ -38,7 +38,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface ChatMenuItemProps {
@@ -162,6 +162,7 @@ export function AppSidebar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id: routeChatId } = useParams<{ id: string }>();
+  const { pathname } = useLocation();
   const {
     chats,
     isChatsPending,
@@ -220,7 +221,7 @@ export function AppSidebar() {
   };
 
   const isActiveChatId = (id: string) =>
-    !isNewConversation && (routeChatId ?? selectedChatId) === id;
+    !isNewConversation && pathname !== '/profile' && (routeChatId ?? selectedChatId) === id;
 
   const favoriteChats = chats.filter((c) => c.favourite);
 

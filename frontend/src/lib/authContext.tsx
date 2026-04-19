@@ -19,8 +19,12 @@ interface AuthContextType {
   isPending: boolean;
   loginError: string | null;
   logoutError: string | null;
+  updateUserError: string | null;
+  changePasswordError: string | null;
   logIn: (input: LoginInput) => Promise<void>;
   logOut: () => Promise<void>;
+  updateUser: (name: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,6 +60,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await authClient.updateUser({ name });
+
+      if (response.error) {
+        throw new Error(response.error.message ?? 'Unable to update user.');
+      }
+
+      await refetch();
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      const response = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message ?? 'Unable to change password.');
+      }
+    },
+  });
+
   const value = useMemo<AuthContextType>(
     () => ({
       user: data?.user ?? null,
@@ -65,17 +101,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isPending ||
         isRefetching ||
         signInMutation.isPending ||
-        signOutMutation.isPending,
+        signOutMutation.isPending ||
+        updateUserMutation.isPending ||
+        changePasswordMutation.isPending,
       loginError: signInMutation.error?.message ?? null,
       logoutError: signOutMutation.error?.message ?? null,
+      updateUserError: updateUserMutation.error?.message ?? null,
+      changePasswordError: changePasswordMutation.error?.message ?? null,
       logIn: async (input: LoginInput) => {
         await signInMutation.mutateAsync(input);
       },
       logOut: async () => {
         await signOutMutation.mutateAsync();
       },
+      updateUser: async (name: string) => {
+        await updateUserMutation.mutateAsync(name);
+      },
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        await changePasswordMutation.mutateAsync({ currentPassword, newPassword });
+      },
     }),
-    [data?.session, data?.user, isPending, isRefetching, signInMutation, signOutMutation],
+    [
+      data?.session,
+      data?.user,
+      isPending,
+      isRefetching,
+      signInMutation.isPending,
+      signInMutation.error,
+      signInMutation.mutateAsync,
+      signOutMutation.isPending,
+      signOutMutation.error,
+      signOutMutation.mutateAsync,
+      updateUserMutation.isPending,
+      updateUserMutation.error,
+      updateUserMutation.mutateAsync,
+      changePasswordMutation.isPending,
+      changePasswordMutation.error,
+      changePasswordMutation.mutateAsync,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

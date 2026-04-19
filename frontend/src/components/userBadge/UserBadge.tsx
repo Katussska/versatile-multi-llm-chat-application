@@ -28,9 +28,13 @@ export default function UserBadge() {
           <TypographyMuted>{user?.email ?? 'No email'}</TypographyMuted>
         </div>
       </div>
-      <Avatar onClick={() => navigate('/')} className="cursor-pointer">
+      <Avatar onClick={() => navigate('/profile')} className="cursor-pointer">
         <AvatarImage src="/avatar.png" />
-        <AvatarFallback>CN</AvatarFallback>
+        <AvatarFallback>
+          {user?.name
+            ? (user.name.trim().split(/\s+/).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '?')
+            : '?'}
+        </AvatarFallback>
       </Avatar>
     </div>
   );
