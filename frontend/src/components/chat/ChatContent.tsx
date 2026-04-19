@@ -1,8 +1,9 @@
-import { useEffect, type RefObject } from 'react';
+import { type RefObject, useEffect } from 'react';
 
 import type { Message } from '@/components/chat/ChatSection';
 import ModelMessage from '@/components/chat/ModelMessage.tsx';
 import UserMessage from '@/components/chat/UserMessage.tsx';
+
 import { useTranslation } from 'react-i18next';
 
 interface ChatContentProps {
@@ -10,6 +11,7 @@ interface ChatContentProps {
   isLoading?: boolean;
   errorMessage?: string | null;
   isStreaming?: boolean;
+  isRefetching?: boolean;
   scrollContainerRef: RefObject<HTMLDivElement>;
   onEditMessage?: (messageIndex: number, newContent: string) => void;
   onRegenerateMessage?: (messageIndex: number) => void;
@@ -21,6 +23,7 @@ export default function ChatContent({
   isLoading = false,
   errorMessage = null,
   isStreaming = false,
+  isRefetching = false,
   scrollContainerRef,
   onEditMessage,
   onRegenerateMessage,
@@ -33,7 +36,7 @@ export default function ChatContent({
       requestAnimationFrame(() => {
         scrollContainerRef.current?.scrollTo({
           top: scrollContainerRef.current!.scrollHeight,
-          behavior: isStreaming ? 'smooth' : 'instant',
+          behavior: isStreaming ? 'smooth' : 'auto',
         });
       });
     }
@@ -72,12 +75,12 @@ export default function ChatContent({
                 message={message}
                 isStreaming={message.isStreaming}
                 onRegenerate={
-                  onRegenerateMessage && !message.isStreaming
+                  onRegenerateMessage && !message.isStreaming && !isRefetching
                     ? () => onRegenerateMessage(index)
                     : undefined
                 }
                 onFavourite={
-                  onToggleFavourite && !message.isStreaming
+                  onToggleFavourite && !message.isStreaming && !isRefetching
                     ? () => onToggleFavourite(message.id, message.favourite)
                     : undefined
                 }

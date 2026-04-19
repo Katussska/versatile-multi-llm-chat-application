@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, useContext, useEffect, useRef, useState } from 'react';
 
 import { TreeContext } from '@/components/TreeProvider.tsx';
 import { Button } from '@/components/ui/button.tsx';
@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface ChatMenuItemProps {
   chatId: string;
@@ -67,8 +68,14 @@ function ChatMenuItem({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelRenameRef = useRef(false);
 
   const handleRenameSubmit = () => {
+    if (cancelRenameRef.current) {
+      cancelRenameRef.current = false;
+      setRenameValue(title);
+      return;
+    }
     const trimmed = renameValue.trim();
     if (trimmed && trimmed !== title) {
       onRename(trimmed);
@@ -76,9 +83,12 @@ function ChatMenuItem({
     setIsRenaming(false);
   };
 
-  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+  const handleRenameKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') handleRenameSubmit();
-    if (e.key === 'Escape') setIsRenaming(false);
+    if (e.key === 'Escape') {
+      cancelRenameRef.current = true;
+      setIsRenaming(false);
+    }
   };
 
   const startRename = () => {
@@ -192,7 +202,12 @@ export function AppSidebar() {
   };
 
   const handleDeleteChat = async (id: string) => {
-    await deleteChat(id);
+    try {
+      await deleteChat(id);
+    } catch {
+      toast.error(t('sidebar.chatMenu.deleteError'));
+      return;
+    }
     if ((routeChatId ?? selectedChatId) === id) {
       const remaining = chats.filter((c) => c.id !== id);
       if (remaining.length > 0) {

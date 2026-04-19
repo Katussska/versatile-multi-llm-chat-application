@@ -36,7 +36,8 @@
       "delete": "Smazat",
       "addFavorite": "Přidat do oblíbených",
       "removeFavorite": "Odebrat z oblíbených",
-      "renamePlaceholder": "Název konverzace"
+      "renamePlaceholder": "Název konverzace",
+      "deleteError": "Nepodařilo se smazat konverzaci."
     }
   },
   "chat": {
@@ -50,6 +51,8 @@
     "cancel": "Zrušit",
     "saveAndSend": "Uložit a odeslat",
     "copy": "Kopírovat",
+    "copiedToClipboard": "Zkopírováno do schránky.",
+    "copyFailed": "Kopírování do schránky se nezdařilo.",
     "favourite": "Přidat do oblíbených",
     "unfavourite": "Odebrat z oblíbených",
     "regenerate": "Znovu vygenerovat"

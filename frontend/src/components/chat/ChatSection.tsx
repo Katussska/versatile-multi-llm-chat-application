@@ -30,6 +30,7 @@ export default function ChatSection() {
   const { id: routeChatId } = useParams<{ id: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -210,10 +211,11 @@ export default function ChatSection() {
       return;
     }
     await patchModelMessage(chatId, streamedContentRef.current + '...');
+    const realId = streamedMessageIdRef.current;
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === streamingPlaceholderIdRef.current
-          ? { ...msg, content: streamedContentRef.current + '...', isStreaming: false }
+          ? { ...msg, id: realId, content: streamedContentRef.current + '...', isStreaming: false }
           : msg,
       ),
     );
@@ -354,12 +356,14 @@ export default function ChatSection() {
       if (abortControllerRef.current?.signal.aborted) {
         await handleAbort(chatId!);
       } else {
+        setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
           ),
         );
         await refetchAfterStream(chatId!);
+        setIsRefetching(false);
       }
     } catch (err) {
       clearQueue();
@@ -405,12 +409,14 @@ export default function ChatSection() {
       if (abortControllerRef.current?.signal.aborted) {
         await handleAbort(activeChatId);
       } else {
+        setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
           ),
         );
         await refetchAfterStream(activeChatId);
+        setIsRefetching(false);
       }
     } catch (err) {
       clearQueue();
@@ -460,12 +466,14 @@ export default function ChatSection() {
       if (abortControllerRef.current?.signal.aborted) {
         await handleAbort(activeChatId);
       } else {
+        setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
           ),
         );
         await refetchAfterStream(activeChatId);
+        setIsRefetching(false);
       }
     } catch (err) {
       clearQueue();
@@ -486,16 +494,22 @@ export default function ChatSection() {
     setMessages((prev) =>
       prev.map((msg) => (msg.id === messageId ? { ...msg, favourite: !currentValue } : msg)),
     );
-    await fetch(`${API_BASE}/chats/${activeChatId}/messages/${messageId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ favourite: !currentValue }),
-    }).catch(() => {
+    try {
+      const response = await fetch(`${API_BASE}/chats/${activeChatId}/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ favourite: !currentValue }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to toggle favourite: ${response.status}`);
+      }
+    } catch {
       setMessages((prev) =>
         prev.map((msg) => (msg.id === messageId ? { ...msg, favourite: currentValue } : msg)),
       );
-    });
+      toast.error(t('chat.sendError'));
+    }
   };
 
   return (
@@ -507,6 +521,7 @@ export default function ChatSection() {
           isLoading={isInitialMessagesLoading}
           errorMessage={fetchErrorMessage}
           isStreaming={isStreaming}
+          isRefetching={isRefetching}
           scrollContainerRef={scrollContainerRef}
           onEditMessage={handleEditMessage}
           onRegenerateMessage={handleRegenerateMessage}

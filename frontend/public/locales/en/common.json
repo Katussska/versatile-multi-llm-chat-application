@@ -36,7 +36,8 @@
       "delete": "Delete",
       "addFavorite": "Add to favorites",
       "removeFavorite": "Remove from favorites",
-      "renamePlaceholder": "Conversation name"
+      "renamePlaceholder": "Conversation name",
+      "deleteError": "Failed to delete conversation."
     }
   },
   "chat": {
@@ -50,6 +51,8 @@
     "cancel": "Cancel",
     "saveAndSend": "Save and send",
     "copy": "Copy",
+    "copiedToClipboard": "Copied to clipboard.",
+    "copyFailed": "Failed to copy message to clipboard.",
     "favourite": "Add to favourites",
     "unfavourite": "Remove from favourites",
     "regenerate": "Regenerate"

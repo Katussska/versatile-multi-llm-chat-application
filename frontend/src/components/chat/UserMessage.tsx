@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { type KeyboardEvent, useState } from 'react';
 
 import type { Message } from '@/components/chat/ChatSection.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { Clipboard, ClipboardCheck, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 export default function UserMessage({
   message,
@@ -25,7 +26,7 @@ export default function UserMessage({
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSave();
@@ -37,9 +38,19 @@ export default function UserMessage({
   };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API is not available.');
+      }
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      toast.success(t('chat.copiedToClipboard'));
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      setCopied(false);
+      console.error('Failed to copy message to clipboard.', error);
+      toast.error(t('chat.copyFailed'));
+    }
   };
 
   if (isEditing) {
@@ -93,6 +104,7 @@ export default function UserMessage({
                 setIsEditing(true);
               }}
               title={t('chat.editMessage')}
+              aria-label={t('chat.editMessage')}
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
               <Pencil size={18} />
@@ -101,6 +113,7 @@ export default function UserMessage({
           <button
             onClick={() => void handleCopy()}
             title={t('chat.copy')}
+            aria-label={t('chat.copy')}
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             {copied ? <ClipboardCheck size={18} /> : <Clipboard size={18} />}
