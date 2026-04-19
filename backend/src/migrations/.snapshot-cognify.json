@@ -389,6 +389,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "favourite": {
+          "name": "favourite",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
         }
       },
       "indexes": [
@@ -566,6 +582,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "parent_message_id": {
+          "name": "parent_message_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
         }
       },
       "indexes": [

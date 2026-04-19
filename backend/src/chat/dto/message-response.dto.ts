@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class MessageResponseDto {
   @ApiProperty()
@@ -15,6 +15,9 @@ export class MessageResponseDto {
 
   @ApiProperty()
   favourite!: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
+  parentMessageId!: string | null;
 
   @ApiProperty()
   createdAt!: Date;

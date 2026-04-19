@@ -103,3 +103,23 @@ body {
         @apply bg-background text-foreground;
     }
 }
+
+/* Sonner toasts — pill shape + input-like style */
+:root {
+    --sidebar-width: 16rem;
+}
+
+[data-sonner-toaster][data-x-position="center"] {
+    left: calc(var(--sidebar-width) / 2 + 50%) !important;
+}
+
+[data-sonner-toast] {
+    border-radius: 9999px !important;
+    border: none !important;
+    background: hsl(var(--sidebar-background)) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
+    padding: 0.5rem 1.25rem !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    min-width: unset !important;
+}

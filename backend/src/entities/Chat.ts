@@ -23,4 +23,7 @@ export class Chat extends Base {
 
   @Property({ type: 'string' })
   title!: string;
+
+  @Property({ type: 'boolean', default: false })
+  favourite: boolean = false;
 }

@@ -72,6 +72,7 @@ export class ChatService {
       user,
       model,
       title: createChatDto.title,
+      favourite: false,
     });
 
     this.em.persist(chat);
@@ -104,7 +105,7 @@ export class ChatService {
     const messages = await this.em.find(
       Message,
       { chat: { id: chatId } },
-      { orderBy: { createdAt: 'ASC' } },
+      { orderBy: { createdAt: 'ASC', id: 'ASC' } },
     );
 
     return messages;
@@ -157,11 +158,31 @@ export class ChatService {
     await this.em.flush();
   }
 
-  async patchMessageContent(
+  async patchChat(
+    chatId: string,
+    userId: string,
+    data: { title?: string; favourite?: boolean },
+  ): Promise<Chat> {
+    const chat = await this.chatRepository.findOne(
+      { id: chatId, deletedAt: null },
+      { populate: ['user'] },
+    );
+
+    if (!chat || chat.user.id !== userId) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    if (data.title !== undefined) chat.title = data.title;
+    if (data.favourite !== undefined) chat.favourite = data.favourite;
+    await this.em.flush();
+    return chat;
+  }
+
+  async patchMessage(
     messageId: string,
     chatId: string,
     userId: string,
-    content: string,
+    data: { content?: string; favourite?: boolean },
   ): Promise<void> {
     const message = await this.em.findOne(
       Message,
@@ -173,7 +194,8 @@ export class ChatService {
       throw new NotFoundException('Message not found');
     }
 
-    message.content = content;
+    if (data.content !== undefined) message.content = data.content;
+    if (data.favourite !== undefined) message.favourite = data.favourite;
     await this.em.flush();
   }
 
@@ -182,6 +204,8 @@ export class ChatService {
     userId: string,
     content: string,
     res: Response,
+    parentMessageId?: string,
+    regenerate?: boolean,
   ): Promise<void> {
     const chat = await this.chatRepository.findOne(
       { id: chatId, deletedAt: null },
@@ -192,36 +216,50 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const userMessage = this.em.create(Message, {
-      chat,
-      content,
-      path: 'user',
-      favourite: false,
-    });
+    let userMessage: Message | null = null;
+
+    if (!regenerate) {
+      userMessage = this.em.create(Message, {
+        chat,
+        content,
+        path: 'user',
+        favourite: false,
+        parentMessageId: parentMessageId ?? null,
+      });
+      this.em.persist(userMessage);
+    }
+
     const assistantMessage = this.em.create(Message, {
       chat,
       content: '',
       path: 'model',
       favourite: false,
+      parentMessageId: regenerate ? (parentMessageId ?? null) : null,
     });
-    this.em.persist(userMessage);
     this.em.persist(assistantMessage);
-    await this.em.flush();
 
+    // Send messageId immediately — UUID is generated client-side before flush
     res.write(`data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`);
+
+    // Flush DB and start Gemini stream in parallel to reduce latency
+    const flushPromise = this.em.flush();
 
     let fullResponse = '';
     let clientDisconnected = false;
+    const streamAbort = new AbortController();
     res.on('close', () => {
       clientDisconnected = true;
+      streamAbort.abort();
     });
 
     try {
-      for await (const chunk of this.geminiService.generateTextStream(content, chatId)) {
+      for await (const chunk of this.geminiService.generateTextStream(content, chatId, streamAbort.signal)) {
         if (clientDisconnected) break;
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
       }
+
+      await flushPromise;
 
       if (!clientDisconnected) {
         assistantMessage.content = fullResponse;
@@ -235,6 +273,7 @@ export class ChatService {
         await this.em.flush();
       }
     } catch {
+      await flushPromise.catch(() => {});
       if (!clientDisconnected) {
         res.write(`data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`);
       }

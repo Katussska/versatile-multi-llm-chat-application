@@ -1,12 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class PatchMessageDto {
+export class PatchChatDto {
   @ApiPropertyOptional()
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  content?: string;
+  title?: string;
 
   @ApiPropertyOptional()
   @IsBoolean()

@@ -120,7 +120,8 @@ export interface paths {
         delete: operations["ChatController_deleteChat"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update chat title or favourite status */
+        patch: operations["ChatController_patchChat"];
         trace?: never;
     };
 }
@@ -169,10 +170,15 @@ export interface components {
             id: string;
             title: string;
             modelId: string;
+            favourite: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        PatchChatDto: {
+            title?: string;
+            favourite?: boolean;
         };
         MessageResponseDto: {
             id: string;
@@ -442,6 +448,46 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description User not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chat not found or access denied */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_patchChat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchChatDto"];
+            };
+        };
+        responses: {
+            /** @description Chat successfully updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatResponseDto"];
+                };
+            };
             /** @description User not authenticated */
             401: {
                 headers: {

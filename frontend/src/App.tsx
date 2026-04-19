@@ -47,7 +47,7 @@ export default function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AuthProvider>
         <RouterProvider router={router} />
-        <Toaster richColors position="top-right" />
+        <Toaster position="bottom-center" offset="96px" />
       </AuthProvider>
     </ThemeProvider>
   );

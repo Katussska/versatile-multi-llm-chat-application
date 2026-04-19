@@ -11,6 +11,9 @@ export class ChatResponseDto {
   modelId!: string;
 
   @ApiProperty()
+  favourite!: boolean;
+
+  @ApiProperty()
   createdAt!: Date;
 
   @ApiProperty()

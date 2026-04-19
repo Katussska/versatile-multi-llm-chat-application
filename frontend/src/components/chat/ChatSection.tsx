@@ -18,9 +18,9 @@ export interface Message {
   role: 'user' | 'model';
   createdAt: Date;
   isStreaming?: boolean;
+  favourite: boolean;
 }
 
-const STREAMING_MESSAGE_ID = 'streaming-assistant-message';
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
 
 export default function ChatSection() {
@@ -30,6 +30,7 @@ export default function ChatSection() {
   const { id: routeChatId } = useParams<{ id: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -39,6 +40,7 @@ export default function ChatSection() {
   const wasAbortedRef = useRef(false);
   const streamedContentRef = useRef('');
   const streamedMessageIdRef = useRef<string | null>(null);
+  const streamingPlaceholderIdRef = useRef<string>('streaming-assistant-message');
 
   const { chats, selectedChatId, setSelectedChatId, isChatsPending, hasChatsError } =
     useContext(TreeContext);
@@ -123,6 +125,7 @@ export default function ChatSection() {
           content: message.content,
           role: message.path === 'user' ? 'user' : 'model',
           createdAt: new Date(message.createdAt),
+          favourite: message.favourite,
         })),
       );
     } else if (activeChatId && !isCreatingConversation) {
@@ -155,7 +158,7 @@ export default function ChatSection() {
       }
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === STREAMING_MESSAGE_ID
+          msg.id === streamingPlaceholderIdRef.current
             ? { ...msg, content: msg.content + fragment }
             : msg,
         ),
@@ -204,21 +207,99 @@ export default function ChatSection() {
   const handleAbort = async (chatId: string) => {
     wasAbortedRef.current = true;
     if (!streamedMessageIdRef.current) {
-      setMessages((prev) => prev.filter((msg) => msg.id !== STREAMING_MESSAGE_ID));
+      setMessages((prev) => prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current));
       return;
     }
     await patchModelMessage(chatId, streamedContentRef.current + '...');
+    const realId = streamedMessageIdRef.current;
     setMessages((prev) =>
       prev.map((msg) =>
-        msg.id === STREAMING_MESSAGE_ID
-          ? { ...msg, content: streamedContentRef.current + '...', isStreaming: false }
+        msg.id === streamingPlaceholderIdRef.current
+          ? { ...msg, id: realId, content: streamedContentRef.current + '...', isStreaming: false }
           : msg,
       ),
     );
   };
 
   const handleStopStreaming = () => {
+    clearQueue();
     abortControllerRef.current?.abort();
+  };
+
+  const refetchAfterStream = async (chatId: string) => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: $api.queryOptions('get', '/chats').queryKey,
+      }),
+      queryClient.refetchQueries({
+        queryKey: $api.queryOptions('get', '/chats/{id}/messages', {
+          params: { path: { id: chatId } },
+        }).queryKey,
+      }),
+    ]);
+  };
+
+  const executeStream = async (
+    chatId: string,
+    content: string,
+    options?: { parentMessageId?: string; regenerate?: boolean },
+  ) => {
+    streamedContentRef.current = '';
+    streamedMessageIdRef.current = null;
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const response = await fetch(`${API_BASE}/chats/${chatId}/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        content,
+        parentMessageId: options?.parentMessageId,
+        regenerate: options?.regenerate,
+      }),
+      signal: abortController.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    if (!response.body) throw new Error('No response body');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = JSON.parse(line.slice(6)) as {
+          messageId?: string;
+          chunk?: string;
+          done?: boolean;
+          error?: string;
+        };
+
+        if (data.messageId) {
+          streamedMessageIdRef.current = data.messageId;
+        } else if (data.chunk) {
+          streamedContentRef.current += data.chunk;
+          enqueueWords(data.chunk);
+        } else if (data.error) {
+          throw new Error(data.error);
+        }
+      }
+    }
+
+    await waitForDrain();
   };
 
   const handleSendMessage = async (content: string) => {
@@ -230,19 +311,23 @@ export default function ChatSection() {
     setIsCreatingConversation(true);
     setIsStreaming(true);
 
+    streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
+
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       content: trimmedContent,
       role: 'user',
       createdAt: new Date(),
+      favourite: false,
     };
 
     const assistantPlaceholder: Message = {
-      id: STREAMING_MESSAGE_ID,
+      id: streamingPlaceholderIdRef.current,
       content: '',
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
+      favourite: false,
     };
 
     setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
@@ -266,91 +351,164 @@ export default function ChatSection() {
         navigate(`/chat/${chatId}`);
       }
 
-      streamedContentRef.current = '';
-      streamedMessageIdRef.current = null;
-
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      const response = await fetch(`${API_BASE}/chats/${chatId}/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: trimmedContent }),
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      if (!response.body) throw new Error('No response body');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = JSON.parse(line.slice(6)) as {
-            messageId?: string;
-            chunk?: string;
-            done?: boolean;
-            error?: string;
-          };
-
-          if (data.messageId) {
-            streamedMessageIdRef.current = data.messageId;
-          } else if (data.chunk) {
-            streamedContentRef.current += data.chunk;
-            enqueueWords(data.chunk);
-          } else if (data.error) {
-            throw new Error(data.error);
-          }
-        }
-      }
-
-      await waitForDrain();
+      await executeStream(chatId, trimmedContent);
 
       if (abortControllerRef.current?.signal.aborted) {
         await handleAbort(chatId!);
       } else {
+        setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === STREAMING_MESSAGE_ID ? { ...msg, isStreaming: false } : msg,
+            msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
           ),
         );
-
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: $api.queryOptions('get', '/chats').queryKey,
-          }),
-          queryClient.refetchQueries({
-            queryKey: $api.queryOptions('get', '/chats/{id}/messages', {
-              params: { path: { id: chatId } },
-            }).queryKey,
-          }),
-        ]);
+        await refetchAfterStream(chatId!);
+        setIsRefetching(false);
       }
     } catch (err) {
       clearQueue();
       if (err instanceof Error && err.name === 'AbortError') {
         await handleAbort(chatId!);
       } else {
-        setMessages((prev) => prev.filter((msg) => msg.id !== STREAMING_MESSAGE_ID));
+        setMessages((prev) => prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current));
         toast.error(t('chat.sendError'));
       }
     } finally {
       setIsStreaming(false);
       setIsCreatingConversation(false);
       abortControllerRef.current = null;
+    }
+  };
+
+  const handleRegenerateMessage = async (messageIndex: number) => {
+    if (isStreaming || !activeChatId) return;
+
+    const userMsg = messages[messageIndex - 1];
+    if (!userMsg || userMsg.role !== 'user') return;
+
+    const savedMessages = messages;
+    const truncated = messages.slice(0, messageIndex);
+    streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
+    const assistantPlaceholder: Message = {
+      id: streamingPlaceholderIdRef.current,
+      content: '',
+      role: 'model',
+      createdAt: new Date(),
+      isStreaming: true,
+      favourite: false,
+    };
+    setMessages([...truncated, assistantPlaceholder]);
+    setIsStreaming(true);
+
+    try {
+      await executeStream(activeChatId, userMsg.content, {
+        parentMessageId: userMsg.id,
+        regenerate: true,
+      });
+
+      if (abortControllerRef.current?.signal.aborted) {
+        await handleAbort(activeChatId);
+      } else {
+        setIsRefetching(true);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
+          ),
+        );
+        await refetchAfterStream(activeChatId);
+        setIsRefetching(false);
+      }
+    } catch (err) {
+      clearQueue();
+      if (err instanceof Error && err.name === 'AbortError') {
+        await handleAbort(activeChatId);
+      } else {
+        setMessages(savedMessages);
+        toast.error(t('chat.sendError'));
+      }
+    } finally {
+      setIsStreaming(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleEditMessage = async (messageIndex: number, newContent: string) => {
+    if (isStreaming || !activeChatId) return;
+
+    const precedingMsg = messageIndex > 0 ? messages[messageIndex - 1] : null;
+    const savedMessages = messages;
+    const truncated = messages.slice(0, messageIndex);
+
+    streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
+    const newUserMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: newContent,
+      role: 'user',
+      createdAt: new Date(),
+      favourite: false,
+    };
+    const assistantPlaceholder: Message = {
+      id: streamingPlaceholderIdRef.current,
+      content: '',
+      role: 'model',
+      createdAt: new Date(),
+      isStreaming: true,
+      favourite: false,
+    };
+    setMessages([...truncated, newUserMessage, assistantPlaceholder]);
+    setIsStreaming(true);
+
+    try {
+      await executeStream(activeChatId, newContent, {
+        parentMessageId: precedingMsg?.id,
+      });
+
+      if (abortControllerRef.current?.signal.aborted) {
+        await handleAbort(activeChatId);
+      } else {
+        setIsRefetching(true);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
+          ),
+        );
+        await refetchAfterStream(activeChatId);
+        setIsRefetching(false);
+      }
+    } catch (err) {
+      clearQueue();
+      if (err instanceof Error && err.name === 'AbortError') {
+        await handleAbort(activeChatId);
+      } else {
+        setMessages(savedMessages);
+        toast.error(t('chat.sendError'));
+      }
+    } finally {
+      setIsStreaming(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleToggleFavourite = async (messageId: string, currentValue: boolean) => {
+    if (!activeChatId) return;
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === messageId ? { ...msg, favourite: !currentValue } : msg)),
+    );
+    try {
+      const response = await fetch(`${API_BASE}/chats/${activeChatId}/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ favourite: !currentValue }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to toggle favourite: ${response.status}`);
+      }
+    } catch {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, favourite: currentValue } : msg)),
+      );
+      toast.error(t('chat.sendError'));
     }
   };
 
@@ -362,7 +520,12 @@ export default function ChatSection() {
           messages={messages}
           isLoading={isInitialMessagesLoading}
           errorMessage={fetchErrorMessage}
+          isStreaming={isStreaming}
+          isRefetching={isRefetching}
           scrollContainerRef={scrollContainerRef}
+          onEditMessage={handleEditMessage}
+          onRegenerateMessage={handleRegenerateMessage}
+          onToggleFavourite={handleToggleFavourite}
         />
       </div>
       <ChatInput

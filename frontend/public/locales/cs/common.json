@@ -22,13 +22,23 @@
   },
   "sidebar": {
     "chats": "Konverzace",
+    "favorites": "Oblíbené",
     "newChat": "Nový chat",
     "loading": "Načítám...",
     "loadError": "Nepodařilo se načíst chaty.",
     "empty": "Zatím žádné chaty",
+    "emptyFavorites": "Žádné oblíbené",
     "groupChats": "Skupinové konverzace",
     "bugReport": "Nahlásit chybu",
-    "logout": "Odhlásit se"
+    "logout": "Odhlásit se",
+    "chatMenu": {
+      "rename": "Přejmenovat",
+      "delete": "Smazat",
+      "addFavorite": "Přidat do oblíbených",
+      "removeFavorite": "Odebrat z oblíbených",
+      "renamePlaceholder": "Název konverzace",
+      "deleteError": "Nepodařilo se smazat konverzaci."
+    }
   },
   "chat": {
     "inputPlaceholder": "Napište zprávu...",
@@ -36,7 +46,16 @@
     "noMessages": "Žádné zprávy. Začni psát!",
     "loadError": "Nepodařilo se načíst zprávy.",
     "sendError": "Nepodařilo se odeslat zprávu.",
-    "stopGenerating": "Zastavit generování"
+    "stopGenerating": "Zastavit generování",
+    "editMessage": "Upravit zprávu",
+    "cancel": "Zrušit",
+    "saveAndSend": "Uložit a odeslat",
+    "copy": "Kopírovat",
+    "copiedToClipboard": "Zkopírováno do schránky.",
+    "copyFailed": "Kopírování do schránky se nezdařilo.",
+    "favourite": "Přidat do oblíbených",
+    "unfavourite": "Odebrat z oblíbených",
+    "regenerate": "Znovu vygenerovat"
   },
   "profile": {
     "picture": "Profilový obrázek",
