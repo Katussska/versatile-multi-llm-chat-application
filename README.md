@@ -68,7 +68,8 @@ What is implemented end-to-end:
 
 - full auth flow: register, login, session management (Better Auth)
 - sidebar with chat list and new chat creation
-- chat history: list, create, soft delete
+- chat history: list, create, rename, soft delete (with confirmation)
+- message actions: copy, delete, toggle favourite
 - real-time streaming chat via SSE (`POST /chats/:id/stream`) — response streams word-by-word with animated rendering
 - stop-streaming button to abort an in-flight response
 - user message saved to DB before streaming; assistant reply saved after stream completes
@@ -77,12 +78,12 @@ What is implemented end-to-end:
 - markdown rendering of AI responses
 - model selector UI (Gemini models)
 - dark/light theme switching
-- Czech/English localization
+- profile page: update display name, read-only email, change password (with live validation rules), language switcher (CS/EN)
+- Czech/English localization (i18next)
 
 Work in progress / placeholders:
 
-- conversation branching (data model is ready, UI is not)
-- profile page (basic placeholder)
+- conversation branching (data model ready, tree UI in progress)
 - admin panel (not yet implemented)
 - group chat (not yet implemented)
 
