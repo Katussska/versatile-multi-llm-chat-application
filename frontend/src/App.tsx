@@ -2,7 +2,6 @@ import TreeProvider from '@/components/TreeProvider.tsx';
 import ChatSection from '@/components/chat/ChatSection.tsx';
 import { Layout } from '@/components/layout.tsx';
 import ProfileSection from '@/components/profile/ProfileSection.tsx';
-import TreeSection from '@/components/tree/TreeSection.tsx';
 import UserBadge from '@/components/userBadge/UserBadge.tsx';
 
 import { ThemeProvider } from './components/userBadge/theme-provider.tsx';
@@ -19,7 +18,6 @@ const appShell = (
       <Layout className="flex flex-row">
         <UserBadge />
         <ChatSection />
-        <TreeSection />
       </Layout>
     </TreeProvider>
   </ProtectedRoute>

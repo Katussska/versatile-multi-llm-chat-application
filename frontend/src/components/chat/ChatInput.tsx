@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 
-import { Paperclip, SendHorizontal, Square } from 'lucide-react';
+import { SendHorizontal, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ChatInputProps {
@@ -53,7 +53,6 @@ export default function ChatInput({ onSendMessage, onStop, isStreaming }: ChatIn
 
   return (
     <div className="flex w-full shrink-0 flex-row items-center justify-center px-4 py-[21px]">
-      <Paperclip className="self-end mb-[7px]" />
       <textarea
         ref={textareaRef}
         className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring mx-8 max-h-40 w-full max-w-3xl resize-none overflow-y-hidden rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50"

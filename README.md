@@ -83,7 +83,7 @@ What is implemented end-to-end:
 
 Work in progress / placeholders:
 
-- conversation branching (data model ready, tree UI in progress)
+- conversation branching — (not yet implemented)
 - admin panel (not yet implemented)
 - group chat (not yet implemented)
 
