@@ -19,7 +19,9 @@ export const changePasswordSchema = (t: TFunction<'translation', undefined>) =>
         .regex(/[A-Z]/, { message: t('profile.validation.passwordCapital') })
         .regex(/[0-9]/, { message: t('profile.validation.passwordNumber') })
         .regex(/[^A-Za-z0-9]/, { message: t('profile.validation.passwordSpecial') }),
-      confirmPassword: z.string(),
+      confirmPassword: z
+        .string()
+        .min(1, { message: t('profile.validation.confirmPasswordRequired') }),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {
       message: t('profile.validation.passwordMismatch'),

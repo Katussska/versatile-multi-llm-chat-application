@@ -39,10 +39,10 @@ export default function ProfileSection() {
 
   const newPassword = useWatch({ control: passwordForm.control, name: 'newPassword' });
   const passwordRules = [
-    { label: t('profile.validation.passwordMin'), met: (newPassword?.length ?? 0) >= 8 },
-    { label: t('profile.validation.passwordCapital'), met: /[A-Z]/.test(newPassword ?? '') },
-    { label: t('profile.validation.passwordNumber'), met: /[0-9]/.test(newPassword ?? '') },
-    { label: t('profile.validation.passwordSpecial'), met: /[^A-Za-z0-9]/.test(newPassword ?? '') },
+    { id: 'min', label: t('profile.validation.passwordMin'), met: (newPassword?.length ?? 0) >= 8 },
+    { id: 'capital', label: t('profile.validation.passwordCapital'), met: /[A-Z]/.test(newPassword ?? '') },
+    { id: 'number', label: t('profile.validation.passwordNumber'), met: /[0-9]/.test(newPassword ?? '') },
+    { id: 'special', label: t('profile.validation.passwordSpecial'), met: /[^A-Za-z0-9]/.test(newPassword ?? '') },
   ];
 
   const onNameSubmit = nameForm.handleSubmit(async ({ name }) => {
@@ -143,6 +143,8 @@ export default function ProfileSection() {
                           <button
                             type="button"
                             onClick={() => setShowCurrent((v) => !v)}
+                            aria-label={showCurrent ? t('profile.hideCurrentPassword') : t('profile.showCurrentPassword')}
+                            aria-pressed={showCurrent}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
                             {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -165,6 +167,8 @@ export default function ProfileSection() {
                           <button
                             type="button"
                             onClick={() => setShowNew((v) => !v)}
+                            aria-label={showNew ? t('profile.hideNewPassword') : t('profile.showNewPassword')}
+                            aria-pressed={showNew}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
                             {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -174,7 +178,7 @@ export default function ProfileSection() {
                       <ul className="mt-2 space-y-1">
                         {passwordRules.map((rule) => (
                           <li
-                            key={rule.label}
+                            key={rule.id}
                             className={`flex items-center gap-2 text-xs transition-colors ${rule.met ? 'text-green-500' : 'text-muted-foreground'}`}
                           >
                             {rule.met
@@ -200,6 +204,8 @@ export default function ProfileSection() {
                           <button
                             type="button"
                             onClick={() => setShowConfirm((v) => !v)}
+                            aria-label={showConfirm ? t('profile.hideConfirmPassword') : t('profile.showConfirmPassword')}
+                            aria-pressed={showConfirm}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
                             {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}

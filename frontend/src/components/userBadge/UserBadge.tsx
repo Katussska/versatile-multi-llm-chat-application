@@ -32,8 +32,8 @@ export default function UserBadge() {
         <AvatarImage src="/avatar.png" />
         <AvatarFallback>
           {user?.name
-            ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-            : 'CN'}
+            ? (user.name.trim().split(/\s+/).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '?')
+            : '?'}
         </AvatarFallback>
       </Avatar>
     </div>
