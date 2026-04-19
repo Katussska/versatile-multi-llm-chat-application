@@ -1,6 +1,7 @@
 import TreeProvider from '@/components/TreeProvider.tsx';
 import ChatSection from '@/components/chat/ChatSection.tsx';
 import { Layout } from '@/components/layout.tsx';
+import ProfileSection from '@/components/profile/ProfileSection.tsx';
 import TreeSection from '@/components/tree/TreeSection.tsx';
 import UserBadge from '@/components/userBadge/UserBadge.tsx';
 
@@ -24,6 +25,17 @@ const appShell = (
   </ProtectedRoute>
 );
 
+const profileShell = (
+  <ProtectedRoute>
+    <TreeProvider>
+      <Layout className="flex flex-row">
+        <UserBadge />
+        <ProfileSection />
+      </Layout>
+    </TreeProvider>
+  </ProtectedRoute>
+);
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -34,6 +46,11 @@ const router = createBrowserRouter([
     path: '/chat/:id',
     errorElement: <RouteError />,
     element: appShell,
+  },
+  {
+    path: '/profile',
+    errorElement: <RouteError />,
+    element: profileShell,
   },
   {
     path: '/login',
