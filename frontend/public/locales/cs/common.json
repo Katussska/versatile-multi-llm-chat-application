@@ -55,7 +55,10 @@
     "copyFailed": "Kopírování do schránky se nezdařilo.",
     "favourite": "Přidat do oblíbených",
     "unfavourite": "Odebrat z oblíbených",
-    "regenerate": "Znovu vygenerovat"
+    "regenerate": "Znovu vygenerovat",
+    "tokenLimitBanner": "Dosáhli jste limitu tokenů. Nové zprávy lze odesílat od {{- date}}.",
+    "tokenLimitError": "Dosáhli jste limitu tokenů. Nové zprávy lze odesílat od {{- date}}.",
+    "tokenLimitErrorNoDate": "Dosáhli jste limitu tokenů. Počkejte na reset."
   },
   "profile": {
     "title": "Profil",
@@ -97,6 +100,111 @@
         "average": "Průměr",
         "current": "Aktuálně"
       }
+    },
+    "tokens": {
+      "title": "Využití tokenů",
+      "reset": "Reset:",
+      "allModels": "Všechny modely"
+    }
+  },
+  "admin": {
+    "title": "Administrace",
+    "goToAdmin": "Přejít do administrace",
+    "stats": {
+      "users": "Celkem uživatelů",
+      "activeUsers": "Aktivní uživatelé (30 dní)",
+      "mostUsedModel": "Nejpoužívanější model",
+      "noModel": "Žádný"
+    },
+    "users": {
+      "title": "Správa uživatelů"
+    },
+    "statistics": {
+      "title": "Aktivita za posledních 30 dní",
+      "messages": "Zprávy",
+      "noData": "Zatím žádná data"
+    },
+    "createUser": {
+      "trigger": "Vytvořit uživatele",
+      "title": "Vytvořit nového uživatele",
+      "description": "Vyplňte email a heslo nového uživatele.",
+      "generatePassword": "Vygenerovat heslo",
+      "makeAdmin": "Administrátor",
+      "submit": "Vytvořit",
+      "success": "Uživatel byl úspěšně vytvořen.",
+      "error": "Nepodařilo se vytvořit uživatele.",
+      "confirmAdmin": {
+        "title": "Přiřadit roli administrátora?",
+        "description": "Uživatel získá plný přístup do administrace. Tuto akci lze později změnit.",
+        "confirm": "Ano, přiřadit"
+      },
+      "tokenStep": {
+        "title": "Nastavení tokenů",
+        "description": "Uživatel byl vytvořen. Volitelně nastavte limity tokenů pro jednotlivé modely.",
+        "done": "Dokončit"
+      }
+    },
+    "editUser": {
+      "trigger": "Upravit uživatele",
+      "title": "Upravit uživatele",
+      "titleSelected": "Upravit: {{email}}",
+      "description": "Vyberte uživatele, kterého chcete upravit.",
+      "select": "Vybrat",
+      "back": "Zpět",
+      "newPassword": "Nové heslo (volitelné)",
+      "passwordPlaceholder": "Ponechat beze změny",
+      "submit": "Uložit změny",
+      "noChanges": "Nebyly provedeny žádné změny.",
+      "success": "Uživatel byl úspěšně upraven.",
+      "error": "Nepodařilo se upravit uživatele.",
+      "confirmRemoveAdmin": {
+        "title": "Odebrat roli administrátora?",
+        "description": "Uživatel ztratí přístup do administrace.",
+        "confirm": "Ano, odebrat"
+      }
+    },
+    "deleteUser": {
+      "trigger": "Smazat uživatele",
+      "title": "Smazat uživatele",
+      "description": "Vyberte uživatele, kterého chcete smazat.",
+      "deleteBtn": "Smazat",
+      "confirmTitle": "Opravdu smazat uživatele?",
+      "confirmDescription": "Uživatel {{email}} bude trvale deaktivován. Tuto akci nelze vrátit.",
+      "confirmBtn": "Smazat",
+      "success": "Uživatel byl úspěšně smazán.",
+      "error": "Nepodařilo se smazat uživatele."
+    },
+    "userList": {
+      "searchPlaceholder": "Hledat dle emailu...",
+      "empty": "Žádní uživatelé nenalezeni.",
+      "loading": "Načítám uživatele...",
+      "loadError": "Nepodařilo se načíst uživatele."
+    },
+    "manageTokens": {
+      "trigger": "Tokeny",
+      "title": "Správa limitů tokenů",
+      "titleSelected": "Tokeny: {{email}}",
+      "description": "Vyberte uživatele pro správu jeho limitů tokenů.",
+      "addTitle": "Přidat limit tokenů",
+      "editTitle": "Upravit limit tokenů",
+      "loading": "Načítám limity...",
+      "empty": "Uživatel nemá žádné limity tokenů.",
+      "loadError": "Nepodařilo se načíst limity tokenů.",
+      "tokens": "tokenů",
+      "resetLabel": "reset",
+      "model": "Model",
+      "selectModel": "Vyberte model...",
+      "tokenCount": "Limit tokenů",
+      "resetAt": "Datum resetu",
+      "add": "Přidat limit",
+      "addSubmit": "Přidat",
+      "editSubmit": "Uložit",
+      "addSuccess": "Limit tokenů byl přidán.",
+      "addError": "Nepodařilo se přidat limit tokenů.",
+      "editSuccess": "Limit tokenů byl upraven.",
+      "editError": "Nepodařilo se upravit limit tokenů.",
+      "deleteSuccess": "Limit tokenů byl smazán.",
+      "deleteError": "Nepodařilo se smazat limit tokenů."
     }
   }
 }

@@ -67,15 +67,23 @@ export class GeminiService {
     }
   }
 
-  async *generateTextStream(prompt: string, sessionId?: string, signal?: AbortSignal): AsyncGenerator<string> {
+  async *generateTextStream(
+    prompt: string,
+    sessionId?: string,
+    signal?: AbortSignal,
+  ): AsyncGenerator<{ type: 'text'; text: string } | { type: 'usage'; totalTokens: number }> {
     const { chat } = this.getChatSession(sessionId);
     try {
       const result = await chat.sendMessageStream(prompt, { signal });
       for await (const chunk of result.stream) {
         const text = chunk.text();
         if (text) {
-          yield text;
+          yield { type: 'text', text };
         }
+      }
+      if (!signal?.aborted) {
+        const response = await result.response;
+        yield { type: 'usage', totalTokens: response.usageMetadata?.totalTokenCount ?? 0 };
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {

@@ -55,7 +55,10 @@
     "copyFailed": "Failed to copy message to clipboard.",
     "favourite": "Add to favourites",
     "unfavourite": "Remove from favourites",
-    "regenerate": "Regenerate"
+    "regenerate": "Regenerate",
+    "tokenLimitBanner": "Token limit reached. You can send new messages from {{- date}}.",
+    "tokenLimitError": "Token limit reached. You can send new messages from {{- date}}.",
+    "tokenLimitErrorNoDate": "Token limit reached. Please wait for the reset."
   },
   "profile": {
     "title": "Profile",
@@ -97,6 +100,111 @@
         "average": "Average",
         "current": "Current"
       }
+    },
+    "tokens": {
+      "title": "Token usage",
+      "reset": "Reset:",
+      "allModels": "All models"
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "goToAdmin": "Go to administration",
+    "stats": {
+      "users": "Total users",
+      "activeUsers": "Active users (30 days)",
+      "mostUsedModel": "Most used model",
+      "noModel": "None"
+    },
+    "users": {
+      "title": "User management"
+    },
+    "statistics": {
+      "title": "Activity over the last 30 days",
+      "messages": "Messages",
+      "noData": "No data yet"
+    },
+    "createUser": {
+      "trigger": "Create user",
+      "title": "Create new user",
+      "description": "Fill in the email and password for the new user.",
+      "generatePassword": "Generate password",
+      "makeAdmin": "Administrator",
+      "submit": "Create",
+      "success": "User created successfully.",
+      "error": "Failed to create user.",
+      "confirmAdmin": {
+        "title": "Assign administrator role?",
+        "description": "The user will have full access to the administration. This can be changed later.",
+        "confirm": "Yes, assign"
+      },
+      "tokenStep": {
+        "title": "Token settings",
+        "description": "User created. Optionally set token limits for individual models.",
+        "done": "Finish"
+      }
+    },
+    "editUser": {
+      "trigger": "Edit user",
+      "title": "Edit user",
+      "titleSelected": "Edit: {{email}}",
+      "description": "Select the user you want to edit.",
+      "select": "Select",
+      "back": "Back",
+      "newPassword": "New password (optional)",
+      "passwordPlaceholder": "Leave unchanged",
+      "submit": "Save changes",
+      "noChanges": "No changes were made.",
+      "success": "User updated successfully.",
+      "error": "Failed to update user.",
+      "confirmRemoveAdmin": {
+        "title": "Remove administrator role?",
+        "description": "The user will lose access to the administration.",
+        "confirm": "Yes, remove"
+      }
+    },
+    "deleteUser": {
+      "trigger": "Delete user",
+      "title": "Delete user",
+      "description": "Select the user you want to delete.",
+      "deleteBtn": "Delete",
+      "confirmTitle": "Delete user?",
+      "confirmDescription": "User {{email}} will be permanently deactivated. This action cannot be undone.",
+      "confirmBtn": "Delete",
+      "success": "User deleted successfully.",
+      "error": "Failed to delete user."
+    },
+    "userList": {
+      "searchPlaceholder": "Search by email...",
+      "empty": "No users found.",
+      "loading": "Loading users...",
+      "loadError": "Failed to load users."
+    },
+    "manageTokens": {
+      "trigger": "Tokens",
+      "title": "Manage token limits",
+      "titleSelected": "Tokens: {{email}}",
+      "description": "Select a user to manage their token limits.",
+      "addTitle": "Add token limit",
+      "editTitle": "Edit token limit",
+      "loading": "Loading limits...",
+      "empty": "User has no token limits.",
+      "loadError": "Failed to load token limits.",
+      "tokens": "tokens",
+      "resetLabel": "reset",
+      "model": "Model",
+      "selectModel": "Select model...",
+      "tokenCount": "Token limit",
+      "resetAt": "Reset date",
+      "add": "Add limit",
+      "addSubmit": "Add",
+      "editSubmit": "Save",
+      "addSuccess": "Token limit added.",
+      "addError": "Failed to add token limit.",
+      "editSuccess": "Token limit updated.",
+      "editError": "Failed to update token limit.",
+      "deleteSuccess": "Token limit deleted.",
+      "deleteError": "Failed to delete token limit."
     }
   }
 }

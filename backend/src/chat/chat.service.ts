@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { EntityRepository } from '@mikro-orm/core';
@@ -7,6 +7,7 @@ import { Chat } from '../entities/Chat';
 import { Message } from '../entities/Message';
 import { User } from '../entities/User';
 import { Model } from '../entities/Model';
+import { Token } from '../entities/Token';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
@@ -17,6 +18,8 @@ export class ChatService {
   constructor(
     @InjectRepository(Chat)
     private readonly chatRepository: EntityRepository<Chat>,
+    @InjectRepository(Token)
+    private readonly tokenRepository: EntityRepository<Token>,
     private readonly em: EntityManager,
     private readonly configService: ConfigService,
     private readonly geminiService: GeminiService,
@@ -199,6 +202,14 @@ export class ChatService {
     await this.em.flush();
   }
 
+  private async updateUsedTokens(userId: string, modelId: string, tokens: number): Promise<void> {
+    if (tokens <= 0) return;
+    const token = await this.tokenRepository.findOne({ user: userId, model: modelId });
+    if (token) {
+      token.usedTokens += tokens;
+    }
+  }
+
   async streamResponse(
     chatId: string,
     userId: string,
@@ -209,11 +220,24 @@ export class ChatService {
   ): Promise<void> {
     const chat = await this.chatRepository.findOne(
       { id: chatId, deletedAt: null },
-      { populate: ['user'] },
+      { populate: ['user', 'model'] },
     );
 
     if (!chat || chat.user.id !== userId) {
       throw new NotFoundException('Chat not found');
+    }
+
+    const tokenLimit = await this.tokenRepository.findOne({ user: userId, model: chat.model.id });
+    if (tokenLimit) {
+      if (new Date() >= tokenLimit.resetAt) {
+        tokenLimit.usedTokens = 0;
+        await this.em.flush();
+      } else if (tokenLimit.usedTokens >= tokenLimit.tokenCount) {
+        throw new HttpException(
+          { message: 'Token limit exceeded', resetAt: tokenLimit.resetAt },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
     }
 
     let userMessage: Message | null = null;
@@ -246,6 +270,7 @@ export class ChatService {
 
     let fullResponse = '';
     let clientDisconnected = false;
+    let tokensUsed = 0;
     const streamAbort = new AbortController();
     res.on('close', () => {
       clientDisconnected = true;
@@ -253,20 +278,26 @@ export class ChatService {
     });
 
     try {
-      for await (const chunk of this.geminiService.generateTextStream(content, chatId, streamAbort.signal)) {
+      for await (const item of this.geminiService.generateTextStream(content, chatId, streamAbort.signal)) {
+        if (item.type === 'usage') {
+          tokensUsed = item.totalTokens;
+          continue;
+        }
         if (clientDisconnected) break;
-        fullResponse += chunk;
-        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+        fullResponse += item.text;
+        res.write(`data: ${JSON.stringify({ chunk: item.text })}\n\n`);
       }
 
       await flushPromise;
 
       if (!clientDisconnected) {
         assistantMessage.content = fullResponse;
+        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       } else if (fullResponse) {
         assistantMessage.content = fullResponse;
+        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);

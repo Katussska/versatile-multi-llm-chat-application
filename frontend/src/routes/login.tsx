@@ -52,7 +52,7 @@ export default function _authLogin() {
 
   return (
     <div className="flex h-screen w-screen items-center justify-center">
-      <div className="h-fit w-1/3">
+      <div className="h-fit w-full max-w-md px-4 sm:w-2/3 md:w-1/2 lg:w-1/3">
         <Auth
           title={t('auth.login.title')}
           footer={

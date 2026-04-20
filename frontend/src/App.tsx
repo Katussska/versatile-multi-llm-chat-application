@@ -1,4 +1,5 @@
 import TreeProvider from '@/components/TreeProvider.tsx';
+import AdminSection from '@/components/admin/AdminSection.tsx';
 import ChatSection from '@/components/chat/ChatSection.tsx';
 import { Layout } from '@/components/layout.tsx';
 import ProfileSection from '@/components/profile/ProfileSection.tsx';
@@ -7,6 +8,7 @@ import UserBadge from '@/components/userBadge/UserBadge.tsx';
 import { ThemeProvider } from './components/userBadge/theme-provider.tsx';
 import { AuthProvider } from './lib/authContext.tsx';
 import Login from './routes/login.tsx';
+import AdminRoute from './routes/admin-route.tsx';
 import ProtectedRoute from './routes/protected-route.tsx';
 import RouteError from './routes/route-error.tsx';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
@@ -34,6 +36,17 @@ const profileShell = (
   </ProtectedRoute>
 );
 
+const adminShell = (
+  <AdminRoute>
+    <TreeProvider>
+      <Layout className="flex flex-row">
+        <UserBadge />
+        <AdminSection />
+      </Layout>
+    </TreeProvider>
+  </AdminRoute>
+);
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -49,6 +62,11 @@ const router = createBrowserRouter([
     path: '/profile',
     errorElement: <RouteError />,
     element: profileShell,
+  },
+  {
+    path: '/admin',
+    errorElement: <RouteError />,
+    element: adminShell,
   },
   {
     path: '/login',

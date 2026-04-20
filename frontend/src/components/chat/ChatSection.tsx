@@ -23,6 +23,13 @@ export interface Message {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
 
+class TokenLimitError extends Error {
+  constructor(public readonly resetAt: Date | null) {
+    super('TOKEN_LIMIT_EXCEEDED');
+    this.name = 'TokenLimitError';
+  }
+}
+
 export default function ChatSection() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -31,6 +38,7 @@ export default function ChatSection() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
+  const [tokenLimitResetAt, setTokenLimitResetAt] = useState<Date | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +93,10 @@ export default function ChatSection() {
       abortControllerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    setTokenLimitResetAt(null);
+  }, [activeChatId]);
 
   const {
     data: chatMessages,
@@ -263,6 +275,10 @@ export default function ChatSection() {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        const body = await response.json().catch(() => ({})) as { resetAt?: string };
+        throw new TokenLimitError(body.resetAt ? new Date(body.resetAt) : null);
+      }
       throw new Error(`HTTP ${response.status}`);
     }
 
@@ -300,6 +316,16 @@ export default function ChatSection() {
     }
 
     await waitForDrain();
+  };
+
+  const handleTokenLimitError = (err: unknown) => {
+    if (err instanceof TokenLimitError) {
+      setTokenLimitResetAt(err.resetAt);
+      const dateStr = err.resetAt ? err.resetAt.toLocaleDateString() : '';
+      toast.error(dateStr ? t('chat.tokenLimitError', { date: dateStr }) : t('chat.tokenLimitErrorNoDate'));
+      return true;
+    }
+    return false;
   };
 
   const handleSendMessage = async (content: string) => {
@@ -371,7 +397,9 @@ export default function ChatSection() {
         await handleAbort(chatId!);
       } else {
         setMessages((prev) => prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current));
-        toast.error(t('chat.sendError'));
+        if (!handleTokenLimitError(err)) {
+          toast.error(t('chat.sendError'));
+        }
       }
     } finally {
       setIsStreaming(false);
@@ -424,7 +452,9 @@ export default function ChatSection() {
         await handleAbort(activeChatId);
       } else {
         setMessages(savedMessages);
-        toast.error(t('chat.sendError'));
+        if (!handleTokenLimitError(err)) {
+          toast.error(t('chat.sendError'));
+        }
       }
     } finally {
       setIsStreaming(false);
@@ -481,7 +511,9 @@ export default function ChatSection() {
         await handleAbort(activeChatId);
       } else {
         setMessages(savedMessages);
-        toast.error(t('chat.sendError'));
+        if (!handleTokenLimitError(err)) {
+          toast.error(t('chat.sendError'));
+        }
       }
     } finally {
       setIsStreaming(false);
@@ -532,6 +564,7 @@ export default function ChatSection() {
         onSendMessage={(message) => void handleSendMessage(message)}
         onStop={handleStopStreaming}
         isStreaming={isStreaming}
+        tokenLimitResetAt={tokenLimitResetAt}
       />
     </div>
   );

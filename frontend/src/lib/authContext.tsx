@@ -2,7 +2,7 @@ import { ReactNode, createContext, useContext, useMemo } from 'react';
 
 import { useSession } from '@/hooks/auth-hooks';
 import { authClient } from '@/lib/auth-client';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 type AuthSessionData = NonNullable<ReturnType<typeof useSession>['data']>;
 
@@ -12,10 +12,13 @@ interface LoginInput {
   rememberMe?: boolean;
 }
 
+type AuthUser = AuthSessionData['user'] & { admin?: boolean };
+
 interface AuthContextType {
-  user: AuthSessionData['user'] | null;
+  user: AuthUser | null;
   session: AuthSessionData['session'] | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   isPending: boolean;
   loginError: string | null;
   logoutError: string | null;
@@ -31,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data, isPending, isRefetching, refetch } = useSession();
+  const queryClient = useQueryClient();
 
   const signInMutation = useMutation({
     mutationFn: async (input: LoginInput) => {
@@ -56,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(response.error.message ?? 'Unable to sign out.');
       }
 
+      queryClient.clear();
       await refetch();
     },
   });
@@ -94,9 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextType>(
     () => ({
-      user: data?.user ?? null,
+      user: (data?.user as AuthUser) ?? null,
       session: data?.session ?? null,
       isAuthenticated: Boolean(data?.session && data?.user),
+      isAdmin: Boolean((data?.user as AuthUser)?.admin),
       isPending:
         isPending ||
         isRefetching ||

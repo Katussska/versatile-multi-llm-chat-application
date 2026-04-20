@@ -221,7 +221,7 @@ export function AppSidebar() {
   };
 
   const isActiveChatId = (id: string) =>
-    !isNewConversation && pathname !== '/profile' && (routeChatId ?? selectedChatId) === id;
+    !isNewConversation && pathname !== '/profile' && pathname !== '/admin' && (routeChatId ?? selectedChatId) === id;
 
   const favoriteChats = chats.filter((c) => c.favourite);
 
