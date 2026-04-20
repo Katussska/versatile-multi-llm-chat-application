@@ -275,7 +275,7 @@ export default function ChatSection() {
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
+      if (response.status === 429 || response.status === 402 || response.status === 403) {
         const body = await response.json().catch(() => ({})) as { resetAt?: string };
         throw new TokenLimitError(body.resetAt ? new Date(body.resetAt) : null);
       }

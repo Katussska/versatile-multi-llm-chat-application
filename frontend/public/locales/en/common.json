@@ -104,6 +104,7 @@
     "tokens": {
       "title": "Token usage",
       "reset": "Reset:",
+      "used": "Used {{used}} of {{total}} tokens",
       "allModels": "All models",
       "loadError": "Failed to load token limits."
     }

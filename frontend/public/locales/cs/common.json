@@ -104,6 +104,7 @@
     "tokens": {
       "title": "Využití tokenů",
       "reset": "Reset:",
+      "used": "Využito {{used}} z {{total}} tokenů",
       "allModels": "Všechny modely",
       "loadError": "Nepodařilo se načíst limity tokenů."
     }
