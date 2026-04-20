@@ -104,7 +104,8 @@
     "tokens": {
       "title": "Token usage",
       "reset": "Reset:",
-      "allModels": "All models"
+      "allModels": "All models",
+      "loadError": "Failed to load token limits."
     }
   },
   "admin": {

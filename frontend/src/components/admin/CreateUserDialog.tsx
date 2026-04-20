@@ -243,6 +243,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                               type="button"
                               onClick={() => setShowPassword((v) => !v)}
                               aria-label={showPassword ? t('profile.hideNewPassword') : t('profile.showNewPassword')}
+                              aria-pressed={showPassword}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             >
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -335,7 +336,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                           <p className="font-medium">{token.model.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {token.tokenCount.toLocaleString()} {t('admin.manageTokens.tokens')}
-                            {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString()}
+                            {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                           </p>
                         </div>
                       </div>

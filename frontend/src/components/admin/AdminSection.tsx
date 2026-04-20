@@ -53,8 +53,11 @@ function useAdminStats() {
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getDate()}.${d.getMonth() + 1}.`;
+  const [year, month, day] = dateStr.split('-');
+  if (!year || !month || !day) {
+    return dateStr;
+  }
+  return `${Number(day)}.${Number(month)}.`;
 }
 
 export default function AdminSection() {

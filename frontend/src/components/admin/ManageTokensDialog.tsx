@@ -281,7 +281,7 @@ export default function ManageTokensDialog() {
                       <p className="font-medium">{token.model.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {token.usedTokens.toLocaleString()} / {token.tokenCount.toLocaleString()} {t('admin.manageTokens.tokens')}
-                        {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString()}
+                        {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                       </p>
                     </div>
                     <div className="flex gap-1">

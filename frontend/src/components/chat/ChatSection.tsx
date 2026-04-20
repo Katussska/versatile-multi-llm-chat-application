@@ -321,7 +321,7 @@ export default function ChatSection() {
   const handleTokenLimitError = (err: unknown) => {
     if (err instanceof TokenLimitError) {
       setTokenLimitResetAt(err.resetAt);
-      const dateStr = err.resetAt ? err.resetAt.toLocaleDateString() : '';
+      const dateStr = err.resetAt ? err.resetAt.toLocaleDateString(undefined, { timeZone: 'UTC' }) : '';
       toast.error(dateStr ? t('chat.tokenLimitError', { date: dateStr }) : t('chat.tokenLimitErrorNoDate'));
       return true;
     }

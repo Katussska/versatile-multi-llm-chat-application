@@ -35,15 +35,23 @@ export default function ProfileSection() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [tokens, setTokens] = useState<TokenLimit[]>([]);
+  const [tokens, setTokens] = useState<TokenLimit[] | null>(null);
+  const [tokenLimitsLoading, setTokenLimitsLoading] = useState(true);
+  const [tokenLimitsError, setTokenLimitsError] = useState(false);
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
+    setTokenLimitsLoading(true);
+    setTokenLimitsError(false);
     fetch(`${baseUrl}/users/me/tokens`, { credentials: 'include' })
       .then((res) => res.ok ? res.json() : Promise.reject())
-      .then(setTokens)
-      .catch(() => {});
+      .then((data: TokenLimit[]) => setTokens(data))
+      .catch(() => {
+        setTokens(null);
+        setTokenLimitsError(true);
+      })
+      .finally(() => setTokenLimitsLoading(false));
   }, [baseUrl]);
 
   const nameForm = useForm<UpdateNameSchema>({
@@ -290,7 +298,9 @@ export default function ProfileSection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {tokens.length === 0 ? (
+            {tokenLimitsLoading ? null : tokenLimitsError ? (
+              <p className="text-sm text-destructive">{t('profile.tokens.loadError')}</p>
+            ) : tokens === null || tokens.length === 0 ? (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('profile.tokens.allModels')}</span>
                 <span className="text-lg font-medium">∞</span>
@@ -317,7 +327,7 @@ export default function ProfileSection() {
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {t('profile.tokens.reset')} {new Date(token.resetAt).toLocaleDateString()}
+                        {t('profile.tokens.reset')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                       </p>
                     </div>
                   );

@@ -223,6 +223,8 @@ export default function EditUserDialog({ onUpdated }: EditUserDialogProps) {
                             <button
                               type="button"
                               onClick={() => setShowPassword((v) => !v)}
+                              aria-label={showPassword ? t('profile.hideNewPassword') : t('profile.showNewPassword')}
+                              aria-pressed={showPassword}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             >
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

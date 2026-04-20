@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
-import { EntityRepository } from '@mikro-orm/core';
+import { EntityRepository, raw } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Chat } from '../entities/Chat';
 import { Message } from '../entities/Message';
@@ -204,10 +204,11 @@ export class ChatService {
 
   private async updateUsedTokens(userId: string, modelId: string, tokens: number): Promise<void> {
     if (tokens <= 0) return;
-    const token = await this.tokenRepository.findOne({ user: userId, model: modelId });
-    if (token) {
-      token.usedTokens += tokens;
-    }
+    await this.em.nativeUpdate(
+      Token,
+      { user: userId, model: modelId },
+      { usedTokens: raw('used_tokens + ?', [tokens]) },
+    );
   }
 
   async streamResponse(
@@ -231,6 +232,7 @@ export class ChatService {
     if (tokenLimit) {
       if (new Date() >= tokenLimit.resetAt) {
         tokenLimit.usedTokens = 0;
+        tokenLimit.resetAt = new Date('9999-12-31T23:59:59Z');
         await this.em.flush();
       } else if (tokenLimit.usedTokens >= tokenLimit.tokenCount) {
         throw new HttpException(

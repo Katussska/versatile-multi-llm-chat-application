@@ -104,7 +104,8 @@
     "tokens": {
       "title": "Využití tokenů",
       "reset": "Reset:",
-      "allModels": "Všechny modely"
+      "allModels": "Všechny modely",
+      "loadError": "Nepodařilo se načíst limity tokenů."
     }
   },
   "admin": {
