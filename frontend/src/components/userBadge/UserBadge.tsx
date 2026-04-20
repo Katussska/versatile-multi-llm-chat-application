@@ -1,5 +1,3 @@
-import { TypographyMuted } from '@/components/typography/Muted.tsx';
-import { TypographySmall } from '@/components/typography/Small.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { useAuthContext } from '@/lib/authContext.tsx';
 
@@ -11,11 +9,9 @@ export default function UserBadge() {
 
   return (
     <div className="absolute right-0 top-0 flex flex-row items-center justify-end p-3 md:p-5">
-      <div className="hidden items-center md:flex">
-        <div className="mx-3 flex flex-col items-end">
-          <TypographySmall>{user?.name ?? 'User'}</TypographySmall>
-          <TypographyMuted>{user?.email ?? 'No email'}</TypographyMuted>
-        </div>
+      <div className="mx-3 hidden flex-col items-end gap-1 md:flex">
+        <span className="text-sm font-medium leading-none">{user?.name ?? 'User'}</span>
+        <span className="text-sm leading-none text-muted-foreground">{user?.email ?? 'No email'}</span>
       </div>
       <Avatar onClick={() => navigate('/profile')} className="cursor-pointer">
         <AvatarImage src="/avatar.png" />

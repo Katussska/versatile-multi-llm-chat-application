@@ -10,6 +10,7 @@ import { betterAuth } from 'better-auth';
 import { Pool } from 'pg';
 import { GeminiModule } from './llm/gemini/gemini.module';
 import { ChatModule } from './chat/chat.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -40,6 +41,13 @@ import { ChatModule } from './chat/chat.module';
             advanced: { database: { generateId: false } },
             emailAndPassword: { enabled: true },
             user: {
+              additionalFields: {
+                admin: {
+                  type: 'boolean',
+                  defaultValue: false,
+                  input: false,
+                },
+              },
               fields: {
                 emailVerified: 'email_verified',
                 createdAt: 'created_at',
@@ -83,6 +91,7 @@ import { ChatModule } from './chat/chat.module';
     }),
     GeminiModule,
     ChatModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

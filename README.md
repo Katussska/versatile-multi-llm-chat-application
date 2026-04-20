@@ -79,12 +79,19 @@ What is implemented end-to-end:
 - model selector UI (Gemini models)
 - dark/light theme switching
 - profile page: update display name, read-only email, change password (with live validation rules), language switcher (CS/EN)
+- token usage overview on profile page (progress bars per model, reset date)
 - Czech/English localization (i18next)
+- admin panel (`/admin`, accessible to admin users only):
+  - dashboard with KPI stats (total users, active users, most-used model)
+  - activity chart — message count over the last 30 days
+  - user management: create, edit (email / password / admin role), delete
+  - token limit management: set per-user per-model limits with a reset date
+- per-user per-model token limits enforced at stream time (429 when exceeded, auto-reset after reset date)
+- admin role flag on `User` entity, protected routes on both backend and frontend
 
 Work in progress / placeholders:
 
 - conversation branching (not yet implemented)
-- admin panel (not yet implemented)
 - group chat (not yet implemented)
 
 ---

@@ -1,10 +1,11 @@
 import { useAuthContext } from '@/lib/authContext.tsx';
 import { ChangePasswordSchema, UpdateNameSchema, changePasswordSchema, updateNameSchema } from '@/schemas/profile.ts';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckSquare, Eye, EyeOff, Globe, Lock, Mail, Square, User } from 'lucide-react';
-import { useState } from 'react';
+import { CheckSquare, Coins, Eye, EyeOff, Globe, Lock, Mail, Settings, Square, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button.tsx';
@@ -20,12 +21,38 @@ import {
 import { Input } from '@/components/ui/input.tsx';
 import i18n from '@/i18n.ts';
 
+interface TokenLimit {
+  id: string;
+  model: { id: string; name: string; provider: string };
+  tokenCount: number;
+  usedTokens: number;
+  resetAt: string;
+}
+
 export default function ProfileSection() {
   const { t } = useTranslation();
-  const { user, updateUser, changePassword } = useAuthContext();
+  const { user, isAdmin, updateUser, changePassword } = useAuthContext();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [tokens, setTokens] = useState<TokenLimit[] | null>(null);
+  const [tokenLimitsLoading, setTokenLimitsLoading] = useState(true);
+  const [tokenLimitsError, setTokenLimitsError] = useState(false);
+
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  useEffect(() => {
+    setTokenLimitsLoading(true);
+    setTokenLimitsError(false);
+    fetch(`${baseUrl}/users/me/tokens`, { credentials: 'include' })
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((data: TokenLimit[]) => setTokens(data))
+      .catch(() => {
+        setTokens(null);
+        setTokenLimitsError(true);
+      })
+      .finally(() => setTokenLimitsLoading(false));
+  }, [baseUrl]);
 
   const nameForm = useForm<UpdateNameSchema>({
     resolver: zodResolver(updateNameSchema(t)),
@@ -262,6 +289,69 @@ export default function ProfileSection() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins size={20} />
+              {t('profile.tokens.title')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {tokenLimitsLoading ? null : tokenLimitsError ? (
+              <p className="text-sm text-destructive">{t('profile.tokens.loadError')}</p>
+            ) : tokens === null || tokens.length === 0 ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t('profile.tokens.allModels')}</span>
+                <span className="text-lg font-medium">∞</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {tokens.map((token) => {
+                  const pct = Math.min(100, (token.usedTokens / token.tokenCount) * 100);
+                  const barColor = pct >= 90
+                    ? 'bg-red-500'
+                    : pct >= 70
+                      ? 'bg-yellow-500'
+                      : 'bg-primary';
+                  return (
+                    <div key={token.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{token.model.name}</span>
+                        <span className="text-muted-foreground text-xs">{pct.toFixed(1)} %</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all ${barColor}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t('profile.tokens.reset')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings size={20} />
+                {t('admin.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline" className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
+                <Link to="/admin">{t('admin.goToAdmin')}</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -6,10 +6,11 @@ import { Chat } from '../entities/Chat';
 import { Message } from '../entities/Message';
 import { User } from '../entities/User';
 import { Model } from '../entities/Model';
+import { Token } from '../entities/Token';
 import { GeminiModule } from '../llm/gemini/gemini.module';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Chat, Message, User, Model]), GeminiModule],
+  imports: [MikroOrmModule.forFeature([Chat, Message, User, Model, Token]), GeminiModule],
   controllers: [ChatController],
   providers: [ChatService],
 })
