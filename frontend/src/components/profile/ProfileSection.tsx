@@ -326,9 +326,10 @@ export default function ProfileSection() {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('profile.tokens.reset')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
-                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{t('profile.tokens.used', { used: token.usedTokens.toLocaleString(), total: token.tokenCount.toLocaleString() })}</span>
+                        <span>{t('profile.tokens.reset')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
+                      </div>
                     </div>
                   );
                 })}
