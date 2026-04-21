@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { EntityRepository, raw } from '@mikro-orm/core';
@@ -11,6 +16,7 @@ import { Token } from '../entities/Token';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
+import type { Content } from '@google/generative-ai';
 import type { Response } from 'express';
 
 function nextMonthFirstDay(): Date {
@@ -200,7 +206,11 @@ export class ChatService {
       { populate: ['chat', 'chat.user'] },
     );
 
-    if (!message || message.chat.id !== chatId || message.chat.user.id !== userId) {
+    if (
+      !message ||
+      message.chat.id !== chatId ||
+      message.chat.user.id !== userId
+    ) {
       throw new NotFoundException('Message not found');
     }
 
@@ -209,7 +219,11 @@ export class ChatService {
     await this.em.flush();
   }
 
-  private async updateUsedTokens(userId: string, modelId: string, tokens: number): Promise<void> {
+  private async updateUsedTokens(
+    userId: string,
+    modelId: string,
+    tokens: number,
+  ): Promise<void> {
     if (tokens <= 0) return;
     await this.em.nativeUpdate(
       Token,
@@ -235,7 +249,10 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const tokenLimit = await this.tokenRepository.findOne({ user: userId, model: chat.model.id });
+    const tokenLimit = await this.tokenRepository.findOne({
+      user: userId,
+      model: chat.model.id,
+    });
     if (tokenLimit) {
       if (new Date() >= tokenLimit.resetAt) {
         tokenLimit.usedTokens = 0;
@@ -249,22 +266,21 @@ export class ChatService {
       }
     }
 
-    if (chat.user.dollarLimit !== null && chat.user.dollarLimit !== undefined) {
-      const [spendRow] = await this.em.execute<{ total: string }[]>(
-        `SELECT COALESCE(SUM(msg.cost_usd), 0) AS total
-         FROM message msg
-         JOIN chat c ON msg.chat_id = c.id
-         WHERE c.user_id = ? AND msg.deleted_at IS NULL`,
-        [userId],
-      );
-      const totalSpend = parseFloat(spendRow?.total ?? '0');
-      if (totalSpend >= chat.user.dollarLimit) {
-        throw new HttpException(
-          { message: 'Dollar limit exceeded' },
-          HttpStatus.PAYMENT_REQUIRED,
-        );
-      }
-    }
+    const existingMessages = await this.em.find(
+      Message,
+      { chat: { id: chatId } },
+      { orderBy: { createdAt: 'ASC', id: 'ASC' } },
+    );
+
+    const history: Content[] = existingMessages
+      .filter((m) => m.content)
+      .map((m) => ({
+        role: m.path === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }],
+      }));
+
+    // Invalidate cached session so it gets rebuilt with fresh DB history
+    this.geminiService.invalidateSession(chatId);
 
     let userMessage: Message | null = null;
 
@@ -291,7 +307,9 @@ export class ChatService {
     this.em.persist(assistantMessage);
 
     // Send messageId immediately — UUID is generated client-side before flush
-    res.write(`data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`,
+    );
 
     // Flush DB and start Gemini stream in parallel to reduce latency
     const flushPromise = this.em.flush();
@@ -306,7 +324,12 @@ export class ChatService {
     });
 
     try {
-      for await (const item of this.geminiService.generateTextStream(content, chatId, streamAbort.signal)) {
+      for await (const item of this.geminiService.generateTextStream(
+        content,
+        chatId,
+        streamAbort.signal,
+        history,
+      )) {
         if (item.type === 'usage') {
           tokensUsed = item.totalTokens;
           continue;
@@ -336,7 +359,9 @@ export class ChatService {
     } catch {
       await flushPromise.catch(() => {});
       if (!clientDisconnected) {
-        res.write(`data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`,
+        );
       }
       if (fullResponse) {
         assistantMessage.content = fullResponse;

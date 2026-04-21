@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   ChatSession,
+  Content,
   GenerativeModel,
   GoogleGenerativeAI,
 } from '@google/generative-ai';
@@ -35,13 +36,13 @@ export class GeminiService {
     });
   }
 
-  private getChatSession(sessionId?: string) {
+  private getChatSession(sessionId?: string, history?: Content[]) {
     let sessionIdToUse = sessionId ?? v4();
 
     let result = this.chatSessions[sessionIdToUse];
 
     if (!result) {
-      result = this.model.startChat();
+      result = this.model.startChat({ history });
       this.chatSessions[sessionIdToUse] = result;
     }
 
@@ -49,6 +50,10 @@ export class GeminiService {
       sessionId: sessionIdToUse,
       chat: result,
     };
+  }
+
+  invalidateSession(sessionId: string): void {
+    delete this.chatSessions[sessionId];
   }
 
   async generateText(data: GetAIMessageDTO) {
@@ -71,8 +76,9 @@ export class GeminiService {
     prompt: string,
     sessionId?: string,
     signal?: AbortSignal,
+    history?: Content[],
   ): AsyncGenerator<{ type: 'text'; text: string } | { type: 'usage'; totalTokens: number }> {
-    const { chat } = this.getChatSession(sessionId);
+    const { chat } = this.getChatSession(sessionId, history);
     try {
       const result = await chat.sendMessageStream(prompt, { signal });
       for await (const chunk of result.stream) {
