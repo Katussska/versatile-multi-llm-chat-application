@@ -356,6 +356,7 @@ export default function ChatSection() {
       favourite: false,
     };
 
+    const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
     setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
 
     let chatId = activeChatId;
@@ -377,7 +378,7 @@ export default function ChatSection() {
         navigate(`/chat/${chatId}`);
       }
 
-      await executeStream(chatId, trimmedContent);
+      await executeStream(chatId, trimmedContent, { parentMessageId: lastMsgId });
 
       if (abortControllerRef.current?.signal.aborted) {
         await handleAbort(chatId!);

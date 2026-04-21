@@ -33,7 +33,8 @@ import { User } from '../entities/User';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto } from './dto/user-response.dto';
+import { UserBasicResponseDto, UserResponseDto } from './dto/user-response.dto';
+import { StatsResponseDto } from './dto/stats-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
@@ -87,7 +88,11 @@ export class UserController {
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiConflictResponse({ description: 'User with this email already exists' })
-  async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+  async createUser(
+    @Session() session: UserSession,
+    @Body() dto: CreateUserDto,
+  ): Promise<UserBasicResponseDto> {
+    requireAdmin(session);
     const user = await this.userService.createUser(dto);
     return {
       id: user.id,
@@ -117,7 +122,8 @@ export class UserController {
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<UserBasicResponseDto> {
+    requireAdmin(session);
     const user = await this.userService.updateUser(id, dto);
     return {
       id: user.id,
@@ -135,7 +141,7 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Set monthly token limit for a user (admin only)' })
-  @ApiOkResponse({ description: 'Limit updated', type: UserResponseDto })
+  @ApiOkResponse({ description: 'Limit updated', type: UserBasicResponseDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiNotFoundResponse({ description: 'User not found' })
@@ -143,7 +149,7 @@ export class UserController {
     @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: SetLimitDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<UserBasicResponseDto> {
     requireAdmin(session);
     const user = await this.userService.setUserLimit(id, dto);
     return {
@@ -153,8 +159,6 @@ export class UserController {
       admin: user.admin,
       createdAt: user.createdAt,
       monthlyLimit: user.monthlyLimit,
-      currentSpending: 0,
-      tokenLimits: [],
     };
   }
 

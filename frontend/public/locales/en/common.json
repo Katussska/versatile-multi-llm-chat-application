@@ -37,7 +37,8 @@
       "addFavorite": "Add to favorites",
       "removeFavorite": "Remove from favorites",
       "renamePlaceholder": "Conversation name",
-      "deleteError": "Failed to delete conversation."
+      "deleteError": "Failed to delete conversation.",
+      "actions": "Conversation actions"
     }
   },
   "chat": {

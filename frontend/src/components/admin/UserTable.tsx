@@ -153,7 +153,7 @@ export default function UserTable({ tick = 0 }: UserTableProps) {
                         {(user.tokenLimits ?? []).map((tl) => {
                           const pct = tl.tokenCount > 0 ? Math.min(100, Math.round((tl.usedTokens / tl.tokenCount) * 100)) : 0;
                           return (
-                            <div key={tl.modelName} className="text-xs">
+                            <div key={`${tl.provider}:${tl.modelName}`} className="text-xs">
                               <div className="flex items-center justify-between gap-3">
                                 <span className="font-medium truncate max-w-[160px]" title={`${tl.modelName} (${tl.provider})`}>{tl.modelName}</span>
                                 <span className="tabular-nums text-muted-foreground whitespace-nowrap">{fmtTokens(tl.usedTokens)} / {fmtTokens(tl.tokenCount)}</span>
@@ -177,7 +177,7 @@ export default function UserTable({ tick = 0 }: UserTableProps) {
                   <td className="px-4 py-3">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t('admin.userTable.actions')}>
                           <MoreHorizontal size={14} />
                         </Button>
                       </DropdownMenuTrigger>
@@ -204,8 +204,9 @@ export default function UserTable({ tick = 0 }: UserTableProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
-            <Label>{t('admin.editLimit.label')}</Label>
+            <Label htmlFor="edit-limit-input">{t('admin.editLimit.label')}</Label>
             <Input
+              id="edit-limit-input"
               type="number"
               min={1}
               value={limitInput}

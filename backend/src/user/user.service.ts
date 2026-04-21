@@ -13,11 +13,7 @@ import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto } from './dto/token-response.dto';
 import { SetLimitDto } from './dto/set-limit.dto';
-
-function nextMonthFirstDay(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-}
+import { nextMonthFirstDay } from '../date.utils';
 
 @Injectable()
 export class UserService {
@@ -39,10 +35,19 @@ export class UserService {
 
     const [spendingRows, tokenRows] = await Promise.all([
       this.em.execute<{ user_id: string; spending: string }[]>(
-        `SELECT user_id, COALESCE(SUM(used_tokens), 0)::text AS spending FROM token GROUP BY user_id`,
+        `SELECT user_id,
+                COALESCE(SUM(CASE WHEN reset_at IS NULL OR reset_at > now() THEN used_tokens ELSE 0 END), 0)::text AS spending
+         FROM token
+         GROUP BY user_id`,
       ),
       this.em.execute<{ user_id: string; token_count: string; used_tokens: string; model_name: string; provider: string }[]>(
-        `SELECT t.user_id, t.token_count::text, t.used_tokens::text, m.name AS model_name, m.provider FROM token t JOIN model m ON t.model_id = m.id`,
+        `SELECT t.user_id,
+                t.token_count::text,
+                CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_tokens ELSE 0 END::text AS used_tokens,
+                m.name AS model_name,
+                m.provider
+         FROM token t
+         JOIN model m ON t.model_id = m.id`,
       ),
     ]);
 
@@ -68,7 +73,7 @@ export class UserService {
     const user = await this.userRepository.findOne({ id, deletedAt: null });
     if (!user) throw new NotFoundException('User not found');
 
-    user.monthlyLimit = dto.limit ?? null;
+    user.monthlyLimit = dto.limit;
     await this.em.flush();
     return user;
   }
