@@ -11,6 +11,7 @@ import { Token } from '../entities/Token';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
+import type { Content } from '@google/generative-ai';
 import type { Response } from 'express';
 
 function nextMonthFirstDay(): Date {
@@ -247,6 +248,22 @@ export class ChatService {
       }
     }
 
+    const existingMessages = await this.em.find(
+      Message,
+      { chat: { id: chatId } },
+      { orderBy: { createdAt: 'ASC', id: 'ASC' } },
+    );
+
+    const history: Content[] = existingMessages
+      .filter((m) => m.content)
+      .map((m) => ({
+        role: m.path === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }],
+      }));
+
+    // Invalidate cached session so it gets rebuilt with fresh DB history
+    this.geminiService.invalidateSession(chatId);
+
     let userMessage: Message | null = null;
 
     if (!regenerate) {
@@ -285,7 +302,7 @@ export class ChatService {
     });
 
     try {
-      for await (const item of this.geminiService.generateTextStream(content, chatId, streamAbort.signal)) {
+      for await (const item of this.geminiService.generateTextStream(content, chatId, streamAbort.signal, history)) {
         if (item.type === 'usage') {
           tokensUsed = item.totalTokens;
           continue;
