@@ -207,6 +207,30 @@
       "editError": "Failed to update token limit.",
       "deleteSuccess": "Token limit deleted.",
       "deleteError": "Failed to delete token limit."
+    },
+    "userTable": {
+      "title": "User overview",
+      "name": "Name",
+      "email": "Email",
+      "spending": "Spending (tokens)",
+      "limit": "Limit (tokens)",
+      "tokenLimits": "Token limits",
+      "global": "Global",
+      "totalSpending": "total used",
+      "noLimit": "No limit",
+      "actions": "Actions",
+      "editLimit": "Edit limit",
+      "loadError": "Failed to load users."
+    },
+    "editLimit": {
+      "title": "Edit token limit",
+      "description": "Set a monthly token limit for {{email}}. Leave empty to remove the limit.",
+      "label": "Monthly limit (tokens)",
+      "placeholder": "E.g. 100000",
+      "noLimit": "Remove limit",
+      "submit": "Save",
+      "success": "Limit updated successfully.",
+      "error": "Failed to update limit."
     }
   }
 }

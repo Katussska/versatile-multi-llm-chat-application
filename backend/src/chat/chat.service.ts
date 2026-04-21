@@ -13,6 +13,11 @@ import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
 import type { Response } from 'express';
 
+function nextMonthFirstDay(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+}
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -232,7 +237,7 @@ export class ChatService {
     if (tokenLimit) {
       if (new Date() >= tokenLimit.resetAt) {
         tokenLimit.usedTokens = 0;
-        tokenLimit.resetAt = new Date('9999-12-31T23:59:59Z');
+        tokenLimit.resetAt = nextMonthFirstDay();
         await this.em.flush();
       } else if (tokenLimit.usedTokens >= tokenLimit.tokenCount) {
         throw new HttpException(

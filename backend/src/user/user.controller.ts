@@ -33,6 +33,7 @@ import { StatsResponseDto } from './dto/stats-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
+import { SetLimitDto } from './dto/set-limit.dto';
 
 type AdminUser = UserSession['user'] & { admin?: boolean };
 
@@ -71,6 +72,9 @@ export class UserController {
       name: u.name,
       admin: u.admin,
       createdAt: u.createdAt,
+      monthlyLimit: u.monthlyLimit,
+      currentSpending: u.currentSpending,
+      tokenLimits: u.tokenLimits,
     }));
   }
 
@@ -89,7 +93,7 @@ export class UserController {
   ): Promise<UserResponseDto> {
     requireAdmin(session);
     const user = await this.userService.createUser(dto);
-    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt };
+    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt, monthlyLimit: user.monthlyLimit, currentSpending: 0, tokenLimits: [] };
   }
 
   @Patch(':id')
@@ -108,7 +112,34 @@ export class UserController {
   ): Promise<UserResponseDto> {
     requireAdmin(session);
     const user = await this.userService.updateUser(id, dto);
-    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt };
+    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt, monthlyLimit: user.monthlyLimit, currentSpending: 0, tokenLimits: [] };
+  }
+
+  @Patch(':id/limit')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @ApiOperation({ summary: 'Set monthly token limit for a user (admin only)' })
+  @ApiOkResponse({ description: 'Limit updated', type: UserResponseDto })
+  @ApiUnauthorizedResponse({ description: 'User not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin access required' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  async setUserLimit(
+    @Session() session: UserSession,
+    @Param('id') id: string,
+    @Body() dto: SetLimitDto,
+  ): Promise<UserResponseDto> {
+    requireAdmin(session);
+    const user = await this.userService.setUserLimit(id, dto);
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      admin: user.admin,
+      createdAt: user.createdAt,
+      monthlyLimit: user.monthlyLimit,
+      currentSpending: 0,
+      tokenLimits: [],
+    };
   }
 
   @Delete(':id')

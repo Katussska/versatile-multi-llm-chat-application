@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsUUID, Min } from 'class-validator';
+import { IsInt, IsUUID, Min } from 'class-validator';
 
 export class CreateTokenDto {
   @ApiProperty({ format: 'uuid' })
@@ -10,8 +10,4 @@ export class CreateTokenDto {
   @IsInt()
   @Min(1)
   tokenCount: number;
-
-  @ApiProperty()
-  @IsDateString()
-  resetAt: string;
 }

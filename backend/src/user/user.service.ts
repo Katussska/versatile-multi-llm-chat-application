@@ -14,6 +14,12 @@ import { StatsResponseDto } from './dto/stats-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto } from './dto/token-response.dto';
+import { SetLimitDto } from './dto/set-limit.dto';
+
+function nextMonthFirstDay(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+}
 
 @Injectable()
 export class UserService {
@@ -27,11 +33,46 @@ export class UserService {
     private readonly em: EntityManager,
   ) {}
 
-  async getUsers(): Promise<User[]> {
-    return this.userRepository.find(
+  async getUsers(): Promise<(User & { currentSpending: number; tokenLimits: { modelName: string; provider: string; tokenCount: number; usedTokens: number }[] })[]> {
+    const users = await this.userRepository.find(
       { deletedAt: null },
       { orderBy: { createdAt: 'ASC' } },
     );
+
+    const [spendingRows, tokenRows] = await Promise.all([
+      this.em.execute<{ user_id: string; spending: string }[]>(
+        `SELECT user_id, COALESCE(SUM(used_tokens), 0)::text AS spending FROM token GROUP BY user_id`,
+      ),
+      this.em.execute<{ user_id: string; token_count: string; used_tokens: string; model_name: string; provider: string }[]>(
+        `SELECT t.user_id, t.token_count::text, t.used_tokens::text, m.name AS model_name, m.provider FROM token t JOIN model m ON t.model_id = m.id`,
+      ),
+    ]);
+
+    const spendingMap = new Map(spendingRows.map((r) => [r.user_id, parseInt(r.spending, 10)]));
+    const tokenMap = new Map<string, { modelName: string; provider: string; tokenCount: number; usedTokens: number }[]>();
+    for (const r of tokenRows) {
+      if (!tokenMap.has(r.user_id)) tokenMap.set(r.user_id, []);
+      tokenMap.get(r.user_id)!.push({
+        modelName: r.model_name,
+        provider: r.provider,
+        tokenCount: parseInt(r.token_count, 10),
+        usedTokens: parseInt(r.used_tokens, 10),
+      });
+    }
+
+    return users.map((u) => Object.assign(u, {
+      currentSpending: spendingMap.get(u.id) ?? 0,
+      tokenLimits: tokenMap.get(u.id) ?? [],
+    }));
+  }
+
+  async setUserLimit(id: string, dto: SetLimitDto): Promise<User> {
+    const user = await this.userRepository.findOne({ id, deletedAt: null });
+    if (!user) throw new NotFoundException('User not found');
+
+    user.monthlyLimit = dto.limit ?? null;
+    await this.em.flush();
+    return user;
   }
 
   async createUser(dto: CreateUserDto): Promise<User> {
@@ -137,6 +178,18 @@ export class UserService {
     if (!user) throw new NotFoundException('User not found');
 
     const tokens = await this.tokenRepository.find({ user: userId }, { populate: ['model'] });
+
+    const now = new Date();
+    let dirty = false;
+    for (const t of tokens) {
+      if (t.resetAt.getUTCFullYear() >= 9999 || now >= t.resetAt) {
+        if (now >= t.resetAt) t.usedTokens = 0;
+        t.resetAt = nextMonthFirstDay();
+        dirty = true;
+      }
+    }
+    if (dirty) await this.em.flush();
+
     return tokens.map((t) => ({
       id: t.id,
       model: { id: t.model.id, name: t.model.name, provider: t.model.provider },
@@ -160,7 +213,7 @@ export class UserService {
     token.user = user;
     token.model = model;
     token.tokenCount = dto.tokenCount;
-    token.resetAt = new Date(dto.resetAt);
+    token.resetAt = nextMonthFirstDay();
 
     this.em.persist(token);
     await this.em.flush();
@@ -179,7 +232,6 @@ export class UserService {
     if (!token) throw new NotFoundException('Token limit not found');
 
     if (dto.tokenCount !== undefined) token.tokenCount = dto.tokenCount;
-    if (dto.resetAt !== undefined) token.resetAt = new Date(dto.resetAt);
 
     await this.em.flush();
 

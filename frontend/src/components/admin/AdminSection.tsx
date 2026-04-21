@@ -15,6 +15,7 @@ import CreateUserDialog from '@/components/admin/CreateUserDialog.tsx';
 import DeleteUserDialog from '@/components/admin/DeleteUserDialog.tsx';
 import EditUserDialog from '@/components/admin/EditUserDialog.tsx';
 import ManageTokensDialog from '@/components/admin/ManageTokensDialog.tsx';
+import UserTable from '@/components/admin/UserTable.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
 
 interface DailyStat {
@@ -49,7 +50,7 @@ function useAdminStats() {
 
   const refetch = () => setTick((n) => n + 1);
 
-  return { stats, loading, refetch };
+  return { stats, loading, refetch, tick };
 }
 
 function formatDate(dateStr: string): string {
@@ -62,7 +63,7 @@ function formatDate(dateStr: string): string {
 
 export default function AdminSection() {
   const { t } = useTranslation();
-  const { stats, loading, refetch } = useAdminStats();
+  const { stats, loading, refetch, tick } = useAdminStats();
 
   const kpis = [
     {
@@ -161,13 +162,14 @@ export default function AdminSection() {
               {t('admin.users.title')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <CreateUserDialog onCreated={refetch} />
               <EditUserDialog onUpdated={refetch} />
               <DeleteUserDialog onDeleted={refetch} />
-              <ManageTokensDialog />
+              <ManageTokensDialog onUpdated={refetch} />
             </div>
+            <UserTable tick={tick} />
           </CardContent>
         </Card>
       </div>
