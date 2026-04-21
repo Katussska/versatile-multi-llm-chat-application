@@ -37,7 +37,8 @@
       "addFavorite": "Přidat do oblíbených",
       "removeFavorite": "Odebrat z oblíbených",
       "renamePlaceholder": "Název konverzace",
-      "deleteError": "Nepodařilo se smazat konverzaci."
+      "deleteError": "Nepodařilo se smazat konverzaci.",
+      "actions": "Akce konverzace"
     }
   },
   "chat": {

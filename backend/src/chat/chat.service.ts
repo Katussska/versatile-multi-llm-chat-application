@@ -13,11 +13,7 @@ import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
 import type { Content } from '@google/generative-ai';
 import type { Response } from 'express';
-
-function nextMonthFirstDay(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-}
+import { nextMonthFirstDay } from '../date.utils';
 
 @Injectable()
 export class ChatService {
@@ -208,6 +204,37 @@ export class ChatService {
     await this.em.flush();
   }
 
+  private async loadBranch(chatId: string, tipMessageId: string | null): Promise<Message[]> {
+    if (!tipMessageId) {
+      const messages = await this.em.find(
+        Message,
+        { chat: { id: chatId } },
+        { orderBy: { createdAt: 'DESC', id: 'DESC' }, limit: 20 },
+      );
+      return messages.reverse();
+    }
+
+    const conn = this.em.getConnection();
+    const rows: { id: string }[] = await conn.execute(
+      `WITH RECURSIVE branch AS (
+         SELECT id, parent_message_id FROM message WHERE id = ?
+         UNION ALL
+         SELECT m.id, m.parent_message_id FROM message m JOIN branch b ON m.id = b.parent_message_id
+       )
+       SELECT id FROM branch`,
+      [tipMessageId],
+    );
+
+    const ids = rows.map((r) => r.id);
+    if (ids.length === 0) return [];
+
+    return this.em.find(
+      Message,
+      { id: { $in: ids } },
+      { orderBy: { createdAt: 'ASC', id: 'ASC' } },
+    );
+  }
+
   private async updateUsedTokens(userId: string, modelId: string, tokens: number): Promise<void> {
     if (tokens <= 0) return;
     await this.em.nativeUpdate(
@@ -248,13 +275,15 @@ export class ChatService {
       }
     }
 
-    const existingMessages = await this.em.find(
-      Message,
-      { chat: { id: chatId } },
-      { orderBy: { createdAt: 'ASC', id: 'ASC' } },
-    );
+    let historyMessages: Message[];
+    if (regenerate && parentMessageId) {
+      const userMsg = await this.em.findOne(Message, { id: parentMessageId });
+      historyMessages = await this.loadBranch(chatId, userMsg?.parentMessageId ?? null);
+    } else {
+      historyMessages = await this.loadBranch(chatId, parentMessageId ?? null);
+    }
 
-    const history: Content[] = existingMessages
+    const history: Content[] = historyMessages
       .filter((m) => m.content)
       .map((m) => ({
         role: m.path === 'user' ? 'user' : 'model',
@@ -282,7 +311,7 @@ export class ChatService {
       content: '',
       path: 'model',
       favourite: false,
-      parentMessageId: regenerate ? (parentMessageId ?? null) : null,
+      parentMessageId: regenerate ? (parentMessageId ?? null) : (userMessage?.id ?? null),
     });
     this.em.persist(assistantMessage);
 
