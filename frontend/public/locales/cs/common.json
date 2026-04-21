@@ -208,6 +208,30 @@
       "deleteSuccess": "Limit tokenů byl smazán.",
       "deleteError": "Nepodařilo se smazat limit tokenů."
     },
+    "userTable": {
+      "title": "Přehled uživatelů",
+      "name": "Jméno",
+      "email": "Email",
+      "spending": "Útrata (tokeny)",
+      "limit": "Limit (tokeny)",
+      "tokenLimits": "Limity tokenů",
+      "global": "Globální",
+      "totalSpending": "celkem využito",
+      "noLimit": "Bez limitu",
+      "actions": "Akce",
+      "editLimit": "Upravit limit",
+      "loadError": "Nepodařilo se načíst uživatele."
+    },
+    "editLimit": {
+      "title": "Upravit limit tokenů",
+      "description": "Nastavte měsíční limit tokenů pro uživatele {{email}}. Ponechte prázdné pro zrušení limitu.",
+      "label": "Měsíční limit (tokeny)",
+      "placeholder": "Např. 100000",
+      "noLimit": "Zrušit limit",
+      "submit": "Uložit",
+      "success": "Limit byl úspěšně upraven.",
+      "error": "Nepodařilo se upravit limit."
+    },
     "period": {
       "day": "Den",
       "week": "Týden",

@@ -40,7 +40,11 @@ interface TokenLimit {
 
 type ViewState = 'users' | 'list' | 'add' | 'edit';
 
-export default function ManageTokensDialog() {
+interface ManageTokensDialogProps {
+  onUpdated?: () => void;
+}
+
+export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<ViewState>('users');
@@ -55,7 +59,6 @@ export default function ManageTokensDialog() {
 
   const [modelId, setModelId] = useState('');
   const [tokenCount, setTokenCount] = useState('');
-  const [resetAt, setResetAt] = useState('');
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -123,7 +126,6 @@ export default function ManageTokensDialog() {
   const resetForm = () => {
     setModelId('');
     setTokenCount('');
-    setResetAt('');
   };
 
   const handleAddClick = () => {
@@ -135,7 +137,6 @@ export default function ManageTokensDialog() {
   const handleEditClick = (token: TokenLimit) => {
     setEditingToken(token);
     setTokenCount(String(token.tokenCount));
-    setResetAt(token.resetAt.slice(0, 10));
     setView('edit');
   };
 
@@ -149,20 +150,21 @@ export default function ManageTokensDialog() {
       if (!res.ok) throw new Error();
       toast.success(t('admin.manageTokens.deleteSuccess'));
       fetchTokens(selectedUser.id);
+      onUpdated?.();
     } catch {
       toast.error(t('admin.manageTokens.deleteError'));
     }
   };
 
   const handleAdd = async () => {
-    if (!selectedUser || !modelId || !tokenCount || !resetAt) return;
+    if (!selectedUser || !modelId || !tokenCount) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${baseUrl}/users/${selectedUser.id}/tokens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ modelId, tokenCount: Number(tokenCount), resetAt }),
+        body: JSON.stringify({ modelId, tokenCount: Number(tokenCount) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -170,6 +172,7 @@ export default function ManageTokensDialog() {
       }
       toast.success(t('admin.manageTokens.addSuccess'));
       fetchTokens(selectedUser.id);
+      onUpdated?.();
       setView('list');
       resetForm();
     } catch (err) {
@@ -180,18 +183,19 @@ export default function ManageTokensDialog() {
   };
 
   const handleEdit = async () => {
-    if (!selectedUser || !editingToken || !tokenCount || !resetAt) return;
+    if (!selectedUser || !editingToken || !tokenCount) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${baseUrl}/users/${selectedUser.id}/tokens/${editingToken.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ tokenCount: Number(tokenCount), resetAt }),
+        body: JSON.stringify({ tokenCount: Number(tokenCount) }),
       });
       if (!res.ok) throw new Error();
       toast.success(t('admin.manageTokens.editSuccess'));
       fetchTokens(selectedUser.id);
+      onUpdated?.();
       setView('list');
       setEditingToken(null);
       resetForm();
@@ -344,15 +348,6 @@ export default function ManageTokensDialog() {
                 placeholder="100000"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>{t('admin.manageTokens.resetAt')}</Label>
-              <Input
-                type="date"
-                value={resetAt}
-                onChange={(e) => setResetAt(e.target.value)}
-                className="[color-scheme:inherit]"
-              />
-            </div>
           </div>
         )}
 
@@ -364,7 +359,7 @@ export default function ManageTokensDialog() {
             <Button
               type="button"
               variant="outline"
-              disabled={submitting || !tokenCount || !resetAt || (view === 'add' && !modelId)}
+              disabled={submitting || !tokenCount || (view === 'add' && !modelId)}
               className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
               onClick={view === 'add' ? handleAdd : handleEdit}
             >

@@ -23,7 +23,11 @@ import {
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard, Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import {
+  AuthGuard,
+  Session,
+  type UserSession,
+} from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../admin/roles.guard';
 import { User } from '../entities/User';
 import { UserService } from './user.service';
@@ -33,9 +37,16 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
+import { SetLimitDto } from './dto/set-limit.dto';
 
 function toUserResponse(user: User): UserResponseDto {
-  return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    admin: user.admin,
+    createdAt: user.createdAt,
+  };
 }
 
 @Controller('users')
@@ -51,7 +62,16 @@ export class UserController {
   @ApiForbiddenResponse({ description: 'Admin access required' })
   async getUsers(): Promise<UserResponseDto[]> {
     const users = await this.userService.getUsers();
-    return users.map(toUserResponse);
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      admin: u.admin,
+      createdAt: u.createdAt,
+      monthlyLimit: u.monthlyLimit,
+      currentSpending: u.currentSpending,
+      tokenLimits: u.tokenLimits,
+    }));
   }
 
   @Post()
@@ -59,14 +79,26 @@ export class UserController {
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Create a new user (admin only)' })
-  @ApiCreatedResponse({ description: 'User successfully created', type: UserResponseDto })
+  @ApiCreatedResponse({
+    description: 'User successfully created',
+    type: UserResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiConflictResponse({ description: 'User with this email already exists' })
   async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
     const user = await this.userService.createUser(dto);
-    return toUserResponse(user);
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      admin: user.admin,
+      createdAt: user.createdAt,
+      monthlyLimit: user.monthlyLimit,
+      currentSpending: 0,
+      tokenLimits: [],
+    };
   }
 
   @Patch(':id')
@@ -74,14 +106,56 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Update user email or password (admin only)' })
-  @ApiOkResponse({ description: 'User successfully updated', type: UserResponseDto })
+  @ApiOkResponse({
+    description: 'User successfully updated',
+    type: UserResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiNotFoundResponse({ description: 'User not found' })
   @ApiConflictResponse({ description: 'Email already in use' })
-  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto): Promise<UserResponseDto> {
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
     const user = await this.userService.updateUser(id, dto);
-    return toUserResponse(user);
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      admin: user.admin,
+      createdAt: user.createdAt,
+      monthlyLimit: user.monthlyLimit,
+      currentSpending: 0,
+      tokenLimits: [],
+    };
+  }
+
+  @Patch(':id/limit')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @ApiOperation({ summary: 'Set monthly token limit for a user (admin only)' })
+  @ApiOkResponse({ description: 'Limit updated', type: UserResponseDto })
+  @ApiUnauthorizedResponse({ description: 'User not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin access required' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  async setUserLimit(
+    @Session() session: UserSession,
+    @Param('id') id: string,
+    @Body() dto: SetLimitDto,
+  ): Promise<UserResponseDto> {
+    requireAdmin(session);
+    const user = await this.userService.setUserLimit(id, dto);
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      admin: user.admin,
+      createdAt: user.createdAt,
+      monthlyLimit: user.monthlyLimit,
+      currentSpending: 0,
+      tokenLimits: [],
+    };
   }
 
   @Delete(':id')
@@ -90,9 +164,14 @@ export class UserController {
   @ApiOperation({ summary: 'Delete a user (admin only)' })
   @ApiNoContentResponse({ description: 'User successfully deleted' })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
-  @ApiForbiddenResponse({ description: 'Admin access required or self-deletion' })
+  @ApiForbiddenResponse({
+    description: 'Admin access required or self-deletion',
+  })
   @ApiNotFoundResponse({ description: 'User not found' })
-  async deleteUser(@Session() session: UserSession, @Param('id') id: string): Promise<void> {
+  async deleteUser(
+    @Session() session: UserSession,
+    @Param('id') id: string,
+  ): Promise<void> {
     await this.userService.deleteUser(id, session.user.id);
   }
 
@@ -104,14 +183,20 @@ export class UserController {
   @ApiForbiddenResponse({ description: 'Admin access required' })
   async getModels(): Promise<ModelDto[]> {
     const models = await this.userService.getModels();
-    return models.map((m) => ({ id: m.id, name: m.name, provider: m.provider }));
+    return models.map((m) => ({
+      id: m.id,
+      name: m.name,
+      provider: m.provider,
+    }));
   }
 
   @Get('me/tokens')
   @ApiOperation({ summary: 'Get token limits for the current user' })
   @ApiOkResponse({ description: 'Token limits', type: [TokenResponseDto] })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
-  async getMyTokens(@Session() session: UserSession): Promise<TokenResponseDto[]> {
+  async getMyTokens(
+    @Session() session: UserSession,
+  ): Promise<TokenResponseDto[]> {
     return this.userService.getTokens(session.user.id);
   }
 
@@ -131,12 +216,20 @@ export class UserController {
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Create token limit for a user (admin only)' })
-  @ApiCreatedResponse({ description: 'Token limit created', type: TokenResponseDto })
+  @ApiCreatedResponse({
+    description: 'Token limit created',
+    type: TokenResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiNotFoundResponse({ description: 'User or model not found' })
-  @ApiConflictResponse({ description: 'Token limit for this model already exists' })
-  async createToken(@Param('id') id: string, @Body() dto: CreateTokenDto): Promise<TokenResponseDto> {
+  @ApiConflictResponse({
+    description: 'Token limit for this model already exists',
+  })
+  async createToken(
+    @Param('id') id: string,
+    @Body() dto: CreateTokenDto,
+  ): Promise<TokenResponseDto> {
     return this.userService.createToken(id, dto);
   }
 
@@ -165,7 +258,10 @@ export class UserController {
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiNotFoundResponse({ description: 'Token limit not found' })
-  async deleteToken(@Param('id') id: string, @Param('tokenId') tokenId: string): Promise<void> {
+  async deleteToken(
+    @Param('id') id: string,
+    @Param('tokenId') tokenId: string,
+  ): Promise<void> {
     await this.userService.deleteToken(id, tokenId);
   }
 }

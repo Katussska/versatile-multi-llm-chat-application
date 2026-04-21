@@ -1305,6 +1305,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "monthly_limit": {
+          "name": "monthly_limit",
+          "type": "int4",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 32,
+          "scale": 0,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
         }
       },
       "indexes": [
