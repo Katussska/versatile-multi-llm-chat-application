@@ -28,11 +28,12 @@ import { AuthGuard, Session, type UserSession } from '@thallesp/nestjs-better-au
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto } from './dto/user-response.dto';
+import { UserBasicResponseDto, UserResponseDto } from './dto/user-response.dto';
 import { StatsResponseDto } from './dto/stats-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
+import { SetLimitDto } from './dto/set-limit.dto';
 
 type AdminUser = UserSession['user'] & { admin?: boolean };
 
@@ -71,6 +72,9 @@ export class UserController {
       name: u.name,
       admin: u.admin,
       createdAt: u.createdAt,
+      monthlyLimit: u.monthlyLimit,
+      currentSpending: u.currentSpending,
+      tokenLimits: u.tokenLimits,
     }));
   }
 
@@ -78,7 +82,7 @@ export class UserController {
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Create a new user (admin only)' })
-  @ApiCreatedResponse({ description: 'User successfully created', type: UserResponseDto })
+  @ApiCreatedResponse({ description: 'User successfully created', type: UserBasicResponseDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
@@ -86,17 +90,17 @@ export class UserController {
   async createUser(
     @Session() session: UserSession,
     @Body() dto: CreateUserDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<UserBasicResponseDto> {
     requireAdmin(session);
     const user = await this.userService.createUser(dto);
-    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt };
+    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt, monthlyLimit: user.monthlyLimit };
   }
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Update user email or password (admin only)' })
-  @ApiOkResponse({ description: 'User successfully updated', type: UserResponseDto })
+  @ApiOkResponse({ description: 'User successfully updated', type: UserBasicResponseDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiNotFoundResponse({ description: 'User not found' })
@@ -105,10 +109,28 @@ export class UserController {
     @Session() session: UserSession,
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  ): Promise<UserBasicResponseDto> {
     requireAdmin(session);
     const user = await this.userService.updateUser(id, dto);
-    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt };
+    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt, monthlyLimit: user.monthlyLimit };
+  }
+
+  @Patch(':id/limit')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @ApiOperation({ summary: 'Set monthly token limit for a user (admin only)' })
+  @ApiOkResponse({ description: 'Limit updated', type: UserBasicResponseDto })
+  @ApiUnauthorizedResponse({ description: 'User not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin access required' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  async setUserLimit(
+    @Session() session: UserSession,
+    @Param('id') id: string,
+    @Body() dto: SetLimitDto,
+  ): Promise<UserBasicResponseDto> {
+    requireAdmin(session);
+    const user = await this.userService.setUserLimit(id, dto);
+    return { id: user.id, email: user.email, name: user.name, admin: user.admin, createdAt: user.createdAt, monthlyLimit: user.monthlyLimit };
   }
 
   @Delete(':id')

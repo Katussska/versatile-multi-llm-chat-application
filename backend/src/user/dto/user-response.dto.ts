@@ -1,18 +1,43 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UserResponseDto {
+export class TokenLimitDto {
+  @ApiProperty()
+  modelName!: string;
+
+  @ApiProperty()
+  provider!: string;
+
+  @ApiProperty()
+  tokenCount!: number;
+
+  @ApiProperty()
+  usedTokens!: number;
+}
+
+export class UserBasicResponseDto {
   @ApiProperty({ format: 'uuid' })
-  id: string;
+  id!: string;
 
   @ApiProperty()
-  email: string;
+  email!: string;
 
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @ApiProperty()
-  admin: boolean;
+  admin!: boolean;
 
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
+
+  @ApiPropertyOptional({ nullable: true })
+  monthlyLimit!: number | null;
+}
+
+export class UserResponseDto extends UserBasicResponseDto {
+  @ApiProperty()
+  currentSpending!: number;
+
+  @ApiProperty({ type: [TokenLimitDto] })
+  tokenLimits!: TokenLimitDto[];
 }

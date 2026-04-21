@@ -120,7 +120,7 @@ function ChatMenuItem({
           </SidebarMenuButton>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuAction showOnHover>
+              <SidebarMenuAction showOnHover aria-label={t('sidebar.chatMenu.actions')}>
                 <MoreHorizontal />
               </SidebarMenuAction>
             </DropdownMenuTrigger>

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, Min } from 'class-validator';
 
 export class UpdateTokenDto {
   @ApiPropertyOptional()
@@ -7,9 +7,4 @@ export class UpdateTokenDto {
   @IsInt()
   @Min(1)
   tokenCount?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsDateString()
-  resetAt?: string;
 }
