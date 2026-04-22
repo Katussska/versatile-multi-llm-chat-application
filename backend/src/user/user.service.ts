@@ -1,4 +1,9 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';
 import { hashPassword } from 'better-auth/crypto';
@@ -27,7 +32,18 @@ export class UserService {
     private readonly em: EntityManager,
   ) {}
 
-  async getUsers(): Promise<(User & { currentSpending: number; tokenLimits: { modelId: string; modelName: string; provider: string; tokenCount: number | null; usedTokens: number }[] })[]> {
+  async getUsers(): Promise<
+    (User & {
+      currentSpending: number;
+      tokenLimits: {
+        modelId: string;
+        modelName: string;
+        provider: string;
+        tokenCount: number | null;
+        usedTokens: number;
+      }[];
+    })[]
+  > {
     const users = await this.userRepository.find(
       { deletedAt: null },
       { orderBy: { createdAt: 'ASC' } },
@@ -35,12 +51,27 @@ export class UserService {
 
     const [spendingRows, tokenRows, allModels] = await Promise.all([
       this.em.execute<{ user_id: string; spending: string }[]>(
-        `SELECT user_id,
-                COALESCE(SUM(CASE WHEN reset_at IS NULL OR reset_at > now() THEN used_tokens ELSE 0 END), 0)::text AS spending
-         FROM token
-         GROUP BY user_id`,
+        `SELECT c.user_id,
+                COALESCE(SUM(m.cost_usd), 0)::text AS spending
+         FROM message m
+         JOIN chat c ON c.id = m.chat_id
+         WHERE m.path = 'model'
+           AND m.deleted_at IS NULL
+           AND c.deleted_at IS NULL
+           AND m.created_at >= date_trunc('month', NOW())
+           AND m.created_at < (date_trunc('month', NOW()) + interval '1 month')
+         GROUP BY c.user_id`,
       ),
-      this.em.execute<{ user_id: string; token_count: string | null; used_tokens: string; model_id: string; model_name: string; provider: string }[]>(
+      this.em.execute<
+        {
+          user_id: string;
+          token_count: string | null;
+          used_tokens: string;
+          model_id: string;
+          model_name: string;
+          provider: string;
+        }[]
+      >(
         `SELECT t.user_id,
                 t.token_count::text,
                 CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_tokens ELSE 0 END::text AS used_tokens,
@@ -55,8 +86,19 @@ export class UserService {
       ),
     ]);
 
-    const spendingMap = new Map(spendingRows.map((r) => [r.user_id, parseInt(r.spending, 10)]));
-    const tokenMap = new Map<string, { modelId: string; modelName: string; provider: string; tokenCount: number | null; usedTokens: number }[]>();
+    const spendingMap = new Map(
+      spendingRows.map((r) => [r.user_id, parseFloat(r.spending)]),
+    );
+    const tokenMap = new Map<
+      string,
+      {
+        modelId: string;
+        modelName: string;
+        provider: string;
+        tokenCount: number | null;
+        usedTokens: number;
+      }[]
+    >();
     for (const r of tokenRows) {
       if (!tokenMap.has(r.user_id)) tokenMap.set(r.user_id, []);
       tokenMap.get(r.user_id)!.push({
@@ -75,7 +117,13 @@ export class UserService {
         ...existing,
         ...allModels
           .filter((m) => !coveredIds.has(m.id))
-          .map((m) => ({ modelId: m.id, modelName: m.name, provider: m.provider, tokenCount: null, usedTokens: 0 })),
+          .map((m) => ({
+            modelId: m.id,
+            modelName: m.name,
+            provider: m.provider,
+            tokenCount: null,
+            usedTokens: 0,
+          })),
       ];
       return Object.assign(u, {
         currentSpending: spendingMap.get(u.id) ?? 0,
@@ -94,7 +142,10 @@ export class UserService {
   }
 
   async createUser(dto: CreateUserDto): Promise<User> {
-    const existing = await this.userRepository.findOne({ email: dto.email.toLowerCase(), deletedAt: null });
+    const existing = await this.userRepository.findOne({
+      email: dto.email.toLowerCase(),
+      deletedAt: null,
+    });
     if (existing) {
       throw new ConflictException('User with this email already exists');
     }
@@ -130,7 +181,10 @@ export class UserService {
 
     if (dto.email) {
       const emailLower = dto.email.toLowerCase();
-      const conflict = await this.userRepository.findOne({ email: emailLower, deletedAt: null });
+      const conflict = await this.userRepository.findOne({
+        email: emailLower,
+        deletedAt: null,
+      });
       if (conflict && conflict.id !== id) {
         throw new ConflictException('User with this email already exists');
       }
@@ -144,7 +198,10 @@ export class UserService {
     await this.em.flush();
 
     if (dto.password) {
-      const account = await this.em.findOne(Account, { user: id, providerId: 'credential' });
+      const account = await this.em.findOne(Account, {
+        user: id,
+        providerId: 'credential',
+      });
       if (account) {
         account.password = await hashPassword(dto.password);
         await this.em.flush();
@@ -159,10 +216,16 @@ export class UserService {
   }
 
   async getTokens(userId: string): Promise<TokenResponseDto[]> {
-    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
+    const user = await this.userRepository.findOne({
+      id: userId,
+      deletedAt: null,
+    });
     if (!user) throw new NotFoundException('User not found');
 
-    const tokens = await this.tokenRepository.find({ user: userId }, { populate: ['model'] });
+    const tokens = await this.tokenRepository.find(
+      { user: userId },
+      { populate: ['model'] },
+    );
 
     const now = new Date();
     let dirty = false;
@@ -184,15 +247,25 @@ export class UserService {
     }));
   }
 
-  async createToken(userId: string, dto: CreateTokenDto): Promise<TokenResponseDto> {
-    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
+  async createToken(
+    userId: string,
+    dto: CreateTokenDto,
+  ): Promise<TokenResponseDto> {
+    const user = await this.userRepository.findOne({
+      id: userId,
+      deletedAt: null,
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const model = await this.modelRepository.findOne({ id: dto.modelId });
     if (!model) throw new NotFoundException('Model not found');
 
-    const existing = await this.tokenRepository.findOne({ user: userId, model: dto.modelId });
-    if (existing) throw new ConflictException('Token limit for this model already exists');
+    const existing = await this.tokenRepository.findOne({
+      user: userId,
+      model: dto.modelId,
+    });
+    if (existing)
+      throw new ConflictException('Token limit for this model already exists');
 
     const token = new Token();
     token.user = user;
@@ -212,8 +285,15 @@ export class UserService {
     };
   }
 
-  async updateToken(userId: string, tokenId: string, dto: UpdateTokenDto): Promise<TokenResponseDto> {
-    const token = await this.tokenRepository.findOne({ id: tokenId, user: userId }, { populate: ['model'] });
+  async updateToken(
+    userId: string,
+    tokenId: string,
+    dto: UpdateTokenDto,
+  ): Promise<TokenResponseDto> {
+    const token = await this.tokenRepository.findOne(
+      { id: tokenId, user: userId },
+      { populate: ['model'] },
+    );
     if (!token) throw new NotFoundException('Token limit not found');
 
     if (dto.tokenCount !== undefined) token.tokenCount = dto.tokenCount ?? null;
@@ -222,7 +302,11 @@ export class UserService {
 
     return {
       id: token.id,
-      model: { id: token.model.id, name: token.model.name, provider: token.model.provider },
+      model: {
+        id: token.model.id,
+        name: token.model.name,
+        provider: token.model.provider,
+      },
       tokenCount: token.tokenCount,
       usedTokens: token.usedTokens,
       resetAt: token.resetAt,
@@ -230,7 +314,10 @@ export class UserService {
   }
 
   async deleteToken(userId: string, tokenId: string): Promise<void> {
-    const token = await this.tokenRepository.findOne({ id: tokenId, user: userId });
+    const token = await this.tokenRepository.findOne({
+      id: tokenId,
+      user: userId,
+    });
     if (!token) throw new NotFoundException('Token limit not found');
 
     this.em.remove(token);

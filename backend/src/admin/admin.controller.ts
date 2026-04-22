@@ -42,7 +42,7 @@ export class AdminController {
   @Patch('users/:id/limit')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  @ApiOperation({ summary: "Update a user's monthly token limit" })
+  @ApiOperation({ summary: "Update a user's monthly dollar limit" })
   @ApiOkResponse({ description: 'Updated user', type: AdminUserDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
@@ -60,7 +60,9 @@ export class AdminController {
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   async getStats(@Query('days') daysParam?: string): Promise<StatsResponseDto> {
-    const days = [1, 7, 14, 30].includes(Number(daysParam)) ? Number(daysParam) : 30;
+    const days = [1, 7, 14, 30].includes(Number(daysParam))
+      ? Number(daysParam)
+      : 30;
     return this.adminService.getStats(days);
   }
 }

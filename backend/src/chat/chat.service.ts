@@ -258,11 +258,28 @@ export class ChatService {
     tokens: number,
   ): Promise<void> {
     if (tokens <= 0) return;
-    await this.em.nativeUpdate(
-      Token,
-      { user: userId, model: modelId },
-      { usedTokens: raw('used_tokens + ?', [tokens]) },
-    );
+
+    const tokenLimit = await this.tokenRepository.findOne({
+      user: userId,
+      model: modelId,
+    });
+    if (tokenLimit) {
+      await this.em.nativeUpdate(
+        Token,
+        { user: userId, model: modelId },
+        { usedTokens: raw('used_tokens + ?', [tokens]) },
+      );
+      return;
+    }
+
+    const usageCounter = this.em.create(Token, {
+      user: this.em.getReference(User, userId),
+      model: this.em.getReference(Model, modelId),
+      tokenCount: null,
+      usedTokens: tokens,
+      resetAt: nextMonthFirstDay(),
+    });
+    this.em.persist(usageCounter);
   }
 
   async streamResponse(
@@ -375,7 +392,9 @@ export class ChatService {
       streamAbort.abort();
     });
 
-    this.logger.log(`[stream] chatId=${chatId} userId=${userId} regenerate=${regenerate} parentMessageId=${parentMessageId}`);
+    this.logger.log(
+      `[stream] chatId=${chatId} userId=${userId} regenerate=${regenerate} parentMessageId=${parentMessageId}`,
+    );
 
     try {
       for await (const item of this.geminiService.generateTextStream(
@@ -393,7 +412,9 @@ export class ChatService {
         res.write(`data: ${JSON.stringify({ chunk: item.text })}\n\n`);
       }
 
-      this.logger.log(`[stream] Gemini done, tokensUsed=${tokensUsed}, clientDisconnected=${clientDisconnected}`);
+      this.logger.log(
+        `[stream] Gemini done, tokensUsed=${tokensUsed}, clientDisconnected=${clientDisconnected}`,
+      );
       await flushPromise;
 
       if (!clientDisconnected) {
@@ -412,9 +433,14 @@ export class ChatService {
         await this.em.flush();
       }
     } catch (err) {
-      this.logger.error(`[stream] Error in streamResponse: ${(err as Error)?.message}`, (err as Error)?.stack);
+      this.logger.error(
+        `[stream] Error in streamResponse: ${(err as Error)?.message}`,
+        (err as Error)?.stack,
+      );
       await flushPromise.catch((flushErr: unknown) => {
-        this.logger.error(`[stream] flushPromise also failed: ${(flushErr as Error)?.message}`);
+        this.logger.error(
+          `[stream] flushPromise also failed: ${(flushErr as Error)?.message}`,
+        );
       });
       if (!clientDisconnected) {
         res.write(

@@ -1,11 +1,4 @@
-import { CreateUserSchema, createUserSchema } from '@/schemas/admin.ts';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { generatePassword } from '@/lib/utils.ts';
-import { CheckSquare, Coins, Eye, EyeOff, Plus, RefreshCw, Square, UserPlus } from 'lucide-react';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button.tsx';
 import {
@@ -34,6 +27,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.tsx';
+import { generatePassword } from '@/lib/utils.ts';
+import { CreateUserSchema, createUserSchema } from '@/schemas/admin.ts';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import {
+  CheckSquare,
+  Coins,
+  Eye,
+  EyeOff,
+  Plus,
+  RefreshCw,
+  Square,
+  UserPlus,
+} from 'lucide-react';
+import { useForm, useWatch } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 interface ModelOption {
   id: string;
@@ -80,10 +90,26 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
   const adminValue = useWatch({ control: form.control, name: 'admin' });
 
   const passwordRules = [
-    { id: 'min', label: t('profile.validation.passwordMin'), met: (password?.length ?? 0) >= 8 },
-    { id: 'capital', label: t('profile.validation.passwordCapital'), met: /[A-Z]/.test(password ?? '') },
-    { id: 'number', label: t('profile.validation.passwordNumber'), met: /[0-9]/.test(password ?? '') },
-    { id: 'special', label: t('profile.validation.passwordSpecial'), met: /[^A-Za-z0-9]/.test(password ?? '') },
+    {
+      id: 'min',
+      label: t('profile.validation.passwordMin'),
+      met: (password?.length ?? 0) >= 8,
+    },
+    {
+      id: 'capital',
+      label: t('profile.validation.passwordCapital'),
+      met: /[A-Z]/.test(password ?? ''),
+    },
+    {
+      id: 'number',
+      label: t('profile.validation.passwordNumber'),
+      met: /[0-9]/.test(password ?? ''),
+    },
+    {
+      id: 'special',
+      label: t('profile.validation.passwordSpecial'),
+      met: /[^A-Za-z0-9]/.test(password ?? ''),
+    },
   ];
 
   const handleAdminToggle = () => {
@@ -147,7 +173,11 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ modelId: tokenModelId, tokenCount: Number(tokenCount), resetAt }),
+        body: JSON.stringify({
+          modelId: tokenModelId,
+          tokenCount: Number(tokenCount),
+          resetAt,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -184,7 +214,9 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
     setOpen(next);
   };
 
-  const availableModels = models.filter((m) => !addedTokens.some((t) => t.model.id === m.id));
+  const availableModels = models.filter(
+    (m) => !addedTokens.some((t) => t.model.id === m.id),
+  );
 
   return (
     <>
@@ -192,8 +224,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-          >
+            className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
             <UserPlus size={16} className="mr-2" />
             {t('admin.createUser.trigger')}
           </Button>
@@ -203,7 +234,9 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {step === 'form' ? <UserPlus size={20} /> : <Coins size={20} />}
-              {step === 'form' ? t('admin.createUser.title') : t('admin.createUser.tokenStep.title')}
+              {step === 'form'
+                ? t('admin.createUser.title')
+                : t('admin.createUser.tokenStep.title')}
             </DialogTitle>
             <DialogDescription>
               {step === 'form'
@@ -242,10 +275,13 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                             <button
                               type="button"
                               onClick={() => setShowPassword((v) => !v)}
-                              aria-label={showPassword ? t('profile.hideNewPassword') : t('profile.showNewPassword')}
+                              aria-label={
+                                showPassword
+                                  ? t('profile.hideNewPassword')
+                                  : t('profile.showNewPassword')
+                              }
                               aria-pressed={showPassword}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
+                              className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2">
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
                           </div>
@@ -258,8 +294,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                               form.setValue('password', pwd, { shouldValidate: true });
                               setShowPassword(true);
                             }}
-                            title={t('admin.createUser.generatePassword')}
-                          >
+                            title={t('admin.createUser.generatePassword')}>
                             <RefreshCw size={16} />
                           </Button>
                         </div>
@@ -268,11 +303,12 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         {passwordRules.map((rule) => (
                           <li
                             key={rule.id}
-                            className={`flex items-center gap-2 text-xs transition-colors ${rule.met ? 'text-green-500' : 'text-muted-foreground'}`}
-                          >
-                            {rule.met
-                              ? <CheckSquare size={14} className="shrink-0" />
-                              : <Square size={14} className="shrink-0" />}
+                            className={`flex items-center gap-2 text-xs transition-colors ${rule.met ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {rule.met ? (
+                              <CheckSquare size={14} className="shrink-0" />
+                            ) : (
+                              <Square size={14} className="shrink-0" />
+                            )}
                             {rule.label}
                           </li>
                         ))}
@@ -292,11 +328,12 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                           type="button"
                           onClick={handleAdminToggle}
                           aria-pressed={adminValue}
-                          className="flex items-center gap-2 text-sm transition-colors hover:text-foreground"
-                        >
-                          {adminValue
-                            ? <CheckSquare size={18} className="text-primary" />
-                            : <Square size={18} className="text-muted-foreground" />}
+                          className="hover:text-foreground flex items-center gap-2 text-sm transition-colors">
+                          {adminValue ? (
+                            <CheckSquare size={18} className="text-primary" />
+                          ) : (
+                            <Square size={18} className="text-muted-foreground" />
+                          )}
                           <span>{t('admin.createUser.makeAdmin')}</span>
                         </button>
                       </div>
@@ -309,16 +346,14 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleOpenChange(false)}
-                >
+                  onClick={() => handleOpenChange(false)}>
                   {t('profile.cancel')}
                 </Button>
                 <Button
                   type="submit"
                   variant="outline"
                   disabled={form.formState.isSubmitting}
-                  className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-                >
+                  className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
                   {t('admin.createUser.submit')}
                 </Button>
               </DialogFooter>
@@ -331,12 +366,21 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                 {addedTokens.length > 0 && (
                   <div className="space-y-2">
                     {addedTokens.map((token) => (
-                      <div key={token.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                      <div
+                        key={token.id}
+                        className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                         <div>
                           <p className="font-medium">{token.model.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {token.tokenCount.toLocaleString()} {t('admin.manageTokens.tokens')}
-                            {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                          <p className="text-muted-foreground text-xs">
+                            {token.tokenCount != null
+                              ? token.tokenCount.toLocaleString()
+                              : '∞'}{' '}
+                            {t('admin.manageTokens.tokens')}
+                            {' · '}
+                            {t('admin.manageTokens.resetLabel')}{' '}
+                            {new Date(token.resetAt).toLocaleDateString(undefined, {
+                              timeZone: 'UTC',
+                            })}
                           </p>
                         </div>
                       </div>
@@ -350,11 +394,15 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                       <Label>{t('admin.manageTokens.model')}</Label>
                       <Select value={tokenModelId} onValueChange={setTokenModelId}>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('admin.manageTokens.selectModel')} />
+                          <SelectValue
+                            placeholder={t('admin.manageTokens.selectModel')}
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {availableModels.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>{m.name} ({m.provider})</SelectItem>
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.name} ({m.provider})
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -383,18 +431,21 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        disabled={submittingToken || !tokenModelId || !tokenCount || !resetAt}
+                        disabled={
+                          submittingToken || !tokenModelId || !tokenCount || !resetAt
+                        }
                         className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-                        onClick={handleAddToken}
-                      >
+                        onClick={handleAddToken}>
                         {t('admin.manageTokens.addSubmit')}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => { setShowTokenForm(false); resetTokenForm(); }}
-                      >
+                        onClick={() => {
+                          setShowTokenForm(false);
+                          resetTokenForm();
+                        }}>
                         {t('profile.cancel')}
                       </Button>
                     </div>
@@ -407,8 +458,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => setShowTokenForm(true)}
-                  >
+                    onClick={() => setShowTokenForm(true)}>
                     <Plus size={14} className="mr-1" />
                     {t('admin.manageTokens.add')}
                   </Button>
@@ -420,8 +470,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                   type="button"
                   variant="outline"
                   onClick={handleDone}
-                  className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-                >
+                  className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
                   {t('admin.createUser.tokenStep.done')}
                 </Button>
               </DialogFooter>
@@ -434,7 +483,9 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{t('admin.createUser.confirmAdmin.title')}</DialogTitle>
-            <DialogDescription>{t('admin.createUser.confirmAdmin.description')}</DialogDescription>
+            <DialogDescription>
+              {t('admin.createUser.confirmAdmin.description')}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmAdminOpen(false)}>
@@ -443,8 +494,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
             <Button
               variant="outline"
               onClick={confirmAdmin}
-              className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-            >
+              className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
               {t('admin.createUser.confirmAdmin.confirm')}
             </Button>
           </DialogFooter>

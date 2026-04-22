@@ -39,7 +39,18 @@ import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
 import { SetLimitDto } from './dto/set-limit.dto';
 
-function toUserResponse(user: User & { currentSpending?: number; tokenLimits?: { modelId?: string; modelName: string; provider: string; tokenCount: number | null; usedTokens: number }[] }): UserResponseDto {
+function toUserResponse(
+  user: User & {
+    currentSpending?: number;
+    tokenLimits?: {
+      modelId?: string;
+      modelName: string;
+      provider: string;
+      tokenCount: number | null;
+      usedTokens: number;
+    }[];
+  },
+): UserResponseDto {
   return {
     id: user.id,
     email: user.email,
@@ -48,7 +59,14 @@ function toUserResponse(user: User & { currentSpending?: number; tokenLimits?: {
     createdAt: user.createdAt,
     monthlyLimit: user.monthlyLimit ?? null,
     currentSpending: user.currentSpending ?? 0,
-    tokenLimits: (user.tokenLimits ?? []).map(({ modelName, provider, tokenCount, usedTokens }) => ({ modelName, provider, tokenCount, usedTokens })),
+    tokenLimits: (user.tokenLimits ?? []).map(
+      ({ modelName, provider, tokenCount, usedTokens }) => ({
+        modelName,
+        provider,
+        tokenCount,
+        usedTokens,
+      }),
+    ),
   };
 }
 
@@ -111,7 +129,7 @@ export class UserController {
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  @ApiOperation({ summary: 'Set monthly token limit for a user (admin only)' })
+  @ApiOperation({ summary: 'Set monthly dollar limit for a user (admin only)' })
   @ApiOkResponse({ description: 'Limit updated', type: UserBasicResponseDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })

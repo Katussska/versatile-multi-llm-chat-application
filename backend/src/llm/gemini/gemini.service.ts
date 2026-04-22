@@ -11,7 +11,7 @@ import {
   GoogleGenerativeAI,
 } from '@google/generative-ai';
 import { GetAIMessageDTO } from './model/get-ai-response.dto';
-import { v4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class GeminiService {
@@ -37,7 +37,7 @@ export class GeminiService {
   }
 
   private getChatSession(sessionId?: string, history?: Content[]) {
-    let sessionIdToUse = sessionId ?? v4();
+    const sessionIdToUse = sessionId ?? randomUUID();
 
     let result = this.chatSessions[sessionIdToUse];
 
@@ -77,7 +77,9 @@ export class GeminiService {
     sessionId?: string,
     signal?: AbortSignal,
     history?: Content[],
-  ): AsyncGenerator<{ type: 'text'; text: string } | { type: 'usage'; totalTokens: number }> {
+  ): AsyncGenerator<
+    { type: 'text'; text: string } | { type: 'usage'; totalTokens: number }
+  > {
     const { chat } = this.getChatSession(sessionId, history);
     try {
       const result = await chat.sendMessageStream(prompt, { signal });
@@ -89,7 +91,10 @@ export class GeminiService {
       }
       if (!signal?.aborted) {
         const response = await result.response;
-        yield { type: 'usage', totalTokens: response.usageMetadata?.totalTokenCount ?? 0 };
+        yield {
+          type: 'usage',
+          totalTokens: response.usageMetadata?.totalTokenCount ?? 0,
+        };
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {

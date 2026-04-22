@@ -8,8 +8,6 @@ export class Migration20260418000000 extends Migration {
   }
 
   override async down(): Promise<void> {
-    this.addSql(
-      `alter table "message" drop column "parent_message_id";`,
-    );
+    this.addSql(`alter table "message" drop column "parent_message_id";`);
   }
 }

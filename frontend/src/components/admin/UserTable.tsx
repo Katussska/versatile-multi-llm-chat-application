@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu.tsx';
 import { Input } from '@/components/ui/input.tsx';
 
-import { MoreHorizontal, Search } from 'lucide-react';
+import { MoreHorizontal, Search, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -188,7 +188,20 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                 <tr
                   key={user.id}
                   className="hover:bg-muted/30 border-b transition-colors last:border-0">
-                  <td className="px-4 py-3 font-medium">{user.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <span className="inline-flex items-center gap-1.5">
+                      {user.name}
+                      {user.admin && (
+                        <ShieldCheck
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                          aria-label={t('admin.userTable.admin', {
+                            defaultValue: 'Admin',
+                          })}
+                        />
+                      )}
+                    </span>
+                  </td>
                   <td className="text-muted-foreground px-4 py-3">{user.email}</td>
                   <td className="px-4 py-3">
                     {(user.tokenLimits ?? []).length > 0 ? (

@@ -8,10 +8,14 @@ import { User } from '../entities/User';
 import { Model } from '../entities/Model';
 import { Token } from '../entities/Token';
 import { GeminiModule } from '../llm/gemini/gemini.module';
+import { LimitGuard } from '../llm/limit.guard';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Chat, Message, User, Model, Token]), GeminiModule],
+  imports: [
+    MikroOrmModule.forFeature([Chat, Message, User, Model, Token]),
+    GeminiModule,
+  ],
   controllers: [ChatController],
-  providers: [ChatService],
+  providers: [ChatService, LimitGuard],
 })
 export class ChatModule {}
