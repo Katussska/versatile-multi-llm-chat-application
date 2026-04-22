@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { EntityRepository, raw } from '@mikro-orm/core';
@@ -17,6 +23,8 @@ import { nextMonthFirstDay } from '../date.utils';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Chat)
     private readonly chatRepository: EntityRepository<Chat>,
@@ -45,6 +53,7 @@ export class ChatService {
       provider: 'gemini',
       name: geminiModelName,
       apiEndpoint: `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}`,
+      pricePerToken: 0,
     });
 
     this.em.persist(defaultModel);
@@ -138,6 +147,7 @@ export class ChatService {
       content: messageDto.content,
       path: messageDto.path,
       favourite: false,
+      costUsd: 0,
     });
 
     this.em.persist(message);
@@ -195,7 +205,11 @@ export class ChatService {
       { populate: ['chat', 'chat.user'] },
     );
 
-    if (!message || message.chat.id !== chatId || message.chat.user.id !== userId) {
+    if (
+      !message ||
+      message.chat.id !== chatId ||
+      message.chat.user.id !== userId
+    ) {
       throw new NotFoundException('Message not found');
     }
 
@@ -204,7 +218,10 @@ export class ChatService {
     await this.em.flush();
   }
 
-  private async loadBranch(chatId: string, tipMessageId: string | null): Promise<Message[]> {
+  private async loadBranch(
+    chatId: string,
+    tipMessageId: string | null,
+  ): Promise<Message[]> {
     if (!tipMessageId) {
       const messages = await this.em.find(
         Message,
@@ -215,9 +232,9 @@ export class ChatService {
     }
 
     const conn = this.em.getConnection();
-    const rows: { id: string }[] = await conn.execute(
+    const rows = await conn.execute<{ id: string }[]>(
       `WITH RECURSIVE branch AS (
-         SELECT id, parent_message_id FROM message WHERE id = ?
+         SELECT id, parent_message_id FROM message WHERE id = CAST(? AS uuid)
          UNION ALL
          SELECT m.id, m.parent_message_id FROM message m JOIN branch b ON m.id = b.parent_message_id
        )
@@ -235,7 +252,11 @@ export class ChatService {
     );
   }
 
-  private async updateUsedTokens(userId: string, modelId: string, tokens: number): Promise<void> {
+  private async updateUsedTokens(
+    userId: string,
+    modelId: string,
+    tokens: number,
+  ): Promise<void> {
     if (tokens <= 0) return;
     await this.em.nativeUpdate(
       Token,
@@ -261,13 +282,19 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const tokenLimit = await this.tokenRepository.findOne({ user: userId, model: chat.model.id });
+    const tokenLimit = await this.tokenRepository.findOne({
+      user: userId,
+      model: chat.model.id,
+    });
     if (tokenLimit) {
       if (new Date() >= tokenLimit.resetAt) {
         tokenLimit.usedTokens = 0;
         tokenLimit.resetAt = nextMonthFirstDay();
         await this.em.flush();
-      } else if (tokenLimit.usedTokens >= tokenLimit.tokenCount) {
+      } else if (
+        tokenLimit.tokenCount !== null &&
+        tokenLimit.usedTokens >= tokenLimit.tokenCount
+      ) {
         throw new HttpException(
           { message: 'Token limit exceeded', resetAt: tokenLimit.resetAt },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -278,7 +305,10 @@ export class ChatService {
     let historyMessages: Message[];
     if (regenerate && parentMessageId) {
       const userMsg = await this.em.findOne(Message, { id: parentMessageId });
-      historyMessages = await this.loadBranch(chatId, userMsg?.parentMessageId ?? null);
+      historyMessages = await this.loadBranch(
+        chatId,
+        userMsg?.parentMessageId ?? null,
+      );
     } else {
       historyMessages = await this.loadBranch(chatId, parentMessageId ?? null);
     }
@@ -290,7 +320,16 @@ export class ChatService {
         parts: [{ text: m.content }],
       }));
 
-    // Invalidate cached session so it gets rebuilt with fresh DB history
+    // Gemini requires history to start with 'user' and alternate turns.
+    // Trim leading 'model' turns (can happen if DB has orphaned assistant messages).
+    while (history.length > 0 && history[0].role === 'model') {
+      history.shift();
+    }
+    // Trim trailing 'user' turns (orphaned user messages from failed streams).
+    while (history.length > 0 && history[history.length - 1].role === 'user') {
+      history.pop();
+    }
+
     this.geminiService.invalidateSession(chatId);
 
     let userMessage: Message | null = null;
@@ -302,6 +341,7 @@ export class ChatService {
         path: 'user',
         favourite: false,
         parentMessageId: parentMessageId ?? null,
+        costUsd: 0,
       });
       this.em.persist(userMessage);
     }
@@ -311,12 +351,17 @@ export class ChatService {
       content: '',
       path: 'model',
       favourite: false,
-      parentMessageId: regenerate ? (parentMessageId ?? null) : (userMessage?.id ?? null),
+      costUsd: 0,
+      parentMessageId: regenerate
+        ? (parentMessageId ?? null)
+        : (userMessage?.id ?? null),
     });
     this.em.persist(assistantMessage);
 
     // Send messageId immediately — UUID is generated client-side before flush
-    res.write(`data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`,
+    );
 
     // Flush DB and start Gemini stream in parallel to reduce latency
     const flushPromise = this.em.flush();
@@ -330,8 +375,15 @@ export class ChatService {
       streamAbort.abort();
     });
 
+    this.logger.log(`[stream] chatId=${chatId} userId=${userId} regenerate=${regenerate} parentMessageId=${parentMessageId}`);
+
     try {
-      for await (const item of this.geminiService.generateTextStream(content, chatId, streamAbort.signal, history)) {
+      for await (const item of this.geminiService.generateTextStream(
+        content,
+        chatId,
+        streamAbort.signal,
+        history,
+      )) {
         if (item.type === 'usage') {
           tokensUsed = item.totalTokens;
           continue;
@@ -341,31 +393,42 @@ export class ChatService {
         res.write(`data: ${JSON.stringify({ chunk: item.text })}\n\n`);
       }
 
+      this.logger.log(`[stream] Gemini done, tokensUsed=${tokensUsed}, clientDisconnected=${clientDisconnected}`);
       await flushPromise;
 
       if (!clientDisconnected) {
         assistantMessage.content = fullResponse;
+        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
         await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       } else if (fullResponse) {
         assistantMessage.content = fullResponse;
+        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
         await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);
         await this.em.flush();
       }
-    } catch {
-      await flushPromise.catch(() => {});
+    } catch (err) {
+      this.logger.error(`[stream] Error in streamResponse: ${(err as Error)?.message}`, (err as Error)?.stack);
+      await flushPromise.catch((flushErr: unknown) => {
+        this.logger.error(`[stream] flushPromise also failed: ${(flushErr as Error)?.message}`);
+      });
       if (!clientDisconnected) {
-        res.write(`data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`,
+        );
       }
       if (fullResponse) {
         assistantMessage.content = fullResponse;
+        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
+        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);
+        if (userMessage) this.em.remove(userMessage);
         await this.em.flush();
       }
     } finally {

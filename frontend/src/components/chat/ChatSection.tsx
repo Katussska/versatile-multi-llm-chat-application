@@ -303,7 +303,6 @@ export default function ChatSection() {
           done?: boolean;
           error?: string;
         };
-
         if (data.messageId) {
           streamedMessageIdRef.current = data.messageId;
         } else if (data.chunk) {

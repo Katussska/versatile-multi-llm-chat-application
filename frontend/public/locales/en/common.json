@@ -207,7 +207,8 @@
       "editSuccess": "Token limit updated.",
       "editError": "Failed to update token limit.",
       "deleteSuccess": "Token limit deleted.",
-      "deleteError": "Failed to delete token limit."
+      "deleteError": "Failed to delete token limit.",
+      "back": "Back"
     },
     "userTable": {
       "title": "User overview",
@@ -232,6 +233,12 @@
       "submit": "Save",
       "success": "Limit updated successfully.",
       "error": "Failed to update limit."
+    },
+    "period": {
+      "day": "Day",
+      "week": "Week",
+      "2weeks": "2 weeks",
+      "month": "Month"
     }
   }
 }

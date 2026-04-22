@@ -1,18 +1,16 @@
-import { Coins, Plus, Trash2, ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Coins, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import UserSearchList, { type AdminUser } from '@/components/admin/UserSearchList.tsx';
+import { type AdminUser } from '@/components/admin/UserSearchList.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
@@ -33,47 +31,32 @@ interface ModelOption {
 interface TokenLimit {
   id: string;
   model: ModelOption;
-  tokenCount: number;
+  tokenCount: number | null;
   usedTokens: number;
   resetAt: string;
 }
 
-type ViewState = 'users' | 'list' | 'add' | 'edit';
+type ViewState = 'list' | 'add' | 'edit';
 
 interface ManageTokensDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  user: AdminUser;
   onUpdated?: () => void;
 }
 
-export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProps) {
+export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated }: ManageTokensDialogProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [view, setView] = useState<ViewState>('users');
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [view, setView] = useState<ViewState>('list');
   const [models, setModels] = useState<ModelOption[]>([]);
   const [tokens, setTokens] = useState<TokenLimit[]>([]);
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [editingToken, setEditingToken] = useState<TokenLimit | null>(null);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingTokens, setLoadingTokens] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const [modelId, setModelId] = useState('');
   const [tokenCount, setTokenCount] = useState('');
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
-
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const res = await fetch(`${baseUrl}/users`, { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      setUsers(await res.json());
-    } catch {
-      toast.error(t('admin.userList.loadError'));
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
 
   const fetchModels = async () => {
     try {
@@ -81,7 +64,7 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
       if (!res.ok) throw new Error();
       setModels(await res.json());
     } catch {
-      // models stay empty
+      // ignore — model list stays empty
     }
   };
 
@@ -100,56 +83,42 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
 
   useEffect(() => {
     if (open) {
-      fetchUsers();
+      fetchTokens(user.id);
       fetchModels();
-    }
-  }, [open]);
-
-  const handleSelectUser = (user: AdminUser) => {
-    setSelectedUser(user);
-    fetchTokens(user.id);
-    setView('list');
-  };
-
-  const handleBack = () => {
-    if (view === 'list') {
-      setSelectedUser(null);
-      setTokens([]);
-      setView('users');
-    } else {
       setView('list');
-      setEditingToken(null);
-      resetForm();
     }
-  };
+  }, [open, user]);
 
   const resetForm = () => {
     setModelId('');
     setTokenCount('');
   };
 
-  const handleAddClick = () => {
-    resetForm();
+  const handleBack = () => {
+    setView('list');
     setEditingToken(null);
-    setView('add');
+    resetForm();
   };
 
-  const handleEditClick = (token: TokenLimit) => {
-    setEditingToken(token);
-    setTokenCount(String(token.tokenCount));
-    setView('edit');
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setView('list');
+      setTokens([]);
+      setEditingToken(null);
+      resetForm();
+    }
+    onOpenChange(next);
   };
 
   const handleDelete = async (tokenId: string) => {
-    if (!selectedUser) return;
     try {
-      const res = await fetch(`${baseUrl}/users/${selectedUser.id}/tokens/${tokenId}`, {
+      const res = await fetch(`${baseUrl}/users/${user.id}/tokens/${tokenId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (!res.ok) throw new Error();
       toast.success(t('admin.manageTokens.deleteSuccess'));
-      fetchTokens(selectedUser.id);
+      fetchTokens(user.id);
       onUpdated?.();
     } catch {
       toast.error(t('admin.manageTokens.deleteError'));
@@ -157,21 +126,21 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
   };
 
   const handleAdd = async () => {
-    if (!selectedUser || !modelId || !tokenCount) return;
+    if (!modelId) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${baseUrl}/users/${selectedUser.id}/tokens`, {
+      const res = await fetch(`${baseUrl}/users/${user.id}/tokens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ modelId, tokenCount: Number(tokenCount) }),
+        body: JSON.stringify({ modelId, tokenCount: tokenCount ? Number(tokenCount) : null }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message);
       }
       toast.success(t('admin.manageTokens.addSuccess'));
-      fetchTokens(selectedUser.id);
+      fetchTokens(user.id);
       onUpdated?.();
       setView('list');
       resetForm();
@@ -183,18 +152,18 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
   };
 
   const handleEdit = async () => {
-    if (!selectedUser || !editingToken || !tokenCount) return;
+    if (!editingToken) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${baseUrl}/users/${selectedUser.id}/tokens/${editingToken.id}`, {
+      const res = await fetch(`${baseUrl}/users/${user.id}/tokens/${editingToken.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ tokenCount: Number(tokenCount) }),
+        body: JSON.stringify({ tokenCount: tokenCount ? Number(tokenCount) : null }),
       });
       if (!res.ok) throw new Error();
       toast.success(t('admin.manageTokens.editSuccess'));
-      fetchTokens(selectedUser.id);
+      fetchTokens(user.id);
       onUpdated?.();
       setView('list');
       setEditingToken(null);
@@ -206,21 +175,9 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
     }
   };
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      setView('users');
-      setSelectedUser(null);
-      setTokens([]);
-      setEditingToken(null);
-      resetForm();
-    }
-    setOpen(next);
-  };
-
   const availableModels = models.filter((m) => !tokens.some((t) => t.model.id === m.id));
 
   const titleKey: Record<ViewState, string> = {
-    users: 'admin.manageTokens.title',
     list: 'admin.manageTokens.titleSelected',
     add: 'admin.manageTokens.addTitle',
     edit: 'admin.manageTokens.editTitle',
@@ -228,48 +185,23 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-        >
-          <Coins size={16} className="mr-2" />
-          {t('admin.manageTokens.trigger')}
-        </Button>
-      </DialogTrigger>
-
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {view !== 'users' && (
+            {view !== 'list' && (
               <button
                 type="button"
                 onClick={handleBack}
                 className="mr-1 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                aria-label={t('admin.editUser.back')}
+                aria-label={t('admin.manageTokens.back')}
               >
                 <ArrowLeft size={16} />
               </button>
             )}
             <Coins size={20} />
-            {t(titleKey[view], { email: selectedUser?.email ?? '' })}
+            {t(titleKey[view], { email: user.email })}
           </DialogTitle>
-          {view === 'users' && (
-            <DialogDescription>{t('admin.manageTokens.description')}</DialogDescription>
-          )}
         </DialogHeader>
-
-        {view === 'users' && (
-          loadingUsers ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">{t('admin.userList.loading')}</p>
-          ) : (
-            <UserSearchList users={users} renderAction={(user) => (
-              <Button variant="outline" size="sm" onClick={() => handleSelectUser(user)}>
-                {t('admin.editUser.select')}
-              </Button>
-            )} />
-          )
-        )}
 
         {view === 'list' && (
           <div className="space-y-3">
@@ -284,12 +216,12 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
                     <div>
                       <p className="font-medium">{token.model.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {token.usedTokens.toLocaleString()} / {token.tokenCount.toLocaleString()} {t('admin.manageTokens.tokens')}
+                        {token.usedTokens.toLocaleString()} / {token.tokenCount != null ? token.tokenCount.toLocaleString() : '∞'} {t('admin.manageTokens.tokens')}
                         {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                       </p>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleEditClick(token)}>
+                      <Button variant="ghost" size="icon" onClick={() => { setEditingToken(token); setTokenCount(token.tokenCount != null ? String(token.tokenCount) : ''); setView('edit'); }}>
                         <Pencil size={14} />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(token.id)}>
@@ -304,7 +236,7 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={handleAddClick}
+              onClick={() => { resetForm(); setEditingToken(null); setView('add'); }}
               disabled={availableModels.length === 0}
             >
               <Plus size={14} className="mr-1" />
@@ -345,7 +277,7 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
                 min={1}
                 value={tokenCount}
                 onChange={(e) => setTokenCount(e.target.value)}
-                placeholder="100000"
+                placeholder="∞"
               />
             </div>
           </div>
@@ -359,7 +291,7 @@ export default function ManageTokensDialog({ onUpdated }: ManageTokensDialogProp
             <Button
               type="button"
               variant="outline"
-              disabled={submitting || !tokenCount || (view === 'add' && !modelId)}
+              disabled={submitting || (view === 'add' && !modelId)}
               className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
               onClick={view === 'add' ? handleAdd : handleEdit}
             >

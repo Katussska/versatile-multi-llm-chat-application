@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class TokenLimitDto {
   @ApiProperty()
@@ -14,7 +14,7 @@ export class TokenLimitDto {
   usedTokens!: number;
 }
 
-export class UserBasicResponseDto {
+export class AdminUserDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -30,11 +30,9 @@ export class UserBasicResponseDto {
   @ApiProperty()
   createdAt!: Date;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiProperty({ nullable: true })
   monthlyLimit!: number | null;
-}
 
-export class UserResponseDto extends UserBasicResponseDto {
   @ApiProperty()
   currentSpending!: number;
 

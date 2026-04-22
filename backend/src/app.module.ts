@@ -11,6 +11,7 @@ import { Pool } from 'pg';
 import { GeminiModule } from './llm/gemini/gemini.module';
 import { ChatModule } from './chat/chat.module';
 import { UserModule } from './user/user.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { UserModule } from './user/user.module';
     GeminiModule,
     ChatModule,
     UserModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -18,8 +18,8 @@ export class TokenResponseDto {
   @ApiProperty({ type: ModelDto })
   model: ModelDto;
 
-  @ApiProperty()
-  tokenCount: number;
+  @ApiProperty({ nullable: true })
+  tokenCount: number | null;
 
   @ApiProperty()
   usedTokens: number;

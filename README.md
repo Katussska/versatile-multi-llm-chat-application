@@ -80,14 +80,23 @@ What is implemented end-to-end:
 - dark/light theme switching
 - profile page: update display name, read-only email, change password (with live validation rules), language switcher (CS/EN)
 - token usage overview on profile page (progress bars per model, reset date)
+- quota status bar on profile page — shows current spend vs. dollar limit (visible when a limit is set)
 - Czech/English localization (i18next)
 - admin panel (`/admin`, accessible to admin users only):
-  - dashboard with KPI stats (total users, active users, most-used model)
-  - activity chart — message count over the last 30 days
+  - KPI cards: total users, active users, most-used model
+  - activity chart — daily message count, selectable period (1 day / 1 week / 2 weeks / 1 month)
   - user management: create, edit (email / password / admin role), delete
   - token limit management: set per-user per-model limits with a reset date
-- per-user per-model token limits enforced at stream time (429 when exceeded, auto-reset after reset date)
-- admin role flag on `User` entity, protected routes on both backend and frontend
+  - dollar limit management: set a per-user spending cap (`PATCH /admin/users/:id/limit`)
+- per-user per-model token limits enforced at stream time (HTTP 429 when exceeded, auto-reset after reset date)
+- per-user monthly dollar spending limit stored (`PATCH /users/:id/limit`) — not yet enforced during stream
+- admin role enforced via `RolesGuard` on both `AdminController` and `UserController` admin endpoints
+- admin API endpoints: `/admin/users`, `/admin/users/:id/limit`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, token limit management)
+
+Currently supported LLM providers:
+
+- **Gemini** (Google) — fully integrated, single active model configurable via `GEMINI_MODEL` env var
+- **Claude** (Anthropic) — planned, not yet implemented
 
 Work in progress / placeholders:
 
@@ -303,16 +312,16 @@ pnpm fe typecheck     # Frontend TypeScript check
 
 Entities managed by MikroORM and stored in PostgreSQL:
 
-| Entity        | Purpose                                          |
-|---------------|--------------------------------------------------|
-| `User`        | App users                                        |
-| `Chat`        | Conversations (soft delete supported)            |
-| `Message`     | Individual messages, with `path` for branching   |
-| `Model`       | Available LLM models                             |
-| `Token`       | Usage tracking                                   |
-| `Session`     | Better Auth sessions                             |
-| `Account`     | Better Auth OAuth accounts                       |
-| `Verification`| Better Auth email verification                   |
+| Entity        | Purpose                                                                  |
+|---------------|--------------------------------------------------------------------------|
+| `User`        | App users; `dollar_limit` caps total spend per user                      |
+| `Chat`        | Conversations (soft delete supported)                                    |
+| `Message`     | Individual messages; `cost_usd` records per-message API cost             |
+| `Model`       | Available LLM models; `price_per_token` used to calculate message cost   |
+| `Token`       | Per-user per-model token limits with `used_tokens` and `reset_at`        |
+| `Session`     | Better Auth sessions                                                     |
+| `Account`     | Better Auth OAuth accounts                                               |
+| `Verification`| Better Auth email verification                                           |
 
 ---
 
