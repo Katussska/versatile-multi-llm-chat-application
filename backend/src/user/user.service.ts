@@ -1,7 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository } from '@mikro-orm/postgresql';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';
 import { hashPassword } from 'better-auth/crypto';
 import { User } from '../entities/User';
 import { Account } from '../entities/Account';
@@ -10,7 +9,6 @@ import { Token } from '../entities/Token';
 import { Model } from '../entities/Model';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { StatsResponseDto } from './dto/stats-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto } from './dto/token-response.dto';
@@ -93,39 +91,6 @@ export class UserService {
     }
 
     return user;
-  }
-
-  async getStats(): Promise<StatsResponseDto> {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const totalUsers = await this.userRepository.count({ deletedAt: null });
-
-    const activeResult = await this.em.execute<{ count: string }[]>(
-      `SELECT COUNT(DISTINCT user_id)::text AS count FROM chat WHERE created_at >= ? AND deleted_at IS NULL`,
-      [thirtyDaysAgo],
-    );
-    const activeUsers = parseInt(activeResult[0]?.count ?? '0', 10);
-
-    const modelResult = await this.em.execute<{ name: string }[]>(
-      `SELECT m.name FROM chat c JOIN model m ON c.model_id = m.id WHERE c.deleted_at IS NULL GROUP BY m.name ORDER BY COUNT(c.id) DESC LIMIT 1`,
-    );
-    const mostUsedModel = modelResult[0]?.name ?? null;
-
-    const rows = await this.em.execute<{ date: string; messages: string }[]>(
-      `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') AS date, COUNT(*)::text AS messages FROM message WHERE created_at >= ? AND deleted_at IS NULL GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`,
-      [thirtyDaysAgo],
-    );
-
-    const dailyMap = new Map<string, number>(rows.map((r) => [r.date, parseInt(r.messages, 10)]));
-    const dailyActivity = Array.from({ length: 30 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (29 - i));
-      const date = d.toISOString().split('T')[0];
-      return { date, messages: dailyMap.get(date) ?? 0 };
-    });
-
-    return { totalUsers, activeUsers, mostUsedModel, dailyActivity };
   }
 
   async getModels(): Promise<Model[]> {

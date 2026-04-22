@@ -207,6 +207,12 @@
       "editError": "Failed to update token limit.",
       "deleteSuccess": "Token limit deleted.",
       "deleteError": "Failed to delete token limit."
+    },
+    "period": {
+      "day": "Day",
+      "week": "Week",
+      "2weeks": "2 weeks",
+      "month": "Month"
     }
   }
 }

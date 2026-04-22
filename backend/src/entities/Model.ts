@@ -11,4 +11,7 @@ export class Model extends Base {
 
   @Property({ type: 'string' })
   apiEndpoint!: string;
+
+  @Property({ type: 'float', default: 0, fieldName: 'price_per_token' })
+  pricePerToken: number = 0;
 }

@@ -43,6 +43,7 @@ export class ChatService {
       provider: 'gemini',
       name: geminiModelName,
       apiEndpoint: `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}`,
+      pricePerToken: 0,
     });
 
     this.em.persist(defaultModel);
@@ -136,6 +137,7 @@ export class ChatService {
       content: messageDto.content,
       path: messageDto.path,
       favourite: false,
+      costUsd: 0,
     });
 
     this.em.persist(message);
@@ -242,6 +244,23 @@ export class ChatService {
       }
     }
 
+    if (chat.user.dollarLimit !== null && chat.user.dollarLimit !== undefined) {
+      const [spendRow] = await this.em.execute<{ total: string }[]>(
+        `SELECT COALESCE(SUM(msg.cost_usd), 0) AS total
+         FROM message msg
+         JOIN chat c ON msg.chat_id = c.id
+         WHERE c.user_id = ? AND msg.deleted_at IS NULL`,
+        [userId],
+      );
+      const totalSpend = parseFloat(spendRow?.total ?? '0');
+      if (totalSpend >= chat.user.dollarLimit) {
+        throw new HttpException(
+          { message: 'Dollar limit exceeded' },
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
+    }
+
     let userMessage: Message | null = null;
 
     if (!regenerate) {
@@ -251,6 +270,7 @@ export class ChatService {
         path: 'user',
         favourite: false,
         parentMessageId: parentMessageId ?? null,
+        costUsd: 0,
       });
       this.em.persist(userMessage);
     }
@@ -261,6 +281,7 @@ export class ChatService {
       path: 'model',
       favourite: false,
       parentMessageId: regenerate ? (parentMessageId ?? null) : null,
+      costUsd: 0,
     });
     this.em.persist(assistantMessage);
 
@@ -294,11 +315,13 @@ export class ChatService {
 
       if (!clientDisconnected) {
         assistantMessage.content = fullResponse;
+        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
         await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       } else if (fullResponse) {
         assistantMessage.content = fullResponse;
+        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
         await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
       } else {

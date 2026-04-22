@@ -23,6 +23,9 @@ export class User extends Base {
   @Property({ type: 'boolean', default: false })
   admin: boolean = false;
 
+  @Property({ type: 'float', nullable: true, fieldName: 'dollar_limit' })
+  dollarLimit: number | null = null;
+
   @OneToMany(() => Chat, (chat) => chat.user)
   chats = new Collection<Chat>(this);
 

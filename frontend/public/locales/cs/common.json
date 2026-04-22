@@ -207,6 +207,12 @@
       "editError": "Nepodařilo se upravit limit tokenů.",
       "deleteSuccess": "Limit tokenů byl smazán.",
       "deleteError": "Nepodařilo se smazat limit tokenů."
+    },
+    "period": {
+      "day": "Den",
+      "week": "Týden",
+      "2weeks": "2 týdny",
+      "month": "Měsíc"
     }
   }
 }

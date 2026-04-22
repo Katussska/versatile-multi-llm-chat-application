@@ -30,11 +30,17 @@ import { Input } from '@/components/ui/input.tsx';
 
 interface EditUserDialogProps {
   onUpdated?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  preselectedUser?: AdminUser;
 }
 
-export default function EditUserDialog({ onUpdated }: EditUserDialogProps) {
+export default function EditUserDialog({ onUpdated, open: controlledOpen, onOpenChange: controlledOnOpenChange, preselectedUser }: EditUserDialogProps) {
+  const isControlled = controlledOpen !== undefined;
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen;
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -74,8 +80,16 @@ export default function EditUserDialog({ onUpdated }: EditUserDialogProps) {
   };
 
   useEffect(() => {
-    if (open) fetchUsers();
+    if (open && !isControlled) fetchUsers();
   }, [open]);
+
+  useEffect(() => {
+    if (isControlled && open && preselectedUser) {
+      setSelectedUser(preselectedUser);
+      form.reset({ email: preselectedUser.email, password: '', admin: preselectedUser.admin });
+      setShowPassword(false);
+    }
+  }, [isControlled, open, preselectedUser]);
 
   const handleSelect = (user: AdminUser) => {
     setSelectedUser(user);
