@@ -4,6 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { EntityRepository, raw } from '@mikro-orm/core';
@@ -336,12 +342,16 @@ export class ChatService {
       content: '',
       path: 'model',
       favourite: false,
-      parentMessageId: regenerate ? (parentMessageId ?? null) : null,
-      costUsd: 0,
+      parentMessageId: regenerate
+        ? (parentMessageId ?? null)
+        : (userMessage?.id ?? null),
     });
     this.em.persist(assistantMessage);
 
     // Send messageId immediately — UUID is generated client-side before flush
+    res.write(
+      `data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`,
+    );
     res.write(
       `data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`,
     );

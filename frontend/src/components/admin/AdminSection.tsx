@@ -53,6 +53,7 @@ function useAdminStats(tick: number, days: Period) {
   const refetch = () => setTick((n) => n + 1);
 
   return { stats, loading, refetch, tick };
+  return { stats, loading };
 }
 
 function formatDate(dateStr: string): string {

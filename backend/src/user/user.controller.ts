@@ -30,11 +30,17 @@ import {
 } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../admin/roles.guard';
 import { User } from '../entities/User';
+import {
+  AuthGuard,
+  Session,
+  type UserSession,
+} from '@thallesp/nestjs-better-auth';
+import { RolesGuard } from '../admin/roles.guard';
+import { User } from '../entities/User';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserBasicResponseDto, UserResponseDto } from './dto/user-response.dto';
-import { StatsResponseDto } from './dto/stats-response.dto';
+import { UserResponseDto } from './dto/user-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
@@ -63,36 +69,24 @@ export class UserController {
   @ApiForbiddenResponse({ description: 'Admin access required' })
   async getUsers(): Promise<UserResponseDto[]> {
     const users = await this.userService.getUsers();
-    return users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      admin: u.admin,
-      createdAt: u.createdAt,
-      monthlyLimit: u.monthlyLimit,
-      currentSpending: u.currentSpending,
-      tokenLimits: u.tokenLimits,
-    }));
+    return users.map(toUserResponse);
   }
 
   @Post()
+  @UseGuards(RolesGuard)
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Create a new user (admin only)' })
   @ApiCreatedResponse({
     description: 'User successfully created',
-    type: UserResponseDto,
+    type: UserBasicResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
   @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiConflictResponse({ description: 'User with this email already exists' })
-  async createUser(
-    @Session() session: UserSession,
-    @Body() dto: CreateUserDto,
-  ): Promise<UserBasicResponseDto> {
-    requireAdmin(session);
+  async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
     const user = await this.userService.createUser(dto);
     return {
       id: user.id,
@@ -113,7 +107,7 @@ export class UserController {
   @ApiOperation({ summary: 'Update user email or password (admin only)' })
   @ApiOkResponse({
     description: 'User successfully updated',
-    type: UserResponseDto,
+    type: UserBasicResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
@@ -122,8 +116,7 @@ export class UserController {
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-  ): Promise<UserBasicResponseDto> {
-    requireAdmin(session);
+  ): Promise<UserResponseDto> {
     const user = await this.userService.updateUser(id, dto);
     return {
       id: user.id,
