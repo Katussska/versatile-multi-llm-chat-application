@@ -17,6 +17,7 @@ export class GeminiController {
   constructor(private readonly service: GeminiService) {}
 
   @Post('')
+  @UsePipes(new ValidationPipe({ whitelist: true }))
   getResponse(@Body() data: GetAIMessageDTO) {
     return this.service.generateText(data);
   }

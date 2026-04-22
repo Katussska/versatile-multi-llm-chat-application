@@ -220,6 +220,7 @@
       "global": "Global",
       "totalSpending": "total used",
       "noLimit": "No limit",
+      "admin": "Admin",
       "actions": "Actions",
       "editLimit": "Edit limit",
       "loadError": "Failed to load users."

@@ -220,6 +220,7 @@
       "global": "Globální",
       "totalSpending": "celkem využito",
       "noLimit": "Bez limitu",
+      "admin": "Admin",
       "actions": "Akce",
       "editLimit": "Upravit limit",
       "loadError": "Nepodařilo se načíst uživatele."

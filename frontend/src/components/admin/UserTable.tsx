@@ -195,7 +195,9 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                         <ShieldCheck
                           size={14}
                           className="text-muted-foreground shrink-0"
-                          aria-label="Admin"
+                          aria-label={t('admin.userTable.admin', {
+                            defaultValue: 'Admin',
+                          })}
                         />
                       )}
                     </span>
