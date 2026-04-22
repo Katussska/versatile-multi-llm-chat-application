@@ -17,7 +17,14 @@ export class AdminService {
   async getUsers(): Promise<AdminUserDto[]> {
     const [rows, tokenRows, spendingRows] = await Promise.all([
       this.em.execute<
-        { id: string; email: string; name: string; admin: boolean; created_at: Date; monthly_limit: number | null }[]
+        {
+          id: string;
+          email: string;
+          name: string;
+          admin: boolean;
+          created_at: Date;
+          monthly_limit: number | null;
+        }[]
       >(
         `SELECT id, email, name, admin, created_at, monthly_limit
          FROM "user"
@@ -25,7 +32,13 @@ export class AdminService {
          ORDER BY created_at ASC`,
       ),
       this.em.execute<
-        { user_id: string; model_name: string; provider: string; token_count: number | null; used_tokens: number }[]
+        {
+          user_id: string;
+          model_name: string;
+          provider: string;
+          token_count: number | null;
+          used_tokens: number;
+        }[]
       >(
         `SELECT t.user_id, m.name AS model_name, m.provider, t.token_count,
                 CASE WHEN t.reset_at > NOW() THEN t.used_tokens ELSE 0 END AS used_tokens
@@ -34,11 +47,16 @@ export class AdminService {
          WHERE t.deleted_at IS NULL`,
       ),
       this.em.execute<{ user_id: string; spending: number }[]>(
-        `SELECT user_id,
-                COALESCE(SUM(CASE WHEN reset_at > NOW() THEN used_tokens ELSE 0 END), 0)::integer AS spending
-         FROM token
-         WHERE deleted_at IS NULL
-         GROUP BY user_id`,
+        `SELECT c.user_id,
+                COALESCE(SUM(m.cost_usd), 0) AS spending
+         FROM message m
+         JOIN chat c ON c.id = m.chat_id
+         WHERE m.path = 'model'
+           AND m.deleted_at IS NULL
+           AND c.deleted_at IS NULL
+           AND m.created_at >= date_trunc('month', NOW())
+           AND m.created_at < (date_trunc('month', NOW()) + interval '1 month')
+         GROUP BY c.user_id`,
       ),
     ]);
 
@@ -47,7 +65,9 @@ export class AdminService {
       if (!tokensByUser.has(tr.user_id)) tokensByUser.set(tr.user_id, []);
       tokensByUser.get(tr.user_id)!.push(tr);
     }
-    const spendingByUser = new Map(spendingRows.map((r) => [r.user_id, r.spending]));
+    const spendingByUser = new Map(
+      spendingRows.map((r) => [r.user_id, r.spending]),
+    );
 
     return rows.map((r) => ({
       id: r.id,
@@ -66,8 +86,14 @@ export class AdminService {
     }));
   }
 
-  async updateLimit(userId: string, dto: UpdateLimitDto): Promise<AdminUserDto> {
-    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
+  async updateLimit(
+    userId: string,
+    dto: UpdateLimitDto,
+  ): Promise<AdminUserDto> {
+    const user = await this.userRepository.findOne({
+      id: userId,
+      deletedAt: null,
+    });
     if (!user) throw new NotFoundException('User not found');
 
     if (dto.monthlyLimit !== undefined) {
@@ -110,7 +136,9 @@ export class AdminService {
       [since],
     );
 
-    const dailyMap = new Map<string, number>(rows.map((r) => [r.date, parseInt(r.messages, 10)]));
+    const dailyMap = new Map<string, number>(
+      rows.map((r) => [r.date, parseInt(r.messages, 10)]),
+    );
     const dailyActivity = Array.from({ length: days }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (days - 1 - i));

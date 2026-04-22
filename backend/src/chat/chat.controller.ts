@@ -17,6 +17,7 @@ import type { Response } from 'express';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiResponse,
   ApiUnauthorizedResponse,
   ApiNotFoundResponse,
   ApiBadRequestResponse,
@@ -37,6 +38,7 @@ import { PatchMessageDto } from './dto/patch-message.dto';
 import { StreamMessageDto } from './dto/stream-message.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
+import { LimitGuard } from '../llm/limit.guard';
 
 @Controller('chats')
 @UseGuards(AuthGuard)
@@ -155,7 +157,10 @@ export class ChatController {
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update chat title or favourite status' })
-  @ApiOkResponse({ description: 'Chat successfully updated', type: ChatResponseDto })
+  @ApiOkResponse({
+    description: 'Chat successfully updated',
+    type: ChatResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiNotFoundResponse({ description: 'Chat not found or access denied' })
   async patchChat(
@@ -163,7 +168,11 @@ export class ChatController {
     @Param('id') chatId: string,
     @Body() body: PatchChatDto,
   ): Promise<ChatResponseDto> {
-    const chat = await this.chatService.patchChat(chatId, session.user.id, body);
+    const chat = await this.chatService.patchChat(
+      chatId,
+      session.user.id,
+      body,
+    );
     return {
       id: chat.id,
       title: chat.title,
@@ -208,9 +217,11 @@ export class ChatController {
   }
 
   @Post(':id/stream')
+  @UseGuards(LimitGuard)
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Stream LLM response for a chat message' })
+  @ApiResponse({ status: 402, description: 'Monthly dollar limit exceeded' })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiNotFoundResponse({ description: 'Chat not found or access denied' })
   async streamMessage(
