@@ -17,9 +17,10 @@ export class Message extends Base {
   @Property({ type: 'text' })
   path!: string;
 
-  @Property({ type: 'text', nullable: true })
+  @Property({ type: 'uuid', nullable: true })
   parentMessageId: string | null = null;
 
   @Property({ type: 'float', default: 0, fieldName: 'cost_usd' })
   costUsd: number = 0;
+
 }

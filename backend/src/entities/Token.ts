@@ -12,8 +12,8 @@ export class Token extends Base {
   @ManyToOne(() => User)
   user!: Rel<User>;
 
-  @Property({ type: 'number', fieldName: 'token_count' })
-  tokenCount!: number;
+  @Property({ type: 'number', fieldName: 'token_count', nullable: true })
+  tokenCount: number | null = null;
 
   @Property({ type: 'number', default: 0, fieldName: 'used_tokens' })
   usedTokens: number = 0;

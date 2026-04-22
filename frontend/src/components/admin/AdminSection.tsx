@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import CreateUserDialog from '@/components/admin/CreateUserDialog.tsx';
-import DeleteUserDialog from '@/components/admin/DeleteUserDialog.tsx';
-import EditUserDialog from '@/components/admin/EditUserDialog.tsx';
-import ManageTokensDialog from '@/components/admin/ManageTokensDialog.tsx';
+import UserTable from '@/components/admin/UserTable.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
 
@@ -50,9 +47,6 @@ function useAdminStats(tick: number, days: Period) {
       .finally(() => setLoading(false));
   }, [tick, days]);
 
-  const refetch = () => setTick((n) => n + 1);
-
-  return { stats, loading, refetch, tick };
   return { stats, loading };
 }
 
@@ -203,14 +197,8 @@ export default function AdminSection() {
               {t('admin.users.title')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <CreateUserDialog onCreated={refetch} />
-              <EditUserDialog onUpdated={refetch} />
-              <DeleteUserDialog onDeleted={refetch} />
-              <ManageTokensDialog onUpdated={refetch} />
-            </div>
-            <UserTable tick={tick} />
+          <CardContent>
+            <UserTable tick={tick} onChanged={refetch} />
           </CardContent>
         </Card>
       </div>

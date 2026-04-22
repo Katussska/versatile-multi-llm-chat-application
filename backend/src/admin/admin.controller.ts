@@ -42,7 +42,7 @@ export class AdminController {
   @Patch('users/:id/limit')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  @ApiOperation({ summary: "Update a user's dollar limit" })
+  @ApiOperation({ summary: "Update a user's monthly token limit" })
   @ApiOkResponse({ description: 'Updated user', type: AdminUserDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })

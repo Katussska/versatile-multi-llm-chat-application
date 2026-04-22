@@ -7,8 +7,8 @@ export class TokenLimitDto {
   @ApiProperty()
   provider!: string;
 
-  @ApiProperty()
-  tokenCount!: number;
+  @ApiProperty({ nullable: true })
+  tokenCount!: number | null;
 
   @ApiProperty()
   usedTokens!: number;

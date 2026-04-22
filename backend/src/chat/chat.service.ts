@@ -2,12 +2,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -28,6 +23,8 @@ import { nextMonthFirstDay } from '../date.utils';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Chat)
     private readonly chatRepository: EntityRepository<Chat>,
@@ -235,9 +232,9 @@ export class ChatService {
     }
 
     const conn = this.em.getConnection();
-    const rows: { id: string }[] = await conn.execute(
+    const rows = await conn.execute<{ id: string }[]>(
       `WITH RECURSIVE branch AS (
-         SELECT id, parent_message_id FROM message WHERE id = ?
+         SELECT id, parent_message_id FROM message WHERE id = CAST(? AS uuid)
          UNION ALL
          SELECT m.id, m.parent_message_id FROM message m JOIN branch b ON m.id = b.parent_message_id
        )
@@ -294,7 +291,10 @@ export class ChatService {
         tokenLimit.usedTokens = 0;
         tokenLimit.resetAt = nextMonthFirstDay();
         await this.em.flush();
-      } else if (tokenLimit.usedTokens >= tokenLimit.tokenCount) {
+      } else if (
+        tokenLimit.tokenCount !== null &&
+        tokenLimit.usedTokens >= tokenLimit.tokenCount
+      ) {
         throw new HttpException(
           { message: 'Token limit exceeded', resetAt: tokenLimit.resetAt },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -320,7 +320,16 @@ export class ChatService {
         parts: [{ text: m.content }],
       }));
 
-    // Invalidate cached session so it gets rebuilt with fresh DB history
+    // Gemini requires history to start with 'user' and alternate turns.
+    // Trim leading 'model' turns (can happen if DB has orphaned assistant messages).
+    while (history.length > 0 && history[0].role === 'model') {
+      history.shift();
+    }
+    // Trim trailing 'user' turns (orphaned user messages from failed streams).
+    while (history.length > 0 && history[history.length - 1].role === 'user') {
+      history.pop();
+    }
+
     this.geminiService.invalidateSession(chatId);
 
     let userMessage: Message | null = null;
@@ -342,6 +351,7 @@ export class ChatService {
       content: '',
       path: 'model',
       favourite: false,
+      costUsd: 0,
       parentMessageId: regenerate
         ? (parentMessageId ?? null)
         : (userMessage?.id ?? null),
@@ -368,6 +378,8 @@ export class ChatService {
       streamAbort.abort();
     });
 
+    this.logger.log(`[stream] chatId=${chatId} userId=${userId} regenerate=${regenerate} parentMessageId=${parentMessageId}`);
+
     try {
       for await (const item of this.geminiService.generateTextStream(
         content,
@@ -384,6 +396,7 @@ export class ChatService {
         res.write(`data: ${JSON.stringify({ chunk: item.text })}\n\n`);
       }
 
+      this.logger.log(`[stream] Gemini done, tokensUsed=${tokensUsed}, clientDisconnected=${clientDisconnected}`);
       await flushPromise;
 
       if (!clientDisconnected) {
@@ -401,8 +414,11 @@ export class ChatService {
         this.em.remove(assistantMessage);
         await this.em.flush();
       }
-    } catch {
-      await flushPromise.catch(() => {});
+    } catch (err) {
+      this.logger.error(`[stream] Error in streamResponse: ${(err as Error)?.message}`, (err as Error)?.stack);
+      await flushPromise.catch((flushErr: unknown) => {
+        this.logger.error(`[stream] flushPromise also failed: ${(flushErr as Error)?.message}`);
+      });
       if (!clientDisconnected) {
         res.write(
           `data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`,
@@ -413,6 +429,7 @@ export class ChatService {
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);
+        if (userMessage) this.em.remove(userMessage);
         await this.em.flush();
       }
     } finally {

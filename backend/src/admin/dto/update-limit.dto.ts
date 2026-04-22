@@ -6,5 +6,5 @@ export class UpdateLimitDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  dollarLimit?: number | null;
+  monthlyLimit?: number | null;
 }

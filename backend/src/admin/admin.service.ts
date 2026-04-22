@@ -15,14 +15,37 @@ export class AdminService {
   ) {}
 
   async getUsers(): Promise<AdminUserDto[]> {
-    const rows = await this.em.execute<
-      { id: string; email: string; name: string; admin: boolean; created_at: Date; dollar_limit: number | null }[]
-    >(
-      `SELECT id, email, name, admin, created_at, dollar_limit
-       FROM "user"
-       WHERE deleted_at IS NULL
-       ORDER BY created_at ASC`,
-    );
+    const [rows, tokenRows, spendingRows] = await Promise.all([
+      this.em.execute<
+        { id: string; email: string; name: string; admin: boolean; created_at: Date; monthly_limit: number | null }[]
+      >(
+        `SELECT id, email, name, admin, created_at, monthly_limit
+         FROM "user"
+         WHERE deleted_at IS NULL
+         ORDER BY created_at ASC`,
+      ),
+      this.em.execute<
+        { user_id: string; model_name: string; provider: string; token_count: number | null; used_tokens: number }[]
+      >(
+        `SELECT t.user_id, m.name AS model_name, m.provider, t.token_count, t.used_tokens
+         FROM token t
+         JOIN model m ON t.model_id = m.id
+         WHERE t.deleted_at IS NULL`,
+      ),
+      this.em.execute<{ user_id: string; spending: number }[]>(
+        `SELECT user_id, COALESCE(SUM(used_tokens), 0)::integer AS spending
+         FROM token
+         WHERE deleted_at IS NULL
+         GROUP BY user_id`,
+      ),
+    ]);
+
+    const tokensByUser = new Map<string, typeof tokenRows>();
+    for (const tr of tokenRows) {
+      if (!tokensByUser.has(tr.user_id)) tokensByUser.set(tr.user_id, []);
+      tokensByUser.get(tr.user_id)!.push(tr);
+    }
+    const spendingByUser = new Map(spendingRows.map((r) => [r.user_id, r.spending]));
 
     return rows.map((r) => ({
       id: r.id,
@@ -30,7 +53,14 @@ export class AdminService {
       name: r.name,
       admin: r.admin,
       createdAt: r.created_at,
-      dollarLimit: r.dollar_limit,
+      monthlyLimit: r.monthly_limit,
+      currentSpending: spendingByUser.get(r.id) ?? 0,
+      tokenLimits: (tokensByUser.get(r.id) ?? []).map((tl) => ({
+        modelName: tl.model_name,
+        provider: tl.provider,
+        tokenCount: tl.token_count,
+        usedTokens: tl.used_tokens,
+      })),
     }));
   }
 
@@ -38,7 +68,7 @@ export class AdminService {
     const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
     if (!user) throw new NotFoundException('User not found');
 
-    user.dollarLimit = dto.dollarLimit ?? null;
+    user.monthlyLimit = dto.monthlyLimit ?? null;
     await this.em.flush();
 
     return {
@@ -47,7 +77,9 @@ export class AdminService {
       name: user.name,
       admin: user.admin,
       createdAt: user.createdAt,
-      dollarLimit: user.dollarLimit,
+      monthlyLimit: user.monthlyLimit,
+      currentSpending: 0,
+      tokenLimits: [],
     };
   }
 

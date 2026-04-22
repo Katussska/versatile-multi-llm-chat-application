@@ -232,9 +232,6 @@
       "submit": "Save",
       "success": "Limit updated successfully.",
       "error": "Failed to update limit."
-    }
-  }
-}
     },
     "period": {
       "day": "Day",

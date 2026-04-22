@@ -27,46 +27,61 @@ export class UserService {
     private readonly em: EntityManager,
   ) {}
 
-  async getUsers(): Promise<(User & { currentSpending: number; tokenLimits: { modelName: string; provider: string; tokenCount: number; usedTokens: number }[] })[]> {
+  async getUsers(): Promise<(User & { currentSpending: number; tokenLimits: { modelId: string; modelName: string; provider: string; tokenCount: number | null; usedTokens: number }[] })[]> {
     const users = await this.userRepository.find(
       { deletedAt: null },
       { orderBy: { createdAt: 'ASC' } },
     );
 
-    const [spendingRows, tokenRows] = await Promise.all([
+    const [spendingRows, tokenRows, allModels] = await Promise.all([
       this.em.execute<{ user_id: string; spending: string }[]>(
         `SELECT user_id,
                 COALESCE(SUM(CASE WHEN reset_at IS NULL OR reset_at > now() THEN used_tokens ELSE 0 END), 0)::text AS spending
          FROM token
          GROUP BY user_id`,
       ),
-      this.em.execute<{ user_id: string; token_count: string; used_tokens: string; model_name: string; provider: string }[]>(
+      this.em.execute<{ user_id: string; token_count: string | null; used_tokens: string; model_id: string; model_name: string; provider: string }[]>(
         `SELECT t.user_id,
                 t.token_count::text,
                 CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_tokens ELSE 0 END::text AS used_tokens,
+                m.id AS model_id,
                 m.name AS model_name,
                 m.provider
          FROM token t
          JOIN model m ON t.model_id = m.id`,
       ),
+      this.em.execute<{ id: string; name: string; provider: string }[]>(
+        `SELECT id, name, provider FROM model ORDER BY name ASC`,
+      ),
     ]);
 
     const spendingMap = new Map(spendingRows.map((r) => [r.user_id, parseInt(r.spending, 10)]));
-    const tokenMap = new Map<string, { modelName: string; provider: string; tokenCount: number; usedTokens: number }[]>();
+    const tokenMap = new Map<string, { modelId: string; modelName: string; provider: string; tokenCount: number | null; usedTokens: number }[]>();
     for (const r of tokenRows) {
       if (!tokenMap.has(r.user_id)) tokenMap.set(r.user_id, []);
       tokenMap.get(r.user_id)!.push({
+        modelId: r.model_id,
         modelName: r.model_name,
         provider: r.provider,
-        tokenCount: parseInt(r.token_count, 10),
+        tokenCount: r.token_count != null ? parseInt(r.token_count, 10) : null,
         usedTokens: parseInt(r.used_tokens, 10),
       });
     }
 
-    return users.map((u) => Object.assign(u, {
-      currentSpending: spendingMap.get(u.id) ?? 0,
-      tokenLimits: tokenMap.get(u.id) ?? [],
-    }));
+    return users.map((u) => {
+      const existing = tokenMap.get(u.id) ?? [];
+      const coveredIds = new Set(existing.map((t) => t.modelId));
+      const tokenLimits = [
+        ...existing,
+        ...allModels
+          .filter((m) => !coveredIds.has(m.id))
+          .map((m) => ({ modelId: m.id, modelName: m.name, provider: m.provider, tokenCount: null, usedTokens: 0 })),
+      ];
+      return Object.assign(u, {
+        currentSpending: spendingMap.get(u.id) ?? 0,
+        tokenLimits,
+      });
+    });
   }
 
   async setUserLimit(id: string, dto: SetLimitDto): Promise<User> {
@@ -182,7 +197,7 @@ export class UserService {
     const token = new Token();
     token.user = user;
     token.model = model;
-    token.tokenCount = dto.tokenCount;
+    token.tokenCount = dto.tokenCount ?? null;
     token.resetAt = nextMonthFirstDay();
 
     this.em.persist(token);
@@ -201,7 +216,7 @@ export class UserService {
     const token = await this.tokenRepository.findOne({ id: tokenId, user: userId }, { populate: ['model'] });
     if (!token) throw new NotFoundException('Token limit not found');
 
-    if (dto.tokenCount !== undefined) token.tokenCount = dto.tokenCount;
+    if (dto.tokenCount !== undefined) token.tokenCount = dto.tokenCount ?? null;
 
     await this.em.flush();
 
