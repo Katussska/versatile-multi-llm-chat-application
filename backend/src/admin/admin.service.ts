@@ -27,13 +27,15 @@ export class AdminService {
       this.em.execute<
         { user_id: string; model_name: string; provider: string; token_count: number | null; used_tokens: number }[]
       >(
-        `SELECT t.user_id, m.name AS model_name, m.provider, t.token_count, t.used_tokens
+        `SELECT t.user_id, m.name AS model_name, m.provider, t.token_count,
+                CASE WHEN t.reset_at > NOW() THEN t.used_tokens ELSE 0 END AS used_tokens
          FROM token t
          JOIN model m ON t.model_id = m.id
          WHERE t.deleted_at IS NULL`,
       ),
       this.em.execute<{ user_id: string; spending: number }[]>(
-        `SELECT user_id, COALESCE(SUM(used_tokens), 0)::integer AS spending
+        `SELECT user_id,
+                COALESCE(SUM(CASE WHEN reset_at > NOW() THEN used_tokens ELSE 0 END), 0)::integer AS spending
          FROM token
          WHERE deleted_at IS NULL
          GROUP BY user_id`,
@@ -68,7 +70,9 @@ export class AdminService {
     const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
     if (!user) throw new NotFoundException('User not found');
 
-    user.monthlyLimit = dto.monthlyLimit ?? null;
+    if (dto.monthlyLimit !== undefined) {
+      user.monthlyLimit = dto.monthlyLimit;
+    }
     await this.em.flush();
 
     return {

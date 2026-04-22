@@ -207,7 +207,8 @@
       "editSuccess": "Token limit updated.",
       "editError": "Failed to update token limit.",
       "deleteSuccess": "Token limit deleted.",
-      "deleteError": "Failed to delete token limit."
+      "deleteError": "Failed to delete token limit.",
+      "back": "Back"
     },
     "userTable": {
       "title": "User overview",

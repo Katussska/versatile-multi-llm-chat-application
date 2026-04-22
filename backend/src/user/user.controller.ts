@@ -75,7 +75,7 @@ export class UserController {
   @ApiOperation({ summary: 'Create a new user (admin only)' })
   @ApiCreatedResponse({
     description: 'User successfully created',
-    type: UserBasicResponseDto,
+    type: UserResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
@@ -83,16 +83,7 @@ export class UserController {
   @ApiConflictResponse({ description: 'User with this email already exists' })
   async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
     const user = await this.userService.createUser(dto);
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      admin: user.admin,
-      createdAt: user.createdAt,
-      monthlyLimit: user.monthlyLimit,
-      currentSpending: 0,
-      tokenLimits: [],
-    };
+    return toUserResponse(user);
   }
 
   @Patch(':id')
@@ -102,7 +93,7 @@ export class UserController {
   @ApiOperation({ summary: 'Update user email or password (admin only)' })
   @ApiOkResponse({
     description: 'User successfully updated',
-    type: UserBasicResponseDto,
+    type: UserResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
@@ -113,16 +104,7 @@ export class UserController {
     @Body() dto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     const user = await this.userService.updateUser(id, dto);
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      admin: user.admin,
-      createdAt: user.createdAt,
-      monthlyLimit: user.monthlyLimit,
-      currentSpending: 0,
-      tokenLimits: [],
-    };
+    return toUserResponse(user);
   }
 
   @Patch(':id/limit')

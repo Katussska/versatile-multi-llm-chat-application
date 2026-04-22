@@ -193,7 +193,7 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
                 type="button"
                 onClick={handleBack}
                 className="mr-1 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                aria-label={t('admin.editUser.back')}
+                aria-label={t('admin.manageTokens.back')}
               >
                 <ArrowLeft size={16} />
               </button>

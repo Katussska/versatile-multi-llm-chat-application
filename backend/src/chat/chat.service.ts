@@ -362,9 +362,6 @@ export class ChatService {
     res.write(
       `data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`,
     );
-    res.write(
-      `data: ${JSON.stringify({ messageId: assistantMessage.id })}\n\n`,
-    );
 
     // Flush DB and start Gemini stream in parallel to reduce latency
     const flushPromise = this.em.flush();
@@ -426,6 +423,8 @@ export class ChatService {
       }
       if (fullResponse) {
         assistantMessage.content = fullResponse;
+        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
+        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);

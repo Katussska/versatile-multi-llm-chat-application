@@ -115,7 +115,6 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
   }, [tick]);
 
   const handleChanged = () => {
-    fetchUsers();
     onChanged?.();
   };
 

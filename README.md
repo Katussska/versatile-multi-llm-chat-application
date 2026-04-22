@@ -89,9 +89,9 @@ What is implemented end-to-end:
   - token limit management: set per-user per-model limits with a reset date
   - dollar limit management: set a per-user spending cap (`PATCH /admin/users/:id/limit`)
 - per-user per-model token limits enforced at stream time (HTTP 429 when exceeded, auto-reset after reset date)
-- per-user dollar spending limit enforced at stream time (HTTP 402 when exceeded)
+- per-user monthly dollar spending limit stored (`PATCH /users/:id/limit`) — not yet enforced during stream
 - admin role enforced via `RolesGuard` on both `AdminController` and `UserController` admin endpoints
-- all admin API endpoints under `/admin/*`, activity stats at `GET /admin/stats`
+- admin API endpoints: `/admin/users`, `/admin/users/:id/limit`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, token limit management)
 
 Currently supported LLM providers:
 

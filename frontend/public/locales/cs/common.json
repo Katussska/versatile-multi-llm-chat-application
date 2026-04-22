@@ -207,7 +207,8 @@
       "editSuccess": "Limit tokenů byl upraven.",
       "editError": "Nepodařilo se upravit limit tokenů.",
       "deleteSuccess": "Limit tokenů byl smazán.",
-      "deleteError": "Nepodařilo se smazat limit tokenů."
+      "deleteError": "Nepodařilo se smazat limit tokenů.",
+      "back": "Zpět"
     },
     "userTable": {
       "title": "Přehled uživatelů",
