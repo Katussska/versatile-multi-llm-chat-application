@@ -37,10 +37,6 @@ export class LimitGuard implements CanActivate {
     if (!user) {
       throw new UnauthorizedException('User not authenticated');
     }
-    if (user.monthlyLimit === null) {
-      return true;
-    }
-
     const rows = await this.em.execute<{ spending_usd: string }[]>(
       `SELECT COALESCE(SUM(m.cost_usd), 0)::text AS spending_usd
        FROM message m
@@ -55,11 +51,11 @@ export class LimitGuard implements CanActivate {
     );
     const currentSpending = parseFloat(rows[0]?.spending_usd ?? '0');
 
-    if (currentSpending >= user.monthlyLimit) {
+    if (currentSpending >= user.monthlyDollarLimit) {
       throw new HttpException(
         {
           message: 'Monthly dollar limit exceeded',
-          monthlyLimit: user.monthlyLimit,
+          monthlyDollarLimit: user.monthlyDollarLimit,
           currentSpending,
         },
         HttpStatus.PAYMENT_REQUIRED,

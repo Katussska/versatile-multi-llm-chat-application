@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import CreateUserDialog from '@/components/admin/CreateUserDialog.tsx';
 import DeleteUserDialog from '@/components/admin/DeleteUserDialog.tsx';
@@ -29,10 +29,8 @@ export interface AdminUserRow {
   id: string;
   name: string;
   email: string;
-  currentSpending: number;
-  monthlyLimit: number | null;
   tokenLimits?: TokenLimit[];
-  admin: boolean;
+  role: 'USER' | 'ADMIN';
 }
 
 interface UserTableProps {
@@ -53,37 +51,6 @@ function fmtTokens(n: number | null): string {
       : String(n);
 }
 
-function GlobalLimitBar({
-  spending,
-  limit,
-  label,
-  bordered,
-}: {
-  spending: number;
-  limit: number;
-  label: string;
-  bordered?: boolean;
-}) {
-  const pct = Math.min(100, Math.round((spending / limit) * 100));
-  return (
-    <div className={`text-xs${bordered ? 'border-muted mt-1 border-t pt-1' : ''}`}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-          {spending.toLocaleString()} /{' '}
-          {limit >= 1_000 ? `${Math.round(limit / 1_000)}k` : limit}
-        </span>
-      </div>
-      <div className="bg-muted mt-0.5 h-1 w-full overflow-hidden rounded-full">
-        <div
-          className={`h-full rounded-full transition-all ${barColor(pct)}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
   const { t } = useTranslation();
   const [users, setUsers] = useState<AdminUserRow[]>([]);
@@ -97,7 +64,7 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`${baseUrl}/users`, { credentials: 'include' });
@@ -108,11 +75,11 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, t]);
 
   useEffect(() => {
     fetchUsers();
-  }, [tick]);
+  }, [fetchUsers, tick]);
 
   const handleChanged = () => {
     onChanged?.();
@@ -136,7 +103,7 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
         id: actionUser.id,
         name: actionUser.name,
         email: actionUser.email,
-        admin: actionUser.admin,
+        role: actionUser.role,
       }
     : null;
 
@@ -191,7 +158,7 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                   <td className="px-4 py-3 font-medium">
                     <span className="inline-flex items-center gap-1.5">
                       {user.name}
-                      {user.admin && (
+                      {user.role === 'ADMIN' && (
                         <ShieldCheck
                           size={14}
                           className="text-muted-foreground shrink-0"
@@ -237,21 +204,7 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                             </div>
                           );
                         })}
-                        {user.monthlyLimit != null && (
-                          <GlobalLimitBar
-                            spending={user.currentSpending}
-                            limit={user.monthlyLimit}
-                            label={t('admin.userTable.global')}
-                            bordered
-                          />
-                        )}
                       </div>
-                    ) : user.monthlyLimit != null ? (
-                      <GlobalLimitBar
-                        spending={user.currentSpending}
-                        limit={user.monthlyLimit}
-                        label={t('admin.userTable.global')}
-                      />
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}

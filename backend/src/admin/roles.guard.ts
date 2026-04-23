@@ -6,8 +6,9 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
+import { UserRole } from '../entities/UserRole';
 
-type AdminUser = UserSession['user'] & { admin?: boolean };
+type RoleUser = UserSession['user'] & { role?: UserRole | string };
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -17,7 +18,7 @@ export class RolesGuard implements CanActivate {
       .getRequest<Request & { session?: UserSession }>();
     const session = request.session;
 
-    if (!(session?.user as AdminUser | undefined)?.admin) {
+    if ((session?.user as RoleUser | undefined)?.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Admin access required');
     }
     return true;

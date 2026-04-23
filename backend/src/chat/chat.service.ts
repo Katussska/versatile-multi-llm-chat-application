@@ -14,6 +14,7 @@ import { Message } from '../entities/Message';
 import { User } from '../entities/User';
 import { Model } from '../entities/Model';
 import { Token } from '../entities/Token';
+import { UsageLog } from '../entities/UsageLog';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
@@ -282,6 +283,23 @@ export class ChatService {
     this.em.persist(usageCounter);
   }
 
+  private createUsageLog(
+    userId: string,
+    modelName: string,
+    promptTokens: number | null,
+    completionTokens: number | null,
+    totalCost: number,
+  ): void {
+    const usageLog = this.em.create(UsageLog, {
+      user: this.em.getReference(User, userId),
+      modelName,
+      promptTokens,
+      completionTokens,
+      totalCost,
+    });
+    this.em.persist(usageLog);
+  }
+
   async streamResponse(
     chatId: string,
     userId: string,
@@ -385,7 +403,11 @@ export class ChatService {
 
     let fullResponse = '';
     let clientDisconnected = false;
-    let tokensUsed = 0;
+    let usage = {
+      totalTokens: 0,
+      promptTokens: null as number | null,
+      completionTokens: null as number | null,
+    };
     const streamAbort = new AbortController();
     res.on('close', () => {
       clientDisconnected = true;
@@ -404,7 +426,11 @@ export class ChatService {
         history,
       )) {
         if (item.type === 'usage') {
-          tokensUsed = item.totalTokens;
+          usage = {
+            totalTokens: item.totalTokens,
+            promptTokens: item.promptTokens,
+            completionTokens: item.completionTokens,
+          };
           continue;
         }
         if (clientDisconnected) break;
@@ -413,23 +439,45 @@ export class ChatService {
       }
 
       this.logger.log(
-        `[stream] Gemini done, tokensUsed=${tokensUsed}, clientDisconnected=${clientDisconnected}`,
+        `[stream] Gemini done, tokensUsed=${usage.totalTokens}, clientDisconnected=${clientDisconnected}`,
       );
       await flushPromise;
+      const totalCost = usage.totalTokens * (chat.model.pricePerToken ?? 0);
 
       if (!clientDisconnected) {
         assistantMessage.content = fullResponse;
-        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
-        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
+        assistantMessage.costUsd = totalCost;
+        await this.updateUsedTokens(userId, chat.model.id, usage.totalTokens);
+        this.createUsageLog(
+          userId,
+          chat.model.name,
+          usage.promptTokens,
+          usage.completionTokens,
+          totalCost,
+        );
         await this.em.flush();
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       } else if (fullResponse) {
         assistantMessage.content = fullResponse;
-        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
-        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
+        assistantMessage.costUsd = totalCost;
+        await this.updateUsedTokens(userId, chat.model.id, usage.totalTokens);
+        this.createUsageLog(
+          userId,
+          chat.model.name,
+          usage.promptTokens,
+          usage.completionTokens,
+          totalCost,
+        );
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);
+        this.createUsageLog(
+          userId,
+          chat.model.name,
+          usage.promptTokens,
+          usage.completionTokens,
+          totalCost,
+        );
         await this.em.flush();
       }
     } catch (err) {
@@ -447,14 +495,29 @@ export class ChatService {
           `data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`,
         );
       }
+      const totalCost = usage.totalTokens * (chat.model.pricePerToken ?? 0);
       if (fullResponse) {
         assistantMessage.content = fullResponse;
-        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
-        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
+        assistantMessage.costUsd = totalCost;
+        await this.updateUsedTokens(userId, chat.model.id, usage.totalTokens);
+        this.createUsageLog(
+          userId,
+          chat.model.name,
+          usage.promptTokens,
+          usage.completionTokens,
+          totalCost,
+        );
         await this.em.flush();
       } else {
         this.em.remove(assistantMessage);
         if (userMessage) this.em.remove(userMessage);
+        this.createUsageLog(
+          userId,
+          chat.model.name,
+          usage.promptTokens,
+          usage.completionTokens,
+          totalCost,
+        );
         await this.em.flush();
       }
     } finally {

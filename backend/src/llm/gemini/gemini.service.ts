@@ -78,7 +78,13 @@ export class GeminiService {
     signal?: AbortSignal,
     history?: Content[],
   ): AsyncGenerator<
-    { type: 'text'; text: string } | { type: 'usage'; totalTokens: number }
+    | { type: 'text'; text: string }
+    | {
+        type: 'usage';
+        totalTokens: number;
+        promptTokens: number | null;
+        completionTokens: number | null;
+      }
   > {
     const { chat } = this.getChatSession(sessionId, history);
     try {
@@ -94,6 +100,9 @@ export class GeminiService {
         yield {
           type: 'usage',
           totalTokens: response.usageMetadata?.totalTokenCount ?? 0,
+          promptTokens: response.usageMetadata?.promptTokenCount ?? null,
+          completionTokens:
+            response.usageMetadata?.candidatesTokenCount ?? null,
         };
       }
     } catch (error) {

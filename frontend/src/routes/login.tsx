@@ -87,8 +87,14 @@ export default function _authLogin() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="mx-auto mt-5 flex w-full">
-              {isPending ? 'Signing in...' : t('auth.login.submit')}
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={form.formState.isSubmitting || isPending}
+              className="mx-auto mt-5 flex w-full border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
+              {form.formState.isSubmitting || isPending
+                ? 'Signing in...'
+                : t('auth.login.submit')}
             </Button>
             {(form.formState.errors.root?.message || loginError) && (
               <p className="text-destructive mt-3 text-sm font-medium">

@@ -62,18 +62,8 @@ describe('LimitGuard', () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it('allows request for users with unlimited monthly limit', async () => {
-    findOne.mockResolvedValueOnce({ monthlyLimit: null });
-    const guard = new LimitGuard(userRepository, em);
-
-    await expect(
-      guard.canActivate(createContext({ user: { id: 'user-unlimited' } })),
-    ).resolves.toBe(true);
-    expect(execute).not.toHaveBeenCalled();
-  });
-
-  it('throws payment required when monthly limit is exceeded', async () => {
-    findOne.mockResolvedValueOnce({ monthlyLimit: 10 });
+  it('throws payment required when monthly dollar limit is exceeded', async () => {
+    findOne.mockResolvedValueOnce({ monthlyDollarLimit: 10 });
     execute.mockResolvedValueOnce([{ spending_usd: '10.01' }]);
     const guard = new LimitGuard(userRepository, em);
 
@@ -83,14 +73,14 @@ describe('LimitGuard', () => {
       status: HttpStatus.PAYMENT_REQUIRED,
       response: {
         message: 'Monthly dollar limit exceeded',
-        monthlyLimit: 10,
+        monthlyDollarLimit: 10,
         currentSpending: 10.01,
       },
     });
   });
 
-  it('allows request when current spending is below monthly limit', async () => {
-    findOne.mockResolvedValueOnce({ monthlyLimit: 10 });
+  it('allows request when current spending is below monthly dollar limit', async () => {
+    findOne.mockResolvedValueOnce({ monthlyDollarLimit: 10 });
     execute.mockResolvedValueOnce([{ spending_usd: '9.99' }]);
     const guard = new LimitGuard(userRepository, em);
 

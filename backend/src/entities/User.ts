@@ -1,10 +1,17 @@
 import { Collection } from '@mikro-orm/core';
-import { Entity, OneToMany, Property } from '@mikro-orm/decorators/legacy';
+import {
+  Entity,
+  Enum,
+  OneToMany,
+  Property,
+} from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { Account } from './Account';
 import { Chat } from './Chat';
 import { Session } from './Session';
 import { Token } from './Token';
+import { UsageLog } from './UsageLog';
+import { UserRole } from './UserRole';
 
 @Entity({ tableName: 'user' })
 export class User extends Base {
@@ -20,11 +27,11 @@ export class User extends Base {
   @Property({ type: 'text', nullable: true })
   image?: string;
 
-  @Property({ type: 'boolean', default: false })
-  admin: boolean = false;
+  @Enum({ items: () => UserRole, nativeEnumName: 'user_role' })
+  role: UserRole = UserRole.USER;
 
-  @Property({ type: 'float', nullable: true, fieldName: 'monthly_limit' })
-  monthlyLimit: number | null = null;
+  @Property({ type: 'float', fieldName: 'monthly_dollar_limit', default: 5 })
+  monthlyDollarLimit: number = 5;
 
   @OneToMany(() => Chat, (chat) => chat.user)
   chats = new Collection<Chat>(this);
@@ -37,4 +44,7 @@ export class User extends Base {
 
   @OneToMany(() => Token, (token) => token.user)
   tokens = new Collection<Token>(this);
+
+  @OneToMany(() => UsageLog, (usageLog) => usageLog.user)
+  usageLogs = new Collection<UsageLog>(this);
 }
