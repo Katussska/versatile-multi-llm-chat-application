@@ -131,7 +131,7 @@ export class ChatService {
   ): Promise<Message> {
     const chat = await this.chatRepository.findOne(
       { id: messageDto.chatId, deletedAt: null },
-      { populate: ['user'] },
+      { populate: ['user', 'model'] },
     );
 
     if (!chat) {
@@ -147,6 +147,8 @@ export class ChatService {
       content: messageDto.content,
       path: messageDto.path,
       favourite: false,
+      modelKey: chat.model.name,
+      modelProvider: chat.model.provider,
     });
 
     this.em.persist(message);
@@ -362,6 +364,7 @@ export class ChatService {
 
   private createUsageLog(
     userId: string,
+    modelKey: string,
     modelName: string,
     modelProvider: string,
     promptTokens: number | null,
@@ -369,6 +372,7 @@ export class ChatService {
   ): void {
     const usageLog = this.em.create(UsageLog, {
       user: this.em.getReference(User, userId),
+      modelKey,
       modelName,
       modelProvider,
       promptTokens,
@@ -411,6 +415,7 @@ export class ChatService {
     }
     this.createUsageLog(
       userId,
+      model.name,
       model.name,
       model.provider,
       usage.promptTokens,
@@ -511,6 +516,8 @@ export class ChatService {
         path: 'user',
         favourite: false,
         parentMessageId: parentMessageId ?? null,
+        modelKey: chat.model.name,
+        modelProvider: chat.model.provider,
       });
       this.em.persist(userMessage);
     }
