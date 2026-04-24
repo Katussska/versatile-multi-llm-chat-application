@@ -316,12 +316,22 @@ export default function ProfileSection() {
           <CardContent>
             <div className="flex gap-2">
               <Button
-                variant={currentLang === 'cs' ? 'default' : 'outline'}
+                variant="outline"
+                className={
+                  currentLang === 'cs'
+                    ? 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                    : undefined
+                }
                 onClick={() => i18n.changeLanguage('cs')}>
                 CZ
               </Button>
               <Button
-                variant={currentLang === 'en' ? 'default' : 'outline'}
+                variant="outline"
+                className={
+                  currentLang === 'en'
+                    ? 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                    : undefined
+                }
                 onClick={() => i18n.changeLanguage('en')}>
                 EN
               </Button>

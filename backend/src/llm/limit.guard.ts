@@ -37,32 +37,29 @@ export class LimitGuard implements CanActivate {
     if (!user) {
       throw new UnauthorizedException('User not authenticated');
     }
-    if (user.monthlyLimit === null) {
+
+    if (user.monthlyTokenLimit === null) {
       return true;
     }
 
-    const rows = await this.em.execute<{ spending_usd: string }[]>(
-      `SELECT COALESCE(SUM(m.cost_usd), 0)::text AS spending_usd
-       FROM message m
-       JOIN chat c ON c.id = m.chat_id
-       WHERE c.user_id = ?
-         AND m.path = 'model'
-         AND c.deleted_at IS NULL
-         AND m.deleted_at IS NULL
-         AND m.created_at >= date_trunc('month', NOW())
-         AND m.created_at < (date_trunc('month', NOW()) + interval '1 month')`,
+    const rows = await this.em.execute<{ total_tokens: string }[]>(
+      `SELECT COALESCE(SUM(COALESCE(ul.prompt_tokens, 0) + COALESCE(ul.completion_tokens, 0)), 0)::text AS total_tokens
+       FROM usage_log ul
+       WHERE ul.user_id = ?
+         AND ul.created_at >= date_trunc('month', NOW())
+         AND ul.created_at < (date_trunc('month', NOW()) + interval '1 month')`,
       [userId],
     );
-    const currentSpending = parseFloat(rows[0]?.spending_usd ?? '0');
+    const usedTokens = parseInt(rows[0]?.total_tokens ?? '0', 10);
 
-    if (currentSpending >= user.monthlyLimit) {
+    if (usedTokens >= user.monthlyTokenLimit) {
       throw new HttpException(
         {
-          message: 'Monthly dollar limit exceeded',
-          monthlyLimit: user.monthlyLimit,
-          currentSpending,
+          message: 'Monthly token limit exceeded',
+          monthlyTokenLimit: user.monthlyTokenLimit,
+          usedTokens,
         },
-        HttpStatus.PAYMENT_REQUIRED,
+        HttpStatus.TOO_MANY_REQUESTS,
       );
     }
 

@@ -1,9 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckSquare, Eye, EyeOff, Pencil, RefreshCw, Square } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 import { type AdminUser } from '@/components/admin/UserSearchList.tsx';
 import { Button } from '@/components/ui/button.tsx';
@@ -26,6 +21,12 @@ import {
 import { Input } from '@/components/ui/input.tsx';
 import { generatePassword } from '@/lib/utils.ts';
 import { UpdateUserSchema, updateUserSchema } from '@/schemas/admin.ts';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import { CheckSquare, Eye, EyeOff, Pencil, RefreshCw, Square } from 'lucide-react';
+import { useForm, useWatch } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 interface EditUserDialogProps {
   open: boolean;
@@ -34,7 +35,12 @@ interface EditUserDialogProps {
   onUpdated?: () => void;
 }
 
-export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: EditUserDialogProps) {
+export default function EditUserDialog({
+  open,
+  onOpenChange,
+  user,
+  onUpdated,
+}: EditUserDialogProps) {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [confirmAdminOpen, setConfirmAdminOpen] = useState(false);
@@ -42,25 +48,41 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
 
   const form = useForm<UpdateUserSchema>({
     resolver: zodResolver(updateUserSchema(t)),
-    defaultValues: { email: '', password: '', admin: false },
+    defaultValues: { email: '', password: '', role: 'USER' },
   });
 
   const password = useWatch({ control: form.control, name: 'password' });
-  const adminValue = useWatch({ control: form.control, name: 'admin' });
+  const adminValue = useWatch({ control: form.control, name: 'role' }) === 'ADMIN';
 
   const passwordRules = [
-    { id: 'min', label: t('profile.validation.passwordMin'), met: (password?.length ?? 0) >= 8 },
-    { id: 'capital', label: t('profile.validation.passwordCapital'), met: /[A-Z]/.test(password ?? '') },
-    { id: 'number', label: t('profile.validation.passwordNumber'), met: /[0-9]/.test(password ?? '') },
-    { id: 'special', label: t('profile.validation.passwordSpecial'), met: /[^A-Za-z0-9]/.test(password ?? '') },
+    {
+      id: 'min',
+      label: t('profile.validation.passwordMin'),
+      met: (password?.length ?? 0) >= 8,
+    },
+    {
+      id: 'capital',
+      label: t('profile.validation.passwordCapital'),
+      met: /[A-Z]/.test(password ?? ''),
+    },
+    {
+      id: 'number',
+      label: t('profile.validation.passwordNumber'),
+      met: /[0-9]/.test(password ?? ''),
+    },
+    {
+      id: 'special',
+      label: t('profile.validation.passwordSpecial'),
+      met: /[^A-Za-z0-9]/.test(password ?? ''),
+    },
   ];
 
   useEffect(() => {
     if (open) {
-      form.reset({ email: user.email, password: '', admin: user.admin });
+      form.reset({ email: user.email, password: '', role: user.role });
       setShowPassword(false);
     }
-  }, [open, user]);
+  }, [open, user, form]);
 
   const handleAdminToggle = () => {
     setPendingAdminValue(!adminValue);
@@ -69,7 +91,7 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
-      form.reset({ email: '', password: '', admin: false });
+      form.reset({ email: '', password: '', role: 'USER' });
       setShowPassword(false);
     }
     onOpenChange(next);
@@ -79,7 +101,7 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
     const body: Record<string, unknown> = {};
     if (data.email && data.email !== user.email) body.email = data.email;
     if (data.password) body.password = data.password;
-    if (data.admin !== undefined && data.admin !== user.admin) body.admin = data.admin;
+    if (data.role !== undefined && data.role !== user.role) body.role = data.role;
 
     if (Object.keys(body).length === 0) {
       toast.info(t('admin.editUser.noChanges'));
@@ -150,10 +172,13 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
                           <button
                             type="button"
                             onClick={() => setShowPassword((v) => !v)}
-                            aria-label={showPassword ? t('profile.hideNewPassword') : t('profile.showNewPassword')}
+                            aria-label={
+                              showPassword
+                                ? t('profile.hideNewPassword')
+                                : t('profile.showNewPassword')
+                            }
                             aria-pressed={showPassword}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          >
+                            className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2">
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
@@ -162,11 +187,12 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
                           variant="outline"
                           size="icon"
                           onClick={() => {
-                            form.setValue('password', generatePassword(), { shouldValidate: true });
+                            form.setValue('password', generatePassword(), {
+                              shouldValidate: true,
+                            });
                             setShowPassword(true);
                           }}
-                          title={t('admin.createUser.generatePassword')}
-                        >
+                          title={t('admin.createUser.generatePassword')}>
                           <RefreshCw size={16} />
                         </Button>
                       </div>
@@ -176,9 +202,12 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
                         {passwordRules.map((rule) => (
                           <li
                             key={rule.id}
-                            className={`flex items-center gap-2 text-xs transition-colors ${rule.met ? 'text-green-500' : 'text-muted-foreground'}`}
-                          >
-                            {rule.met ? <CheckSquare size={14} className="shrink-0" /> : <Square size={14} className="shrink-0" />}
+                            className={`flex items-center gap-2 text-xs transition-colors ${rule.met ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {rule.met ? (
+                              <CheckSquare size={14} className="shrink-0" />
+                            ) : (
+                              <Square size={14} className="shrink-0" />
+                            )}
                             {rule.label}
                           </li>
                         ))}
@@ -191,18 +220,19 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
 
               <FormField
                 control={form.control}
-                name="admin"
+                name="role"
                 render={() => (
                   <FormItem>
                     <button
                       type="button"
                       onClick={handleAdminToggle}
                       aria-pressed={adminValue}
-                      className="flex items-center gap-2 text-sm transition-colors hover:text-foreground"
-                    >
-                      {adminValue
-                        ? <CheckSquare size={18} className="text-primary" />
-                        : <Square size={18} className="text-muted-foreground" />}
+                      className="hover:text-foreground flex items-center gap-2 text-sm transition-colors">
+                      {adminValue ? (
+                        <CheckSquare size={18} className="text-primary" />
+                      ) : (
+                        <Square size={18} className="text-muted-foreground" />
+                      )}
                       <span>{t('admin.createUser.makeAdmin')}</span>
                     </button>
                   </FormItem>
@@ -211,15 +241,17 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
             </div>
 
             <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}>
                 {t('profile.cancel')}
               </Button>
               <Button
                 type="submit"
                 variant="outline"
                 disabled={form.formState.isSubmitting}
-                className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-              >
+                className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
                 {t('admin.editUser.submit')}
               </Button>
             </DialogFooter>
@@ -247,9 +279,11 @@ export default function EditUserDialog({ open, onOpenChange, user, onUpdated }: 
             </Button>
             <Button
               variant="outline"
-              onClick={() => { form.setValue('admin', pendingAdminValue); setConfirmAdminOpen(false); }}
-              className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-            >
+              onClick={() => {
+                form.setValue('role', pendingAdminValue ? 'ADMIN' : 'USER');
+                setConfirmAdminOpen(false);
+              }}
+              className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900">
               {pendingAdminValue
                 ? t('admin.createUser.confirmAdmin.confirm')
                 : t('admin.editUser.confirmRemoveAdmin.confirm')}

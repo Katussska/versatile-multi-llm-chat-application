@@ -63,7 +63,7 @@ export class GeminiService {
       const result = await chat.sendMessage(data.prompt);
 
       return {
-        result: await result.response.text(),
+        result: result.response.text(),
         sessionId,
       };
     } catch (error) {
@@ -78,7 +78,13 @@ export class GeminiService {
     signal?: AbortSignal,
     history?: Content[],
   ): AsyncGenerator<
-    { type: 'text'; text: string } | { type: 'usage'; totalTokens: number }
+    | { type: 'text'; text: string }
+    | {
+        type: 'usage';
+        totalTokens: number;
+        promptTokens: number | null;
+        completionTokens: number | null;
+      }
   > {
     const { chat } = this.getChatSession(sessionId, history);
     try {
@@ -94,6 +100,11 @@ export class GeminiService {
         yield {
           type: 'usage',
           totalTokens: response.usageMetadata?.totalTokenCount ?? 0,
+          promptTokens: response.usageMetadata?.promptTokenCount ?? null,
+          // Gemini calls this candidatesTokenCount; it counts tokens across all response candidates,
+          // which for single-candidate requests (default) equals OpenAI-style completion tokens.
+          completionTokens:
+            response.usageMetadata?.candidatesTokenCount ?? null,
         };
       }
     } catch (error) {

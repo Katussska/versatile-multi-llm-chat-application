@@ -1,4 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
+import { UserRole } from '../../entities/UserRole';
 
 export class TokenLimitDto {
   @ApiProperty()
@@ -24,20 +25,14 @@ export class UserBasicResponseDto {
   @ApiProperty()
   name!: string;
 
-  @ApiProperty()
-  admin!: boolean;
+  @ApiProperty({ enum: UserRole })
+  role!: UserRole;
 
   @ApiProperty()
   createdAt!: Date;
-
-  @ApiPropertyOptional({ nullable: true })
-  monthlyLimit!: number | null;
 }
 
 export class UserResponseDto extends UserBasicResponseDto {
-  @ApiProperty()
-  currentSpending!: number;
-
   @ApiProperty({ type: [TokenLimitDto] })
   tokenLimits!: TokenLimitDto[];
 }

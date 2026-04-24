@@ -62,36 +62,36 @@ describe('LimitGuard', () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it('allows request for users with unlimited monthly limit', async () => {
-    findOne.mockResolvedValueOnce({ monthlyLimit: null });
+  it('allows request when monthly token limit is null (unlimited)', async () => {
+    findOne.mockResolvedValueOnce({ monthlyTokenLimit: null });
     const guard = new LimitGuard(userRepository, em);
 
     await expect(
-      guard.canActivate(createContext({ user: { id: 'user-unlimited' } })),
+      guard.canActivate(createContext({ user: { id: 'unlimited-user' } })),
     ).resolves.toBe(true);
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it('throws payment required when monthly limit is exceeded', async () => {
-    findOne.mockResolvedValueOnce({ monthlyLimit: 10 });
-    execute.mockResolvedValueOnce([{ spending_usd: '10.01' }]);
+  it('throws too many requests when monthly token limit is exceeded', async () => {
+    findOne.mockResolvedValueOnce({ monthlyTokenLimit: 100000 });
+    execute.mockResolvedValueOnce([{ total_tokens: '100001' }]);
     const guard = new LimitGuard(userRepository, em);
 
     await expect(
       guard.canActivate(createContext({ user: { id: 'user-over-limit' } })),
     ).rejects.toMatchObject({
-      status: HttpStatus.PAYMENT_REQUIRED,
+      status: HttpStatus.TOO_MANY_REQUESTS,
       response: {
-        message: 'Monthly dollar limit exceeded',
-        monthlyLimit: 10,
-        currentSpending: 10.01,
+        message: 'Monthly token limit exceeded',
+        monthlyTokenLimit: 100000,
+        usedTokens: 100001,
       },
     });
   });
 
-  it('allows request when current spending is below monthly limit', async () => {
-    findOne.mockResolvedValueOnce({ monthlyLimit: 10 });
-    execute.mockResolvedValueOnce([{ spending_usd: '9.99' }]);
+  it('allows request when used tokens are below monthly token limit', async () => {
+    findOne.mockResolvedValueOnce({ monthlyTokenLimit: 100000 });
+    execute.mockResolvedValueOnce([{ total_tokens: '99999' }]);
     const guard = new LimitGuard(userRepository, em);
 
     await expect(

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { UserRole } from '../../entities/UserRole';
 
 export class TokenLimitDto {
   @ApiProperty()
@@ -24,17 +25,11 @@ export class AdminUserDto {
   @ApiProperty()
   name!: string;
 
-  @ApiProperty()
-  admin!: boolean;
+  @ApiProperty({ enum: UserRole })
+  role!: UserRole;
 
   @ApiProperty()
   createdAt!: Date;
-
-  @ApiProperty({ nullable: true })
-  monthlyLimit!: number | null;
-
-  @ApiProperty()
-  currentSpending!: number;
 
   @ApiProperty({ type: [TokenLimitDto] })
   tokenLimits!: TokenLimitDto[];

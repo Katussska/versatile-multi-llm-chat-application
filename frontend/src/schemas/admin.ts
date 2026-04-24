@@ -14,14 +14,18 @@ export const createUserSchema = (t: TFunction<'translation', undefined>) =>
   z.object({
     email: z.string().email({ message: t('auth.validation.email') }),
     password: passwordField(t),
-    admin: z.boolean(),
+    role: z.enum(['USER', 'ADMIN']),
   });
 
 export const updateUserSchema = (t: TFunction<'translation', undefined>) =>
   z.object({
-    email: z.string().email({ message: t('auth.validation.email') }).optional().or(z.literal('')),
+    email: z
+      .string()
+      .email({ message: t('auth.validation.email') })
+      .optional()
+      .or(z.literal('')),
     password: passwordField(t).optional().or(z.literal('')),
-    admin: z.boolean().optional(),
+    role: z.enum(['USER', 'ADMIN']).optional(),
   });
 
 export type CreateUserSchema = z.output<ReturnType<typeof createUserSchema>>;

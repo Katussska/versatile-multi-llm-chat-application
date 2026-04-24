@@ -12,6 +12,7 @@ import { GeminiModule } from './llm/gemini/gemini.module';
 import { ChatModule } from './chat/chat.module';
 import { UserModule } from './user/user.module';
 import { AdminModule } from './admin/admin.module';
+import { UserRole } from './entities/UserRole';
 
 @Module({
   imports: [
@@ -43,10 +44,16 @@ import { AdminModule } from './admin/admin.module';
             emailAndPassword: { enabled: true },
             user: {
               additionalFields: {
-                admin: {
-                  type: 'boolean',
-                  defaultValue: false,
+                role: {
+                  type: 'string',
+                  defaultValue: UserRole.USER,
                   input: false,
+                },
+                monthlyTokenLimit: {
+                  type: 'number',
+                  defaultValue: null,
+                  input: false,
+                  fieldName: 'monthly_token_limit',
                 },
               },
               fields: {

@@ -3,6 +3,7 @@ import { Seeder } from '@mikro-orm/seeder';
 import { hashPassword } from 'better-auth/crypto';
 import { Account } from '../entities/Account';
 import { User } from '../entities/User';
+import { UserRole } from '../entities/UserRole';
 
 function getEnv(name: string, fallback: string): string {
   const value = process.env[name]?.trim();
@@ -26,7 +27,7 @@ export class TestingUserSeeder extends Seeder {
       user.email = email;
       user.name = name;
       user.emailVerified = true;
-      user.admin = false;
+      user.role = UserRole.USER;
       em.persist(user);
       await em.flush();
     } else {

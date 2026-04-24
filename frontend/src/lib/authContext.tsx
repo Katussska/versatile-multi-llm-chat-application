@@ -12,7 +12,8 @@ interface LoginInput {
   rememberMe?: boolean;
 }
 
-type AuthUser = AuthSessionData['user'] & { admin?: boolean };
+type UserRole = 'USER' | 'ADMIN';
+type AuthUser = AuthSessionData['user'] & { role?: UserRole };
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -97,34 +98,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const {
+    isPending: signInPending,
+    error: signInError,
+    mutateAsync: signInMutateAsync,
+  } = signInMutation;
+  const {
+    isPending: signOutPending,
+    error: signOutError,
+    mutateAsync: signOutMutateAsync,
+  } = signOutMutation;
+  const {
+    isPending: updateUserPending,
+    error: updateUserError,
+    mutateAsync: updateUserMutateAsync,
+  } = updateUserMutation;
+  const {
+    isPending: changePasswordPending,
+    error: changePasswordError,
+    mutateAsync: changePasswordMutateAsync,
+  } = changePasswordMutation;
+
   const value = useMemo<AuthContextType>(
     () => ({
       user: (data?.user as AuthUser) ?? null,
       session: data?.session ?? null,
       isAuthenticated: Boolean(data?.session && data?.user),
-      isAdmin: Boolean((data?.user as AuthUser)?.admin),
+      isAdmin: (data?.user as AuthUser | undefined)?.role === 'ADMIN',
       isPending:
         isPending ||
         isRefetching ||
-        signInMutation.isPending ||
-        signOutMutation.isPending ||
-        updateUserMutation.isPending ||
-        changePasswordMutation.isPending,
-      loginError: signInMutation.error?.message ?? null,
-      logoutError: signOutMutation.error?.message ?? null,
-      updateUserError: updateUserMutation.error?.message ?? null,
-      changePasswordError: changePasswordMutation.error?.message ?? null,
+        signInPending ||
+        signOutPending ||
+        updateUserPending ||
+        changePasswordPending,
+      loginError: signInError?.message ?? null,
+      logoutError: signOutError?.message ?? null,
+      updateUserError: updateUserError?.message ?? null,
+      changePasswordError: changePasswordError?.message ?? null,
       logIn: async (input: LoginInput) => {
-        await signInMutation.mutateAsync(input);
+        await signInMutateAsync(input);
       },
       logOut: async () => {
-        await signOutMutation.mutateAsync();
+        await signOutMutateAsync();
       },
       updateUser: async (name: string) => {
-        await updateUserMutation.mutateAsync(name);
+        await updateUserMutateAsync(name);
       },
       changePassword: async (currentPassword: string, newPassword: string) => {
-        await changePasswordMutation.mutateAsync({ currentPassword, newPassword });
+        await changePasswordMutateAsync({ currentPassword, newPassword });
       },
     }),
     [
@@ -132,18 +154,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data?.user,
       isPending,
       isRefetching,
-      signInMutation.isPending,
-      signInMutation.error,
-      signInMutation.mutateAsync,
-      signOutMutation.isPending,
-      signOutMutation.error,
-      signOutMutation.mutateAsync,
-      updateUserMutation.isPending,
-      updateUserMutation.error,
-      updateUserMutation.mutateAsync,
-      changePasswordMutation.isPending,
-      changePasswordMutation.error,
-      changePasswordMutation.mutateAsync,
+      signInPending,
+      signInError,
+      signInMutateAsync,
+      signOutPending,
+      signOutError,
+      signOutMutateAsync,
+      updateUserPending,
+      updateUserError,
+      updateUserMutateAsync,
+      changePasswordPending,
+      changePasswordError,
+      changePasswordMutateAsync,
     ],
   );
 

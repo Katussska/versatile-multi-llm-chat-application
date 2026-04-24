@@ -83,11 +83,11 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
 
   const form = useForm<CreateUserSchema>({
     resolver: zodResolver(createUserSchema(t)),
-    defaultValues: { email: '', password: '', admin: false },
+    defaultValues: { email: '', password: '', role: 'USER' },
   });
 
   const password = useWatch({ control: form.control, name: 'password' });
-  const adminValue = useWatch({ control: form.control, name: 'admin' });
+  const adminValue = useWatch({ control: form.control, name: 'role' }) === 'ADMIN';
 
   const passwordRules = [
     {
@@ -116,12 +116,12 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
     if (!adminValue) {
       setConfirmAdminOpen(true);
     } else {
-      form.setValue('admin', false);
+      form.setValue('role', 'USER');
     }
   };
 
   const confirmAdmin = () => {
-    form.setValue('admin', true);
+    form.setValue('role', 'ADMIN');
     setConfirmAdminOpen(false);
   };
 
@@ -320,7 +320,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
 
                 <FormField
                   control={form.control}
-                  name="admin"
+                  name="role"
                   render={() => (
                     <FormItem>
                       <div className="flex items-center gap-3">

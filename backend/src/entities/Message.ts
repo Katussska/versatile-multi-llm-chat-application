@@ -20,6 +20,4 @@ export class Message extends Base {
   @Property({ type: 'uuid', nullable: true })
   parentMessageId: string | null = null;
 
-  @Property({ type: 'float', default: 0, fieldName: 'cost_usd' })
-  costUsd: number = 0;
 }

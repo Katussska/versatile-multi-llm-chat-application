@@ -17,8 +17,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
 import { TokenResponseDto } from './dto/token-response.dto';
-import { SetLimitDto } from './dto/set-limit.dto';
 import { nextMonthFirstDay } from '../date.utils';
+import { UserRole } from '../entities/UserRole';
 
 @Injectable()
 export class UserService {
@@ -34,7 +34,6 @@ export class UserService {
 
   async getUsers(): Promise<
     (User & {
-      currentSpending: number;
       tokenLimits: {
         modelId: string;
         modelName: string;
@@ -49,19 +48,7 @@ export class UserService {
       { orderBy: { createdAt: 'ASC' } },
     );
 
-    const [spendingRows, tokenRows, allModels] = await Promise.all([
-      this.em.execute<{ user_id: string; spending: string }[]>(
-        `SELECT c.user_id,
-                COALESCE(SUM(m.cost_usd), 0)::text AS spending
-         FROM message m
-         JOIN chat c ON c.id = m.chat_id
-         WHERE m.path = 'model'
-           AND m.deleted_at IS NULL
-           AND c.deleted_at IS NULL
-           AND m.created_at >= date_trunc('month', NOW())
-           AND m.created_at < (date_trunc('month', NOW()) + interval '1 month')
-         GROUP BY c.user_id`,
-      ),
+    const [tokenRows, allModels] = await Promise.all([
       this.em.execute<
         {
           user_id: string;
@@ -86,9 +73,6 @@ export class UserService {
       ),
     ]);
 
-    const spendingMap = new Map(
-      spendingRows.map((r) => [r.user_id, parseFloat(r.spending)]),
-    );
     const tokenMap = new Map<
       string,
       {
@@ -126,19 +110,9 @@ export class UserService {
           })),
       ];
       return Object.assign(u, {
-        currentSpending: spendingMap.get(u.id) ?? 0,
         tokenLimits,
       });
     });
-  }
-
-  async setUserLimit(id: string, dto: SetLimitDto): Promise<User> {
-    const user = await this.userRepository.findOne({ id, deletedAt: null });
-    if (!user) throw new NotFoundException('User not found');
-
-    user.monthlyLimit = dto.limit;
-    await this.em.flush();
-    return user;
   }
 
   async createUser(dto: CreateUserDto): Promise<User> {
@@ -154,7 +128,7 @@ export class UserService {
     user.email = dto.email.toLowerCase();
     user.name = dto.email.split('@')[0];
     user.emailVerified = true;
-    user.admin = dto.admin ?? false;
+    user.role = dto.role ?? UserRole.USER;
 
     this.em.persist(user);
     await this.em.flush();
@@ -191,8 +165,8 @@ export class UserService {
       user.email = emailLower;
     }
 
-    if (dto.admin !== undefined) {
-      user.admin = dto.admin;
+    if (dto.role !== undefined) {
+      user.role = dto.role;
     }
 
     await this.em.flush();

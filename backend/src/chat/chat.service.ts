@@ -14,6 +14,7 @@ import { Message } from '../entities/Message';
 import { User } from '../entities/User';
 import { Model } from '../entities/Model';
 import { Token } from '../entities/Token';
+import { UsageLog } from '../entities/UsageLog';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
@@ -53,7 +54,6 @@ export class ChatService {
       provider: 'gemini',
       name: geminiModelName,
       apiEndpoint: `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}`,
-      pricePerToken: 0,
     });
 
     this.em.persist(defaultModel);
@@ -147,7 +147,6 @@ export class ChatService {
       content: messageDto.content,
       path: messageDto.path,
       favourite: false,
-      costUsd: 0,
     });
 
     this.em.persist(message);
@@ -282,6 +281,65 @@ export class ChatService {
     this.em.persist(usageCounter);
   }
 
+  private createUsageLog(
+    userId: string,
+    modelName: string,
+    promptTokens: number | null,
+    completionTokens: number | null,
+  ): void {
+    const usageLog = this.em.create(UsageLog, {
+      user: this.em.getReference(User, userId),
+      modelName,
+      promptTokens,
+      completionTokens,
+    });
+    this.em.persist(usageLog);
+  }
+
+  private async finalizeStream(
+    assistantMessage: Message,
+    userMessage: Message | null,
+    fullResponse: string,
+    userId: string,
+    model: Model,
+    usage: {
+      totalTokens: number;
+      promptTokens: number | null;
+      completionTokens: number | null;
+    },
+    opts: {
+      saveEvenIfEmpty?: boolean;
+      removeUserOnEmpty?: boolean;
+      sendDone?: boolean;
+      res?: Response;
+    } = {},
+  ): Promise<void> {
+    const {
+      saveEvenIfEmpty = false,
+      removeUserOnEmpty = false,
+      sendDone = false,
+      res,
+    } = opts;
+
+    if (fullResponse || saveEvenIfEmpty) {
+      assistantMessage.content = fullResponse;
+      await this.updateUsedTokens(userId, model.id, usage.totalTokens);
+    } else {
+      this.em.remove(assistantMessage);
+      if (removeUserOnEmpty && userMessage) this.em.remove(userMessage);
+    }
+    this.createUsageLog(
+      userId,
+      model.name,
+      usage.promptTokens,
+      usage.completionTokens,
+    );
+    await this.em.flush();
+    if (sendDone && res) {
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    }
+  }
+
   async streamResponse(
     chatId: string,
     userId: string,
@@ -358,7 +416,6 @@ export class ChatService {
         path: 'user',
         favourite: false,
         parentMessageId: parentMessageId ?? null,
-        costUsd: 0,
       });
       this.em.persist(userMessage);
     }
@@ -368,7 +425,6 @@ export class ChatService {
       content: '',
       path: 'model',
       favourite: false,
-      costUsd: 0,
       parentMessageId: regenerate
         ? (parentMessageId ?? null)
         : (userMessage?.id ?? null),
@@ -385,7 +441,11 @@ export class ChatService {
 
     let fullResponse = '';
     let clientDisconnected = false;
-    let tokensUsed = 0;
+    let usage = {
+      totalTokens: 0,
+      promptTokens: null as number | null,
+      completionTokens: null as number | null,
+    };
     const streamAbort = new AbortController();
     res.on('close', () => {
       clientDisconnected = true;
@@ -404,7 +464,11 @@ export class ChatService {
         history,
       )) {
         if (item.type === 'usage') {
-          tokensUsed = item.totalTokens;
+          usage = {
+            totalTokens: item.totalTokens,
+            promptTokens: item.promptTokens,
+            completionTokens: item.completionTokens,
+          };
           continue;
         }
         if (clientDisconnected) break;
@@ -413,25 +477,19 @@ export class ChatService {
       }
 
       this.logger.log(
-        `[stream] Gemini done, tokensUsed=${tokensUsed}, clientDisconnected=${clientDisconnected}`,
+        `[stream] Gemini done, tokensUsed=${usage.totalTokens}, clientDisconnected=${clientDisconnected}`,
       );
       await flushPromise;
 
-      if (!clientDisconnected) {
-        assistantMessage.content = fullResponse;
-        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
-        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
-        await this.em.flush();
-        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-      } else if (fullResponse) {
-        assistantMessage.content = fullResponse;
-        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
-        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
-        await this.em.flush();
-      } else {
-        this.em.remove(assistantMessage);
-        await this.em.flush();
-      }
+      await this.finalizeStream(
+        assistantMessage,
+        userMessage,
+        fullResponse,
+        userId,
+        chat.model,
+        usage,
+        { saveEvenIfEmpty: !clientDisconnected, sendDone: !clientDisconnected, res },
+      );
     } catch (err) {
       this.logger.error(
         `[stream] Error in streamResponse: ${(err as Error)?.message}`,
@@ -447,16 +505,15 @@ export class ChatService {
           `data: ${JSON.stringify({ error: 'AI Generation failed' })}\n\n`,
         );
       }
-      if (fullResponse) {
-        assistantMessage.content = fullResponse;
-        assistantMessage.costUsd = tokensUsed * (chat.model.pricePerToken ?? 0);
-        await this.updateUsedTokens(userId, chat.model.id, tokensUsed);
-        await this.em.flush();
-      } else {
-        this.em.remove(assistantMessage);
-        if (userMessage) this.em.remove(userMessage);
-        await this.em.flush();
-      }
+      await this.finalizeStream(
+        assistantMessage,
+        userMessage,
+        fullResponse,
+        userId,
+        chat.model,
+        usage,
+        { removeUserOnEmpty: true },
+      );
     } finally {
       res.end();
     }

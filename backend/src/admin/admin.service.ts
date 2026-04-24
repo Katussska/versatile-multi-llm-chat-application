@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';
 import { User } from '../entities/User';
 import { AdminUserDto } from './dto/admin-user.dto';
-import { UpdateLimitDto } from './dto/update-limit.dto';
 import { StatsResponseDto } from '../user/dto/stats-response.dto';
+import { UserRole } from '../entities/UserRole';
 
 @Injectable()
 export class AdminService {
@@ -15,18 +15,17 @@ export class AdminService {
   ) {}
 
   async getUsers(): Promise<AdminUserDto[]> {
-    const [rows, tokenRows, spendingRows] = await Promise.all([
+    const [rows, tokenRows] = await Promise.all([
       this.em.execute<
         {
           id: string;
           email: string;
           name: string;
-          admin: boolean;
+          role: UserRole;
           created_at: Date;
-          monthly_limit: number | null;
         }[]
       >(
-        `SELECT id, email, name, admin, created_at, monthly_limit
+        `SELECT id, email, name, role, created_at
          FROM "user"
          WHERE deleted_at IS NULL
          ORDER BY created_at ASC`,
@@ -46,18 +45,6 @@ export class AdminService {
          JOIN model m ON t.model_id = m.id
          WHERE t.deleted_at IS NULL`,
       ),
-      this.em.execute<{ user_id: string; spending: number }[]>(
-        `SELECT c.user_id,
-                COALESCE(SUM(m.cost_usd), 0) AS spending
-         FROM message m
-         JOIN chat c ON c.id = m.chat_id
-         WHERE m.path = 'model'
-           AND m.deleted_at IS NULL
-           AND c.deleted_at IS NULL
-           AND m.created_at >= date_trunc('month', NOW())
-           AND m.created_at < (date_trunc('month', NOW()) + interval '1 month')
-         GROUP BY c.user_id`,
-      ),
     ]);
 
     const tokensByUser = new Map<string, typeof tokenRows>();
@@ -65,18 +52,13 @@ export class AdminService {
       if (!tokensByUser.has(tr.user_id)) tokensByUser.set(tr.user_id, []);
       tokensByUser.get(tr.user_id)!.push(tr);
     }
-    const spendingByUser = new Map(
-      spendingRows.map((r) => [r.user_id, r.spending]),
-    );
 
     return rows.map((r) => ({
       id: r.id,
       email: r.email,
       name: r.name,
-      admin: r.admin,
+      role: r.role,
       createdAt: r.created_at,
-      monthlyLimit: r.monthly_limit,
-      currentSpending: spendingByUser.get(r.id) ?? 0,
       tokenLimits: (tokensByUser.get(r.id) ?? []).map((tl) => ({
         modelName: tl.model_name,
         provider: tl.provider,
@@ -84,33 +66,6 @@ export class AdminService {
         usedTokens: tl.used_tokens,
       })),
     }));
-  }
-
-  async updateLimit(
-    userId: string,
-    dto: UpdateLimitDto,
-  ): Promise<AdminUserDto> {
-    const user = await this.userRepository.findOne({
-      id: userId,
-      deletedAt: null,
-    });
-    if (!user) throw new NotFoundException('User not found');
-
-    if (dto.monthlyLimit !== undefined) {
-      user.monthlyLimit = dto.monthlyLimit;
-    }
-    await this.em.flush();
-
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      admin: user.admin,
-      createdAt: user.createdAt,
-      monthlyLimit: user.monthlyLimit,
-      currentSpending: 0,
-      tokenLimits: [],
-    };
   }
 
   async getStats(days: number): Promise<StatsResponseDto> {

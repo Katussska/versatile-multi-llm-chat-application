@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsBoolean,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { UserRole } from '../../entities/UserRole';
 
 export class UpdateUserDto {
   @ApiProperty({ required: false })
@@ -15,10 +16,10 @@ export class UpdateUserDto {
   @IsOptional()
   email?: string;
 
-  @ApiProperty({ required: false })
-  @IsBoolean()
+  @ApiProperty({ required: false, enum: UserRole })
+  @IsEnum(UserRole)
   @IsOptional()
-  admin?: boolean;
+  role?: UserRole;
 
   @ApiProperty({ required: false, minLength: 8, maxLength: 64 })
   @IsString()
