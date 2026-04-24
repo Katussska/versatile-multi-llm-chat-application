@@ -25,7 +25,7 @@ cp backend/.env.example backend/.env
 3. Ensure PostgreSQL is running and apply database migrations:
 
 ```bash
-pnpm --filter @cognify/backend db:migrate
+pnpm --filter @cognify/backend db:migration:up
 ```
 
 4. Start backend in watch mode:
@@ -99,7 +99,7 @@ Database helpers:
 
 ```bash
 # Apply all pending migrations.
-pnpm --filter @cognify/backend db:migrate
+pnpm --filter @cognify/backend db:migration:up
 
 # Create a new migration from entity schema diff (and print generated SQL).
 pnpm --filter @cognify/backend db:migration:create
@@ -109,6 +109,9 @@ pnpm --filter @cognify/backend db:migration:down
 
 # List executed and pending migrations.
 pnpm --filter @cognify/backend db:migration:list
+
+# Seed the database with test data.
+pnpm --filter @cognify/backend db:seed
 ```
 
 Database reset (development-safe):
@@ -122,10 +125,14 @@ pnpm --filter @cognify/backend db:reset
 - Runtime Swagger UI (non-production by default): `http://localhost:3000/api`
 - Runtime JSON: `http://localhost:3000/api-json`
 
-Export OpenAPI for frontend:
+Export OpenAPI for frontend (two steps, backend need not be running):
 
 ```bash
-pnpm --filter @cognify/backend openapi:export
+# 1. Export schema to frontend/openapi.json
+pnpm --filter @cognify/backend exec ts-node src/export-openapi.ts ../frontend/openapi.json
+
+# 2. Regenerate TypeScript types in frontend/src/api/generated/schema.d.ts
+pnpm --filter @cognify/frontend openapi:types
 ```
 
 ## Troubleshooting
