@@ -116,6 +116,8 @@ export class ChatController {
       path: msg.path,
       favourite: msg.favourite,
       parentMessageId: msg.parentMessageId,
+      modelKey: msg.modelKey,
+      modelProvider: msg.modelProvider,
       createdAt: msg.createdAt,
       updatedAt: msg.updatedAt,
     }));
@@ -148,6 +150,8 @@ export class ChatController {
       path: message.path,
       favourite: message.favourite,
       parentMessageId: message.parentMessageId,
+      modelKey: message.modelKey,
+      modelProvider: message.modelProvider,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     };
@@ -240,6 +244,7 @@ export class ChatController {
       res,
       body.parentMessageId,
       body.regenerate,
+      body.truncateFromMessageId,
     );
   }
 }

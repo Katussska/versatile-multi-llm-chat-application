@@ -7,10 +7,10 @@ import ChatInput from '@/components/chat/ChatInput.tsx';
 import ModelSelector from '@/components/chat/ModelSelector.tsx';
 import { formatChatTitle } from '@/lib/chatTitle.ts';
 import { useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export interface Message {
   id: string;
@@ -156,8 +156,7 @@ export default function ChatSection() {
   const isInitialMessagesLoading =
     isChatsPending ||
     (Boolean(activeChatId) && isMessagesPending && messages.length === 0);
-  const fetchErrorMessage =
-    hasChatsError || messagesError ? t('chat.loadError') : null;
+  const fetchErrorMessage = hasChatsError || messagesError ? t('chat.loadError') : null;
 
   const drainQueue = () => {
     const step = () => {
@@ -219,7 +218,9 @@ export default function ChatSection() {
   const handleAbort = async (chatId: string) => {
     wasAbortedRef.current = true;
     if (!streamedMessageIdRef.current) {
-      setMessages((prev) => prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current));
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current),
+      );
       return;
     }
     await patchModelMessage(chatId, streamedContentRef.current + '...');
@@ -227,7 +228,12 @@ export default function ChatSection() {
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === streamingPlaceholderIdRef.current
-          ? { ...msg, id: realId, content: streamedContentRef.current + '...', isStreaming: false }
+          ? {
+              ...msg,
+              id: realId,
+              content: streamedContentRef.current + '...',
+              isStreaming: false,
+            }
           : msg,
       ),
     );
@@ -254,7 +260,11 @@ export default function ChatSection() {
   const executeStream = async (
     chatId: string,
     content: string,
-    options?: { parentMessageId?: string; regenerate?: boolean },
+    options?: {
+      parentMessageId?: string;
+      regenerate?: boolean;
+      truncateFromMessageId?: string;
+    },
   ) => {
     streamedContentRef.current = '';
     streamedMessageIdRef.current = null;
@@ -270,13 +280,14 @@ export default function ChatSection() {
         content,
         parentMessageId: options?.parentMessageId,
         regenerate: options?.regenerate,
+        truncateFromMessageId: options?.truncateFromMessageId,
       }),
       signal: abortController.signal,
     });
 
     if (!response.ok) {
       if (response.status === 429 || response.status === 402 || response.status === 403) {
-        const body = await response.json().catch(() => ({})) as { resetAt?: string };
+        const body = (await response.json().catch(() => ({}))) as { resetAt?: string };
         throw new TokenLimitError(body.resetAt ? new Date(body.resetAt) : null);
       }
       throw new Error(`HTTP ${response.status}`);
@@ -320,8 +331,14 @@ export default function ChatSection() {
   const handleTokenLimitError = (err: unknown) => {
     if (err instanceof TokenLimitError) {
       setTokenLimitResetAt(err.resetAt);
-      const dateStr = err.resetAt ? err.resetAt.toLocaleDateString(undefined, { timeZone: 'UTC' }) : '';
-      toast.error(dateStr ? t('chat.tokenLimitError', { date: dateStr }) : t('chat.tokenLimitErrorNoDate'));
+      const dateStr = err.resetAt
+        ? err.resetAt.toLocaleDateString(undefined, { timeZone: 'UTC' })
+        : '';
+      toast.error(
+        dateStr
+          ? t('chat.tokenLimitError', { date: dateStr })
+          : t('chat.tokenLimitErrorNoDate'),
+      );
       return true;
     }
     return false;
@@ -385,7 +402,9 @@ export default function ChatSection() {
         setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
+            msg.id === streamingPlaceholderIdRef.current
+              ? { ...msg, isStreaming: false }
+              : msg,
           ),
         );
         await refetchAfterStream(chatId!);
@@ -396,7 +415,9 @@ export default function ChatSection() {
       if (err instanceof Error && err.name === 'AbortError') {
         await handleAbort(chatId!);
       } else {
-        setMessages((prev) => prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current));
+        setMessages((prev) =>
+          prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current),
+        );
         if (!handleTokenLimitError(err)) {
           toast.error(t('chat.sendError'));
         }
@@ -411,11 +432,18 @@ export default function ChatSection() {
   const handleRegenerateMessage = async (messageIndex: number) => {
     if (isStreaming || !activeChatId) return;
 
+    const modelMsg = messages[messageIndex];
+    if (!modelMsg || modelMsg.role !== 'model') return;
+
     const userMsg = messages[messageIndex - 1];
     if (!userMsg || userMsg.role !== 'user') return;
 
     const savedMessages = messages;
     const truncated = messages.slice(0, messageIndex);
+    console.log(
+      `DEBUG: Mažu zprávy od indexu ${messageIndex}, protože uživatel regeneruje odpověď asistenta.`,
+    );
+    console.log(`DEBUG: Nová délka historie před voláním API: ${truncated.length + 1}`);
     streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
     const assistantPlaceholder: Message = {
       id: streamingPlaceholderIdRef.current,
@@ -432,6 +460,7 @@ export default function ChatSection() {
       await executeStream(activeChatId, userMsg.content, {
         parentMessageId: userMsg.id,
         regenerate: true,
+        truncateFromMessageId: modelMsg.id,
       });
 
       if (abortControllerRef.current?.signal.aborted) {
@@ -440,7 +469,9 @@ export default function ChatSection() {
         setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
+            msg.id === streamingPlaceholderIdRef.current
+              ? { ...msg, isStreaming: false }
+              : msg,
           ),
         );
         await refetchAfterStream(activeChatId);
@@ -465,9 +496,16 @@ export default function ChatSection() {
   const handleEditMessage = async (messageIndex: number, newContent: string) => {
     if (isStreaming || !activeChatId) return;
 
+    const editedMessage = messages[messageIndex];
+    if (!editedMessage || editedMessage.role !== 'user') return;
+
     const precedingMsg = messageIndex > 0 ? messages[messageIndex - 1] : null;
     const savedMessages = messages;
     const truncated = messages.slice(0, messageIndex);
+    console.log(
+      `DEBUG: Mažu zprávy od indexu ${messageIndex}, protože uživatel editoval minulost.`,
+    );
+    console.log(`DEBUG: Nová délka historie před voláním API: ${truncated.length + 2}`);
 
     streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
     const newUserMessage: Message = {
@@ -491,6 +529,7 @@ export default function ChatSection() {
     try {
       await executeStream(activeChatId, newContent, {
         parentMessageId: precedingMsg?.id,
+        truncateFromMessageId: editedMessage.id,
       });
 
       if (abortControllerRef.current?.signal.aborted) {
@@ -499,7 +538,9 @@ export default function ChatSection() {
         setIsRefetching(true);
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === streamingPlaceholderIdRef.current ? { ...msg, isStreaming: false } : msg,
+            msg.id === streamingPlaceholderIdRef.current
+              ? { ...msg, isStreaming: false }
+              : msg,
           ),
         );
         await refetchAfterStream(activeChatId);
@@ -524,21 +565,28 @@ export default function ChatSection() {
   const handleToggleFavourite = async (messageId: string, currentValue: boolean) => {
     if (!activeChatId) return;
     setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, favourite: !currentValue } : msg)),
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, favourite: !currentValue } : msg,
+      ),
     );
     try {
-      const response = await fetch(`${API_BASE}/chats/${activeChatId}/messages/${messageId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ favourite: !currentValue }),
-      });
+      const response = await fetch(
+        `${API_BASE}/chats/${activeChatId}/messages/${messageId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ favourite: !currentValue }),
+        },
+      );
       if (!response.ok) {
         throw new Error(`Failed to toggle favourite: ${response.status}`);
       }
     } catch {
       setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? { ...msg, favourite: currentValue } : msg)),
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, favourite: currentValue } : msg,
+        ),
       );
       toast.error(t('chat.sendError'));
     }
@@ -547,7 +595,9 @@ export default function ChatSection() {
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
       <ModelSelector />
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto p-4 [mask-image:linear-gradient(to_top,transparent_0%,black_50px)]">
+      <div
+        ref={scrollContainerRef}
+        className="min-h-0 flex-1 overflow-y-auto p-4 [mask-image:linear-gradient(to_top,transparent_0%,black_50px)]">
         <ChatContent
           messages={messages}
           isLoading={isInitialMessagesLoading}

@@ -19,6 +19,12 @@ export class MessageResponseDto {
   @ApiPropertyOptional({ nullable: true })
   parentMessageId!: string | null;
 
+  @ApiPropertyOptional({ nullable: true })
+  modelKey!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  modelProvider!: string | null;
+
   @ApiProperty()
   createdAt!: Date;
 

@@ -25,6 +25,9 @@ export class UsageLog {
   @Property({ type: 'text', fieldName: 'model_name' })
   modelName!: string;
 
+  @Property({ type: 'text', fieldName: 'model_provider', nullable: true })
+  modelProvider: string | null = null;
+
   @Property({ type: 'integer', fieldName: 'prompt_tokens', nullable: true })
   promptTokens: number | null = null;
 

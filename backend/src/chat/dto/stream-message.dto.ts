@@ -16,4 +16,9 @@ export class StreamMessageDto {
   @IsBoolean()
   @IsOptional()
   regenerate?: boolean;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  truncateFromMessageId?: string;
 }

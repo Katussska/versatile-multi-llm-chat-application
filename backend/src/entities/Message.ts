@@ -20,4 +20,10 @@ export class Message extends Base {
   @Property({ type: 'uuid', nullable: true })
   parentMessageId: string | null = null;
 
+  @Property({ type: 'text', nullable: true, fieldName: 'model_key' })
+  modelKey: string | null = null;
+
+  @Property({ type: 'text', nullable: true, fieldName: 'model_provider' })
+  modelProvider: string | null = null;
+
 }
