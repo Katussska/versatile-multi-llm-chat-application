@@ -221,7 +221,7 @@ export class ChatController {
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Stream LLM response for a chat message' })
-  @ApiResponse({ status: 402, description: 'Monthly dollar limit exceeded' })
+  @ApiResponse({ status: 429, description: 'Monthly token limit exceeded' })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiNotFoundResponse({ description: 'Chat not found or access denied' })
   async streamMessage(

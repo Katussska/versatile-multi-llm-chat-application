@@ -49,11 +49,11 @@ import { UserRole } from './entities/UserRole';
                   defaultValue: UserRole.USER,
                   input: false,
                 },
-                monthlyDollarLimit: {
+                monthlyTokenLimit: {
                   type: 'number',
-                  defaultValue: 5,
+                  defaultValue: null,
                   input: false,
-                  fieldName: 'monthly_dollar_limit',
+                  fieldName: 'monthly_token_limit',
                 },
               },
               fields: {

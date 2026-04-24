@@ -63,7 +63,7 @@ export class GeminiService {
       const result = await chat.sendMessage(data.prompt);
 
       return {
-        result: await result.response.text(),
+        result: result.response.text(),
         sessionId,
       };
     } catch (error) {
@@ -101,6 +101,8 @@ export class GeminiService {
           type: 'usage',
           totalTokens: response.usageMetadata?.totalTokenCount ?? 0,
           promptTokens: response.usageMetadata?.promptTokenCount ?? null,
+          // Gemini calls this candidatesTokenCount; it counts tokens across all response candidates,
+          // which for single-candidate requests (default) equals OpenAI-style completion tokens.
           completionTokens:
             response.usageMetadata?.candidatesTokenCount ?? null,
         };

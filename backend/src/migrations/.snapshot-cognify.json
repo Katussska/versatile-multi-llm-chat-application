@@ -616,22 +616,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "uuid"
-        },
-        "cost_usd": {
-          "name": "cost_usd",
-          "type": "float8",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": 53,
-          "scale": null,
-          "default": "0",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "double"
         }
       },
       "indexes": [
@@ -789,22 +773,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "price_per_token": {
-          "name": "price_per_token",
-          "type": "float8",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": 53,
-          "scale": null,
-          "default": "0",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "double"
         }
       },
       "indexes": [
@@ -1328,22 +1296,6 @@
           "enumItems": [],
           "mappedType": "integer"
         },
-        "total_cost": {
-          "name": "total_cost",
-          "type": "float8",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": 53,
-          "scale": null,
-          "default": "0",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "double"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -1590,21 +1542,21 @@
           "mappedType": "unknown",
           "nativeEnumName": "user_role"
         },
-        "monthly_dollar_limit": {
-          "name": "monthly_dollar_limit",
-          "type": "float8",
+        "monthly_token_limit": {
+          "name": "monthly_token_limit",
+          "type": "int4",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": null,
-          "precision": 53,
-          "scale": null,
-          "default": "5",
+          "precision": 32,
+          "scale": 0,
+          "default": null,
           "comment": null,
           "enumItems": [],
-          "mappedType": "double"
+          "mappedType": "integer"
         }
       },
       "indexes": [
