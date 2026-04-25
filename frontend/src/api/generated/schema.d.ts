@@ -70,6 +70,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all available (enabled) models */
+        get: operations["ModelController_getModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chats": {
         parameters: {
             query?: never;
@@ -160,6 +177,13 @@ export interface components {
             length: number;
         };
         GetAIMessageDTO: Record<string, never>;
+        ModelResponseDto: {
+            id: string;
+            provider: string;
+            name: string;
+            displayLabel: string;
+            iconKey: string;
+        };
         CreateChatDto: {
             /** Format: uuid */
             modelId?: string;
@@ -204,6 +228,33 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ModelController_getModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of enabled models sorted by creation date */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelResponseDto"][];
+                };
+            };
+            /** @description User not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AppController_getHello: {
         parameters: {
             query?: never;

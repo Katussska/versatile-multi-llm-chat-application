@@ -54,6 +54,28 @@ export default function ChatSection() {
     useContext(TreeContext);
   const activeChatId = routeChatId ?? selectedChatId;
 
+  const { data: availableModels } = $api.useQuery('get', '/models');
+  const [selectedModelId, setSelectedModelId] = useState('');
+
+  const geminiDefaultId =
+    availableModels?.find((m) => m.provider === 'gemini')?.id ??
+    availableModels?.[0]?.id ??
+    '';
+
+  useEffect(() => {
+    if (!availableModels?.length) return;
+    if (!activeChatId) {
+      setSelectedModelId(geminiDefaultId);
+      return;
+    }
+    const activeChat = chats.find((c) => c.id === activeChatId);
+    if (activeChat?.modelId) {
+      setSelectedModelId(activeChat.modelId);
+    } else {
+      setSelectedModelId(geminiDefaultId);
+    }
+  }, [activeChatId, availableModels, chats, geminiDefaultId]);
+
   useEffect(() => {
     if (!routeChatId || routeChatId === selectedChatId || isChatsPending) {
       return;
@@ -379,11 +401,10 @@ export default function ChatSection() {
 
     try {
       if (!chatId) {
-        const fallbackModelId = chats[0]?.modelId;
         const createdChat = await createChatMutation.mutateAsync({
           body: {
             title: formatChatTitle(trimmedContent),
-            modelId: fallbackModelId,
+            modelId: selectedModelId || undefined,
           },
         });
 
@@ -440,10 +461,6 @@ export default function ChatSection() {
 
     const savedMessages = messages;
     const truncated = messages.slice(0, messageIndex);
-    console.log(
-      `DEBUG: Mažu zprávy od indexu ${messageIndex}, protože uživatel regeneruje odpověď asistenta.`,
-    );
-    console.log(`DEBUG: Nová délka historie před voláním API: ${truncated.length + 1}`);
     streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
     const assistantPlaceholder: Message = {
       id: streamingPlaceholderIdRef.current,
@@ -502,11 +519,6 @@ export default function ChatSection() {
     const precedingMsg = messageIndex > 0 ? messages[messageIndex - 1] : null;
     const savedMessages = messages;
     const truncated = messages.slice(0, messageIndex);
-    console.log(
-      `DEBUG: Mažu zprávy od indexu ${messageIndex}, protože uživatel editoval minulost.`,
-    );
-    console.log(`DEBUG: Nová délka historie před voláním API: ${truncated.length + 2}`);
-
     streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
     const newUserMessage: Message = {
       id: `user-${Date.now()}`,
@@ -594,7 +606,7 @@ export default function ChatSection() {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
-      <ModelSelector />
+      <ModelSelector value={selectedModelId} onValueChange={setSelectedModelId} />
       <div
         ref={scrollContainerRef}
         className="min-h-0 flex-1 overflow-y-auto p-4 [mask-image:linear-gradient(to_top,transparent_0%,black_50px)]">

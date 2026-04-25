@@ -13,7 +13,7 @@ function makeConfigService(overrides: Record<string, string | undefined> = {}) {
     get: (key: string) => {
       const values: Record<string, string> = {
         ANTHROPIC_API_KEY: 'test-api-key',
-        ANTHROPIC_MODEL: 'claude-3-haiku-20240307',
+        ANTHROPIC_MODEL: 'claude-haiku-3-5',
         ...overrides,
       };
       return values[key];
@@ -21,9 +21,7 @@ function makeConfigService(overrides: Record<string, string | undefined> = {}) {
   };
 }
 
-async function collectStream(
-  gen: AsyncGenerator<unknown>,
-): Promise<unknown[]> {
+async function collectStream(gen: AsyncGenerator<unknown>): Promise<unknown[]> {
   const items: unknown[] = [];
   for await (const item of gen) {
     items.push(item);
@@ -113,7 +111,9 @@ describe('AnthropicService', () => {
     mockCreate.mockResolvedValue(fakeStream());
 
     const items = await collectStream(
-      service.generateTextStream('test', [{ role: 'user', content: 'předchozí' }]),
+      service.generateTextStream('test', [
+        { role: 'user', content: 'předchozí' },
+      ]),
     );
 
     expect(items).toEqual([
@@ -143,12 +143,56 @@ describe('AnthropicService', () => {
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-haiku-3-5',
         messages: [
           { role: 'user', content: 'první' },
           { role: 'assistant', content: 'odpověď' },
           { role: 'user', content: 'nový prompt' },
         ],
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('generateTextStream přemapuje legacy model na podporovaný Anthropic model', async () => {
+    async function* fakeStream() {
+      yield { type: 'message_stop' };
+    }
+    mockCreate.mockResolvedValue(fakeStream());
+
+    await collectStream(
+      service.generateTextStream(
+        'nový prompt',
+        [{ role: 'user', content: 'první' }],
+        'claude-3-haiku-20240307',
+      ),
+    );
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'claude-haiku-3-5',
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('generateTextStream použije model předaný z registru před fallbackem', async () => {
+    async function* fakeStream() {
+      yield { type: 'message_stop' };
+    }
+    mockCreate.mockResolvedValue(fakeStream());
+
+    await collectStream(
+      service.generateTextStream(
+        'nový prompt',
+        [{ role: 'user', content: 'první' }],
+        'claude-3-5-sonnet-20241022',
+      ),
+    );
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'claude-3-5-sonnet-20241022',
       }),
       expect.anything(),
     );

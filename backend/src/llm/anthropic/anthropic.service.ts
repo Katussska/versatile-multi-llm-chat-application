@@ -11,14 +11,11 @@ export type AnthropicMessage = { role: 'user' | 'assistant'; content: string };
 @Injectable()
 export class AnthropicService {
   private readonly client: Anthropic | null = null;
-  private readonly model: string;
+  private readonly fallbackModel = 'claude-haiku-4-5-20251001';
   private readonly logger = new Logger(AnthropicService.name);
 
   constructor(configService: ConfigService) {
     const apiKey = configService.get<string>('ANTHROPIC_API_KEY');
-    this.model =
-      configService.get<string>('ANTHROPIC_MODEL') ??
-      'claude-3-haiku-20240307';
 
     if (apiKey) {
       this.client = new Anthropic({ apiKey });
@@ -32,7 +29,9 @@ export class AnthropicService {
   async *generateTextStream(
     prompt: string,
     history: AnthropicMessage[],
+    modelName?: string,
     signal?: AbortSignal,
+    systemPrompt?: string,
   ): AsyncGenerator<
     | { type: 'text'; text: string }
     | {
@@ -57,12 +56,15 @@ export class AnthropicService {
     let outputTokens: number | null = null;
 
     try {
+      const selectedModel = modelName?.trim() || this.fallbackModel;
+
       const stream = await this.client.messages.create(
         {
-          model: this.model,
+          model: selectedModel,
           max_tokens: 4096,
           messages,
           stream: true,
+          ...(systemPrompt ? { system: systemPrompt } : {}),
         },
         { signal },
       );

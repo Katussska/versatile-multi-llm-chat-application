@@ -12,6 +12,7 @@ import { GeminiModule } from './llm/gemini/gemini.module';
 import { ChatModule } from './chat/chat.module';
 import { UserModule } from './user/user.module';
 import { AdminModule } from './admin/admin.module';
+import { ModelModule } from './model/model.module';
 import { UserRole } from './entities/UserRole';
 
 @Module({
@@ -101,6 +102,7 @@ import { UserRole } from './entities/UserRole';
     ChatModule,
     UserModule,
     AdminModule,
+    ModelModule,
   ],
   controllers: [AppController],
   providers: [AppService],
