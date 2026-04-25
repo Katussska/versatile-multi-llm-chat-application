@@ -118,7 +118,7 @@ export class ChatService {
 
     const messages = await this.em.find(
       Message,
-      { chat: { id: chatId } },
+      { chat: { id: chatId }, deletedAt: null },
       { orderBy: { createdAt: 'ASC', id: 'ASC' } },
     );
 
@@ -131,7 +131,7 @@ export class ChatService {
   ): Promise<Message> {
     const chat = await this.chatRepository.findOne(
       { id: messageDto.chatId, deletedAt: null },
-      { populate: ['user'] },
+      { populate: ['user', 'model'] },
     );
 
     if (!chat) {
@@ -147,6 +147,8 @@ export class ChatService {
       content: messageDto.content,
       path: messageDto.path,
       favourite: false,
+      modelKey: chat.model.name,
+      modelProvider: chat.model.provider,
     });
 
     this.em.persist(message);
@@ -217,25 +219,104 @@ export class ChatService {
     await this.em.flush();
   }
 
+  private async softDeleteTimelineFromMessage(
+    chatId: string,
+    boundaryMessageId: string,
+    inclusive: boolean,
+  ): Promise<void> {
+    const timeline = await this.em.find(
+      Message,
+      { chat: { id: chatId }, deletedAt: null },
+      { orderBy: { createdAt: 'ASC', id: 'ASC' } },
+    );
+
+    const boundaryIndex = timeline.findIndex(
+      (msg) => msg.id === boundaryMessageId,
+    );
+    if (boundaryIndex === -1) {
+      this.logger.warn(
+        `[DEBUG] Timeline truncate skipped: boundary message ${boundaryMessageId} not found in chat ${chatId}`,
+      );
+      return;
+    }
+
+    const deleteFromIndex = inclusive ? boundaryIndex : boundaryIndex + 1;
+    const toDelete = timeline.slice(deleteFromIndex);
+    if (toDelete.length === 0) {
+      this.logger.log(
+        `[DEBUG] Timeline truncate no-op for chat ${chatId}. boundaryIndex=${boundaryIndex} inclusive=${inclusive}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `[DEBUG] Timeline truncate in chat ${chatId}: deleting ${toDelete.length} messages from index ${deleteFromIndex} (boundaryIndex=${boundaryIndex}, inclusive=${inclusive})`,
+    );
+
+    const now = new Date();
+    for (const msg of toDelete) {
+      msg.deletedAt = now;
+    }
+  }
+
+  private async softDeleteAllChatMessages(chatId: string): Promise<void> {
+    const messages = await this.em.find(Message, {
+      chat: { id: chatId },
+      deletedAt: null,
+    });
+    if (messages.length === 0) return;
+
+    const now = new Date();
+    for (const msg of messages) {
+      msg.deletedAt = now;
+    }
+  }
+
+  private async softDeleteFromMessageInclusive(
+    chatId: string,
+    rootMessageId: string,
+  ): Promise<void> {
+    const conn = this.em.getConnection();
+    const rows = await conn.execute<{ id: string }[]>(
+      `WITH RECURSIVE subtree AS (
+         SELECT id FROM message
+         WHERE id = CAST(? AS uuid)
+           AND chat_id = CAST(? AS uuid)
+           AND deleted_at IS NULL
+         UNION ALL
+         SELECT m.id
+         FROM message m
+         JOIN subtree s ON m.parent_message_id = s.id
+         WHERE m.deleted_at IS NULL
+       )
+       SELECT id FROM subtree`,
+      [rootMessageId, chatId],
+    );
+
+    if (rows.length === 0) return;
+
+    const ids = rows.map((r) => r.id);
+    const messages = await this.em.find(Message, { id: { $in: ids } });
+    const now = new Date();
+    for (const msg of messages) {
+      msg.deletedAt = now;
+    }
+  }
+
   private async loadBranch(
     chatId: string,
     tipMessageId: string | null,
   ): Promise<Message[]> {
     if (!tipMessageId) {
-      const messages = await this.em.find(
-        Message,
-        { chat: { id: chatId } },
-        { orderBy: { createdAt: 'DESC', id: 'DESC' }, limit: 20 },
-      );
-      return messages.reverse();
+      return [];
     }
 
     const conn = this.em.getConnection();
     const rows = await conn.execute<{ id: string }[]>(
       `WITH RECURSIVE branch AS (
-         SELECT id, parent_message_id FROM message WHERE id = CAST(? AS uuid)
+         SELECT id, parent_message_id FROM message WHERE id = CAST(? AS uuid) AND deleted_at IS NULL
          UNION ALL
-         SELECT m.id, m.parent_message_id FROM message m JOIN branch b ON m.id = b.parent_message_id
+         SELECT m.id, m.parent_message_id FROM message m JOIN branch b ON m.id = b.parent_message_id WHERE m.deleted_at IS NULL
        )
        SELECT id FROM branch`,
       [tipMessageId],
@@ -283,13 +364,17 @@ export class ChatService {
 
   private createUsageLog(
     userId: string,
+    modelKey: string,
     modelName: string,
+    modelProvider: string,
     promptTokens: number | null,
     completionTokens: number | null,
   ): void {
     const usageLog = this.em.create(UsageLog, {
       user: this.em.getReference(User, userId),
+      modelKey,
       modelName,
+      modelProvider,
       promptTokens,
       completionTokens,
     });
@@ -331,6 +416,8 @@ export class ChatService {
     this.createUsageLog(
       userId,
       model.name,
+      model.name,
+      model.provider,
       usage.promptTokens,
       usage.completionTokens,
     );
@@ -347,6 +434,7 @@ export class ChatService {
     res: Response,
     parentMessageId?: string,
     regenerate?: boolean,
+    truncateFromMessageId?: string,
   ): Promise<void> {
     const chat = await this.chatRepository.findOne(
       { id: chatId, deletedAt: null },
@@ -407,6 +495,18 @@ export class ChatService {
 
     this.geminiService.invalidateSession(chatId);
 
+    if (truncateFromMessageId) {
+      await this.softDeleteTimelineFromMessage(
+        chatId,
+        truncateFromMessageId,
+        true,
+      );
+    } else if (parentMessageId) {
+      await this.softDeleteTimelineFromMessage(chatId, parentMessageId, false);
+    } else {
+      await this.softDeleteAllChatMessages(chatId);
+    }
+
     let userMessage: Message | null = null;
 
     if (!regenerate) {
@@ -416,6 +516,8 @@ export class ChatService {
         path: 'user',
         favourite: false,
         parentMessageId: parentMessageId ?? null,
+        modelKey: chat.model.name,
+        modelProvider: chat.model.provider,
       });
       this.em.persist(userMessage);
     }
@@ -428,6 +530,8 @@ export class ChatService {
       parentMessageId: regenerate
         ? (parentMessageId ?? null)
         : (userMessage?.id ?? null),
+      modelKey: chat.model.name,
+      modelProvider: chat.model.provider,
     });
     this.em.persist(assistantMessage);
 
@@ -488,7 +592,11 @@ export class ChatService {
         userId,
         chat.model,
         usage,
-        { saveEvenIfEmpty: !clientDisconnected, sendDone: !clientDisconnected, res },
+        {
+          saveEvenIfEmpty: !clientDisconnected,
+          sendDone: !clientDisconnected,
+          res,
+        },
       );
     } catch (err) {
       this.logger.error(
