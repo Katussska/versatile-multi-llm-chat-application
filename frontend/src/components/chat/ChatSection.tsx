@@ -19,6 +19,7 @@ export interface Message {
   createdAt: Date;
   isStreaming?: boolean;
   favourite: boolean;
+  modelProvider?: string | null;
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
@@ -160,6 +161,7 @@ export default function ChatSection() {
           role: message.path === 'user' ? 'user' : 'model',
           createdAt: new Date(message.createdAt),
           favourite: message.favourite,
+          modelProvider: message.modelProvider ?? null,
         })),
       );
     } else if (activeChatId && !isCreatingConversation) {
@@ -392,6 +394,7 @@ export default function ChatSection() {
       createdAt: new Date(),
       isStreaming: true,
       favourite: false,
+      modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
 
     const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
@@ -469,6 +472,7 @@ export default function ChatSection() {
       createdAt: new Date(),
       isStreaming: true,
       favourite: false,
+      modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
     setMessages([...truncated, assistantPlaceholder]);
     setIsStreaming(true);
@@ -534,6 +538,7 @@ export default function ChatSection() {
       createdAt: new Date(),
       isStreaming: true,
       favourite: false,
+      modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
     setMessages([...truncated, newUserMessage, assistantPlaceholder]);
     setIsStreaming(true);
