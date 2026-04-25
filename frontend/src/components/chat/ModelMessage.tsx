@@ -8,6 +8,15 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 
+const MODEL_ICONS: Record<string, { src: string; fallback: string }> = {
+  gemini: { src: '/gemini.png', fallback: 'G' },
+  anthropic: { src: '/claude.png', fallback: 'C' },
+};
+
+function modelIcon(provider: string | null | undefined) {
+  return MODEL_ICONS[provider ?? ''] ?? { src: '', fallback: 'AI' };
+}
+
 export default function ModelMessage({
   message,
   isStreaming,
@@ -19,12 +28,13 @@ export default function ModelMessage({
   onRegenerate?: () => void;
   onFavourite?: () => void;
 }) {
+  const icon = modelIcon(message.modelProvider);
   return (
     <div className="group my-10 flex flex-col">
       <div className="flex">
         <Avatar className="mr-6">
-          <AvatarImage src="/chatGPT.png" />
-          <AvatarFallback>MD</AvatarFallback>
+          {icon.src && <AvatarImage src={icon.src} />}
+          <AvatarFallback>{icon.fallback}</AvatarFallback>
         </Avatar>
         <div className="mr-5 flex w-max max-w-3xl flex-col">
           <div className="bg-sidebar-accent rounded-3xl p-4">

@@ -210,6 +210,9 @@ export interface components {
             content: string;
             path: string;
             favourite: boolean;
+            parentMessageId: string | null;
+            modelKey: string | null;
+            modelProvider: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
