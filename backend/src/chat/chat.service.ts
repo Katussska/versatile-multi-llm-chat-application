@@ -18,6 +18,7 @@ import { UsageLog } from '../entities/UsageLog';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
+import { AnthropicService } from '../llm/anthropic/anthropic.service';
 import type { Content } from '@google/generative-ai';
 import type { Response } from 'express';
 import { nextMonthFirstDay } from '../date.utils';
@@ -34,6 +35,7 @@ export class ChatService {
     private readonly em: EntityManager,
     private readonly configService: ConfigService,
     private readonly geminiService: GeminiService,
+    private readonly anthropicService: AnthropicService,
   ) {}
 
   private async getOrCreateDefaultModel(): Promise<Model> {
@@ -427,6 +429,65 @@ export class ChatService {
     }
   }
 
+  private buildLlmStream(
+    provider: string,
+    prompt: string,
+    chatId: string,
+    historyMessages: Message[],
+    signal: AbortSignal,
+  ): AsyncGenerator<
+    | { type: 'text'; text: string }
+    | {
+        type: 'usage';
+        totalTokens: number;
+        promptTokens: number | null;
+        completionTokens: number | null;
+      }
+  > {
+    if (provider === 'anthropic') {
+      const history = historyMessages
+        .filter((m) => m.content)
+        .map((m) => ({
+          role: m.path === 'user' ? ('user' as const) : ('assistant' as const),
+          content: m.content,
+        }));
+
+      while (history.length > 0 && history[0].role === 'assistant') {
+        history.shift();
+      }
+      while (
+        history.length > 0 &&
+        history[history.length - 1].role === 'user'
+      ) {
+        history.pop();
+      }
+
+      return this.anthropicService.generateTextStream(prompt, history, signal);
+    }
+
+    const history: Content[] = historyMessages
+      .filter((m) => m.content)
+      .map((m) => ({
+        role: m.path === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }],
+      }));
+
+    while (history.length > 0 && history[0].role === 'model') {
+      history.shift();
+    }
+    while (history.length > 0 && history[history.length - 1].role === 'user') {
+      history.pop();
+    }
+
+    this.geminiService.invalidateSession(chatId);
+    return this.geminiService.generateTextStream(
+      prompt,
+      chatId,
+      signal,
+      history,
+    );
+  }
+
   async streamResponse(
     chatId: string,
     userId: string,
@@ -476,24 +537,7 @@ export class ChatService {
       historyMessages = await this.loadBranch(chatId, parentMessageId ?? null);
     }
 
-    const history: Content[] = historyMessages
-      .filter((m) => m.content)
-      .map((m) => ({
-        role: m.path === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }],
-      }));
-
-    // Gemini requires history to start with 'user' and alternate turns.
-    // Trim leading 'model' turns (can happen if DB has orphaned assistant messages).
-    while (history.length > 0 && history[0].role === 'model') {
-      history.shift();
-    }
-    // Trim trailing 'user' turns (orphaned user messages from failed streams).
-    while (history.length > 0 && history[history.length - 1].role === 'user') {
-      history.pop();
-    }
-
-    this.geminiService.invalidateSession(chatId);
+    const provider = chat.model.provider;
 
     if (truncateFromMessageId) {
       await this.softDeleteTimelineFromMessage(
@@ -557,16 +601,20 @@ export class ChatService {
     });
 
     this.logger.log(
-      `[stream] chatId=${chatId} userId=${userId} regenerate=${regenerate} parentMessageId=${parentMessageId}`,
+      `[stream] chatId=${chatId} userId=${userId} provider=${provider} model=${chat.model.name} regenerate=${regenerate} parentMessageId=${parentMessageId}`,
+    );
+
+    const streamStart = Date.now();
+    const llmStream = this.buildLlmStream(
+      provider,
+      content,
+      chatId,
+      historyMessages,
+      streamAbort.signal,
     );
 
     try {
-      for await (const item of this.geminiService.generateTextStream(
-        content,
-        chatId,
-        streamAbort.signal,
-        history,
-      )) {
+      for await (const item of llmStream) {
         if (item.type === 'usage') {
           usage = {
             totalTokens: item.totalTokens,
@@ -581,7 +629,7 @@ export class ChatService {
       }
 
       this.logger.log(
-        `[stream] Gemini done, tokensUsed=${usage.totalTokens}, clientDisconnected=${clientDisconnected}`,
+        `[stream] status=ok provider=${provider} model=${chat.model.name} latencyMs=${Date.now() - streamStart} tokensUsed=${usage.totalTokens} clientDisconnected=${clientDisconnected}`,
       );
       await flushPromise;
 
@@ -600,7 +648,7 @@ export class ChatService {
       );
     } catch (err) {
       this.logger.error(
-        `[stream] Error in streamResponse: ${(err as Error)?.message}`,
+        `[stream] status=error provider=${provider} model=${chat.model.name} latencyMs=${Date.now() - streamStart} error=${(err as Error)?.message}`,
         (err as Error)?.stack,
       );
       await flushPromise.catch((flushErr: unknown) => {
