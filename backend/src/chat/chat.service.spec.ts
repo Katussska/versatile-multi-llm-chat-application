@@ -68,6 +68,7 @@ describe('ChatService – patchChat', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
     );
   });
 

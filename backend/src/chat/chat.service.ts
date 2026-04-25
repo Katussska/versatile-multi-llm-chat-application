@@ -19,6 +19,7 @@ import { CreateChatDto } from './dto/create-chat.dto';
 import { MessageCreateDto } from './dto/message-create.dto';
 import { GeminiService } from '../llm/gemini/gemini.service';
 import { AnthropicService } from '../llm/anthropic/anthropic.service';
+import { OpenAIService } from '../llm/openai/openai.service';
 import type { Content } from '@google/generative-ai';
 import type { Response } from 'express';
 import { nextMonthFirstDay } from '../date.utils';
@@ -36,6 +37,7 @@ export class ChatService {
     private readonly configService: ConfigService,
     private readonly geminiService: GeminiService,
     private readonly anthropicService: AnthropicService,
+    private readonly openaiService: OpenAIService,
   ) {}
 
   private async getOrCreateDefaultModel(): Promise<Model> {
@@ -488,6 +490,33 @@ export class ChatService {
       }
 
       return this.anthropicService.generateTextStream(
+        prompt,
+        history,
+        modelName,
+        signal,
+        this.buildSystemPrompt(modelName),
+      );
+    }
+
+    if (provider === 'openai') {
+      const history = historyMessages
+        .filter((m) => m.content)
+        .map((m) => ({
+          role: m.path === 'user' ? ('user' as const) : ('assistant' as const),
+          content: m.content,
+        }));
+
+      while (history.length > 0 && history[0].role === 'assistant') {
+        history.shift();
+      }
+      while (
+        history.length > 0 &&
+        history[history.length - 1].role === 'user'
+      ) {
+        history.pop();
+      }
+
+      return this.openaiService.generateTextStream(
         prompt,
         history,
         modelName,

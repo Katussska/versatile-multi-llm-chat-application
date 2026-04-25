@@ -11,6 +11,7 @@ import remarkGfm from 'remark-gfm';
 const MODEL_ICONS: Record<string, { src: string; fallback: string }> = {
   gemini: { src: '/gemini.png', fallback: 'G' },
   anthropic: { src: '/claude.png', fallback: 'C' },
+  openai: { src: '/chatGPT.png', fallback: 'GPT' },
 };
 
 function modelIcon(provider: string | null | undefined) {

@@ -9,6 +9,7 @@ import { Model } from '../entities/Model';
 import { Token } from '../entities/Token';
 import { GeminiModule } from '../llm/gemini/gemini.module';
 import { AnthropicModule } from '../llm/anthropic/anthropic.module';
+import { OpenAIModule } from '../llm/openai/openai.module';
 import { LimitGuard } from '../llm/limit.guard';
 
 @Module({
@@ -16,6 +17,7 @@ import { LimitGuard } from '../llm/limit.guard';
     MikroOrmModule.forFeature([Chat, Message, User, Model, Token]),
     GeminiModule,
     AnthropicModule,
+    OpenAIModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, LimitGuard],

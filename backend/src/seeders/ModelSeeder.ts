@@ -18,6 +18,13 @@ const MODELS = [
     iconKey: 'anthropic',
     apiEndpoint: () => 'https://api.anthropic.com/v1/messages',
   },
+  {
+    provider: 'openai',
+    name: () => 'gpt-5.4-mini',
+    displayLabel: 'GPT-5.4 Mini',
+    iconKey: 'openai',
+    apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
+  },
 ];
 
 export class ModelSeeder extends Seeder {
@@ -49,5 +56,16 @@ export class ModelSeeder extends Seeder {
     }
 
     await em.flush();
+
+    const currentNames = MODELS.map((m) => m.name());
+    const staleModels = await em.find(Model, {
+      name: { $nin: currentNames },
+      deletedAt: null,
+    });
+    for (const m of staleModels) {
+      m.deletedAt = new Date();
+      console.info(`Soft-deleted stale model: ${m.provider}/${m.name}`);
+    }
+    if (staleModels.length > 0) await em.flush();
   }
 }

@@ -1,4 +1,4 @@
-import { Bot, Sparkles } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -9,8 +9,9 @@ import {
 import { $api } from '@/api/client.ts';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-  anthropic: <Bot className="h-4 w-4" />,
-  gemini: <Sparkles className="h-4 w-4" />,
+  anthropic: <img src="/claude.png" className="h-4 w-4 rounded-full object-cover" alt="Claude" />,
+  gemini: <img src="/gemini.png" className="h-4 w-4 rounded-full object-cover" alt="Gemini" />,
+  openai: <img src="/chatGPT.png" className="h-4 w-4 rounded-full object-cover" alt="OpenAI" />,
 };
 
 interface ModelSelectorProps {
@@ -31,7 +32,8 @@ export default function ModelSelector({ value, onValueChange }: ModelSelectorPro
           {models?.map((model) => (
             <SelectItem
               key={model.id}
-              value={model.id}>
+              value={model.id}
+              className="pl-2 [&>span:first-child]:hidden">
               <span className="flex items-center gap-2">
                 {ICON_MAP[model.iconKey] ?? <Bot className="h-4 w-4" />}
                 {model.displayLabel}
