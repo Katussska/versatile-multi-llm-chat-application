@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 @Injectable()
 export class GeminiService {
   private readonly googleAI: GoogleGenerativeAI;
-  private readonly model: GenerativeModel;
+  private readonly fallbackModel: string;
   // TODO: chatSessions is an in-memory map with no eviction/TTL.
   // With ongoing traffic this can grow without bound and increase
   // memory usage over time. Add TTL/LRU/max-size eviction and cleanup,
@@ -25,24 +25,30 @@ export class GeminiService {
 
   private readonly logger = new Logger(GeminiService.name);
   private readonly geminiApiKey: string;
-  private readonly geminiModel: string;
 
   constructor(configService: ConfigService) {
     this.geminiApiKey = configService.getOrThrow('GEMINI_API_KEY');
-    this.geminiModel = configService.getOrThrow('GEMINI_MODEL');
+    this.fallbackModel = configService.getOrThrow('GEMINI_MODEL');
     this.googleAI = new GoogleGenerativeAI(this.geminiApiKey);
-    this.model = this.googleAI.getGenerativeModel({
-      model: this.geminiModel,
-    });
   }
 
-  private getChatSession(sessionId?: string, history?: Content[]) {
+  private getChatSession(
+    modelName?: string,
+    sessionId?: string,
+    history?: Content[],
+    systemInstruction?: string,
+  ) {
     const sessionIdToUse = sessionId ?? randomUUID();
 
     let result = this.chatSessions[sessionIdToUse];
 
     if (!result) {
-      result = this.model.startChat({ history });
+      const selectedModel = modelName?.trim() || this.fallbackModel;
+      const model: GenerativeModel = this.googleAI.getGenerativeModel({
+        model: selectedModel,
+        ...(systemInstruction ? { systemInstruction } : {}),
+      });
+      result = model.startChat({ history });
       this.chatSessions[sessionIdToUse] = result;
     }
 
@@ -58,7 +64,10 @@ export class GeminiService {
 
   async generateText(data: GetAIMessageDTO) {
     try {
-      const { sessionId, chat } = this.getChatSession(data.sessionId);
+      const { sessionId, chat } = this.getChatSession(
+        undefined,
+        data.sessionId,
+      );
 
       const result = await chat.sendMessage(data.prompt);
 
@@ -74,9 +83,11 @@ export class GeminiService {
 
   async *generateTextStream(
     prompt: string,
+    modelName?: string,
     sessionId?: string,
     signal?: AbortSignal,
     history?: Content[],
+    systemInstruction?: string,
   ): AsyncGenerator<
     | { type: 'text'; text: string }
     | {
@@ -86,7 +97,7 @@ export class GeminiService {
         completionTokens: number | null;
       }
   > {
-    const { chat } = this.getChatSession(sessionId, history);
+    const { chat } = this.getChatSession(modelName, sessionId, history, systemInstruction);
     try {
       const result = await chat.sendMessageStream(prompt, { signal });
       for await (const chunk of result.stream) {

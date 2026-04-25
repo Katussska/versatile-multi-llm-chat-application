@@ -56,6 +56,9 @@ export class ChatService {
       provider: 'gemini',
       name: geminiModelName,
       apiEndpoint: `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}`,
+      displayLabel: 'Gemini 2.5 Flash',
+      iconKey: 'gemini',
+      isEnabled: true,
     });
 
     this.em.persist(defaultModel);
@@ -429,8 +432,22 @@ export class ChatService {
     }
   }
 
+  private buildSystemPrompt(modelName: string): string {
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    const time = now.toTimeString().split(' ')[0];
+    return [
+      'You are an AI assistant in Cognify, a multi-model chat application.',
+      `Current date and time: ${date} ${time} UTC`,
+      `Active model: ${modelName}`,
+      'Always respond in the same language the user writes in.',
+      'Format your responses using Markdown where it improves readability.',
+    ].join('\n');
+  }
+
   private buildLlmStream(
     provider: string,
+    modelName: string,
     prompt: string,
     chatId: string,
     historyMessages: Message[],
@@ -462,7 +479,13 @@ export class ChatService {
         history.pop();
       }
 
-      return this.anthropicService.generateTextStream(prompt, history, signal);
+      return this.anthropicService.generateTextStream(
+        prompt,
+        history,
+        modelName,
+        signal,
+        this.buildSystemPrompt(modelName),
+      );
     }
 
     const history: Content[] = historyMessages
@@ -482,9 +505,11 @@ export class ChatService {
     this.geminiService.invalidateSession(chatId);
     return this.geminiService.generateTextStream(
       prompt,
+      modelName,
       chatId,
       signal,
       history,
+      this.buildSystemPrompt(modelName),
     );
   }
 
@@ -607,6 +632,7 @@ export class ChatService {
     const streamStart = Date.now();
     const llmStream = this.buildLlmStream(
       provider,
+      chat.model.name,
       content,
       chatId,
       historyMessages,

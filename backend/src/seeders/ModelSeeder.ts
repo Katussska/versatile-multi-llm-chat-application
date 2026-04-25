@@ -2,21 +2,20 @@ import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 import { Model } from '../entities/Model';
 
-function getEnv(name: string, fallback: string): string {
-  const value = process.env[name]?.trim();
-  return value && value.length > 0 ? value : fallback;
-}
-
 const MODELS = [
   {
     provider: 'gemini',
-    name: () => getEnv('GEMINI_MODEL', 'gemini-2.5-flash'),
+    name: () => 'gemini-2.5-flash',
+    displayLabel: 'Gemini 2.5 Flash',
+    iconKey: 'gemini',
     apiEndpoint: (name: string) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
   },
   {
     provider: 'anthropic',
-    name: () => getEnv('ANTHROPIC_MODEL', 'claude-3-haiku-20240307'),
+    name: () => 'claude-haiku-4-5-20251001',
+    displayLabel: 'Claude Haiku 4.5',
+    iconKey: 'anthropic',
     apiEndpoint: () => 'https://api.anthropic.com/v1/messages',
   },
 ];
@@ -36,11 +35,16 @@ export class ModelSeeder extends Seeder {
           provider: def.provider,
           name: modelName,
           apiEndpoint: def.apiEndpoint(modelName),
+          displayLabel: def.displayLabel,
+          iconKey: def.iconKey,
+          isEnabled: true,
         });
         em.persist(model);
         console.info(`Seeded model: ${def.provider}/${modelName}`);
       } else {
-        console.info(`Model already exists, skipping: ${def.provider}/${modelName}`);
+        existing.displayLabel = def.displayLabel;
+        existing.iconKey = def.iconKey;
+        console.info(`Updated model metadata: ${def.provider}/${modelName}`);
       }
     }
 

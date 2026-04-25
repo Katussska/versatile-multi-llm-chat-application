@@ -94,7 +94,7 @@ What is implemented end-to-end:
 Currently supported LLM providers:
 
 - **Gemini** (Google) — fully integrated, model configurable via `GEMINI_MODEL` env var
-- **Claude** (Anthropic) — integrated, model configurable via `ANTHROPIC_MODEL` env var (default: `claude-3-haiku-20240307`)
+- **Claude** (Anthropic) — integrated, model configurable via `ANTHROPIC_MODEL` env var (default: `claude-haiku-4-5-20251001`)
 
 Work in progress / placeholders:
 
@@ -168,10 +168,10 @@ GEMINI_API_KEY=your-gemini-api-key
 # Optional — only needed if you want to use Claude models
 # Get an API key at https://console.anthropic.com/
 ANTHROPIC_API_KEY=your-anthropic-api-key
-ANTHROPIC_MODEL=claude-3-haiku-20240307
+ANTHROPIC_MODEL=claude-haiku-4-5-20251001
 ```
 
-To use a Claude model in a chat, create a `Model` record in the database with `provider = 'anthropic'` and `name` matching `ANTHROPIC_MODEL` (e.g. `claude-3-haiku-20240307`). The model can then be selected when creating a chat via `modelId`.
+To use a Claude model in a chat, create a `Model` record in the database with `provider = 'anthropic'` and `name` matching `ANTHROPIC_MODEL` (e.g. `claude-haiku-4-5-20251001`). The model can then be selected when creating a chat via `modelId`.
 
 Full default `.env` for reference:
 
@@ -195,7 +195,7 @@ GEMINI_API_KEY=replace-with-api-key
 GEMINI_MODEL=gemini-2.5-flash
 
 ANTHROPIC_API_KEY=replace-with-api-key
-ANTHROPIC_MODEL=claude-3-haiku-20240307
+ANTHROPIC_MODEL=claude-haiku-4-5-20251001
 
 DB_RESET_CONFIRM=false
 DB_RESET_ALLOW_NON_DEVELOPMENT=false
