@@ -182,11 +182,11 @@ export class ChatService {
   async patchChat(
     chatId: string,
     userId: string,
-    data: { title?: string; favourite?: boolean },
+    data: { title?: string; favourite?: boolean; modelId?: string },
   ): Promise<Chat> {
     const chat = await this.chatRepository.findOne(
       { id: chatId, deletedAt: null },
-      { populate: ['user'] },
+      { populate: ['user', 'model'] },
     );
 
     if (!chat || chat.user.id !== userId) {
@@ -195,6 +195,14 @@ export class ChatService {
 
     if (data.title !== undefined) chat.title = data.title;
     if (data.favourite !== undefined) chat.favourite = data.favourite;
+    if (data.modelId !== undefined) {
+      const model = await this.em.findOne(Model, {
+        id: data.modelId,
+        deletedAt: null,
+      });
+      if (!model) throw new NotFoundException('Model not found');
+      chat.model = model;
+    }
     await this.em.flush();
     return chat;
   }

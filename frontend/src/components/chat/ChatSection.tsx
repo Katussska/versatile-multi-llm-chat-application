@@ -609,9 +609,28 @@ export default function ChatSection() {
     }
   };
 
+  const handleModelChange = async (newModelId: string) => {
+    setSelectedModelId(newModelId);
+    if (!activeChatId) return;
+    try {
+      const response = await fetch(`${API_BASE}/chats/${activeChatId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ modelId: newModelId }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await queryClient.invalidateQueries({
+        queryKey: $api.queryOptions('get', '/chats').queryKey,
+      });
+    } catch {
+      toast.error(t('chat.sendError'));
+    }
+  };
+
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
-      <ModelSelector value={selectedModelId} onValueChange={setSelectedModelId} />
+      <ModelSelector value={selectedModelId} onValueChange={(id) => void handleModelChange(id)} />
       <div
         ref={scrollContainerRef}
         className="min-h-0 flex-1 overflow-y-auto p-4 [mask-image:linear-gradient(to_top,transparent_0%,black_50px)]">

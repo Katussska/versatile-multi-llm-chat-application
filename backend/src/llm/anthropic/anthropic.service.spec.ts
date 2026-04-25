@@ -143,7 +143,7 @@ describe('AnthropicService', () => {
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'claude-haiku-3-5',
+        model: 'claude-haiku-4-5-20251001',
         messages: [
           { role: 'user', content: 'první' },
           { role: 'assistant', content: 'odpověď' },
@@ -154,26 +154,24 @@ describe('AnthropicService', () => {
     );
   });
 
-  it('generateTextStream přemapuje legacy model na podporovaný Anthropic model', async () => {
+  it('generateTextStream vrátí nulové tokeny pokud chybí usage data z API', async () => {
     async function* fakeStream() {
+      yield {
+        type: 'content_block_delta',
+        delta: { type: 'text_delta', text: 'Ahoj' },
+      };
       yield { type: 'message_stop' };
     }
     mockCreate.mockResolvedValue(fakeStream());
 
-    await collectStream(
-      service.generateTextStream(
-        'nový prompt',
-        [{ role: 'user', content: 'první' }],
-        'claude-3-haiku-20240307',
-      ),
-    );
+    const items = await collectStream(service.generateTextStream('test', []));
 
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: 'claude-haiku-3-5',
-      }),
-      expect.anything(),
-    );
+    expect(items).toContainEqual({
+      type: 'usage',
+      totalTokens: 0,
+      promptTokens: null,
+      completionTokens: null,
+    });
   });
 
   it('generateTextStream použije model předaný z registru před fallbackem', async () => {
