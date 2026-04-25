@@ -196,6 +196,38 @@ describe('AnthropicService', () => {
     );
   });
 
+  it('generateTextStream počítá tokeny pro Claude Haiku 3', async () => {
+    async function* fakeStream() {
+      yield { type: 'message_start', message: { usage: { input_tokens: 42 } } };
+      yield {
+        type: 'content_block_delta',
+        delta: { type: 'text_delta', text: 'odpověď' },
+      };
+      yield { type: 'message_delta', usage: { output_tokens: 13 } };
+      yield { type: 'message_stop' };
+    }
+    mockCreate.mockResolvedValue(fakeStream());
+
+    const items = await collectStream(
+      service.generateTextStream(
+        'dotaz',
+        [],
+        'claude-haiku-4-5-20251001',
+      ),
+    );
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'claude-haiku-4-5-20251001' }),
+      expect.anything(),
+    );
+    expect(items).toContainEqual({
+      type: 'usage',
+      totalTokens: 55,
+      promptTokens: 42,
+      completionTokens: 13,
+    });
+  });
+
   it('generateTextStream ignoruje AbortError a ukončí stream', async () => {
     async function* fakeStream() {
       const err = new Error('aborted');
