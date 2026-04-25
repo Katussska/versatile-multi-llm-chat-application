@@ -115,7 +115,7 @@
     "goToAdmin": "Přejít do administrace",
     "stats": {
       "users": "Celkem uživatelů",
-      "activeUsers": "Aktivní uživatelé (30 dní)",
+      "activeUsers": "Aktivní uživatelé",
       "mostUsedModel": "Nejpoužívanější model",
       "noModel": "Žádný"
     },
@@ -125,7 +125,8 @@
     "statistics": {
       "title": "Aktivita za posledních 30 dní",
       "messages": "Zprávy",
-      "noData": "Zatím žádná data"
+      "noData": "Zatím žádná data",
+      "filterAll": "Vše"
     },
     "createUser": {
       "trigger": "Vytvořit uživatele",

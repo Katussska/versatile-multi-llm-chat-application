@@ -115,7 +115,7 @@
     "goToAdmin": "Go to administration",
     "stats": {
       "users": "Total users",
-      "activeUsers": "Active users (30 days)",
+      "activeUsers": "Active users",
       "mostUsedModel": "Most used model",
       "noModel": "None"
     },
@@ -125,7 +125,8 @@
     "statistics": {
       "title": "Activity over the last 30 days",
       "messages": "Messages",
-      "noData": "No data yet"
+      "noData": "No data yet",
+      "filterAll": "All"
     },
     "createUser": {
       "trigger": "Create user",

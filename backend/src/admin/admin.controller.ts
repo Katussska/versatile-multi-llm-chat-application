@@ -30,10 +30,14 @@ export class AdminController {
   @ApiOkResponse({ description: 'Admin statistics', type: StatsResponseDto })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
-  async getStats(@Query('days') daysParam?: string): Promise<StatsResponseDto> {
+  async getStats(
+    @Query('days') daysParam?: string,
+    @Query('provider') provider?: string,
+    @Query('model') model?: string,
+  ): Promise<StatsResponseDto> {
     const days = [1, 7, 14, 30].includes(Number(daysParam))
       ? Number(daysParam)
       : 30;
-    return this.adminService.getStats(days);
+    return this.adminService.getStats(days, provider, model);
   }
 }

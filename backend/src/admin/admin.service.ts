@@ -68,7 +68,11 @@ export class AdminService {
     }));
   }
 
-  async getStats(days: number): Promise<StatsResponseDto> {
+  async getStats(
+    days: number,
+    provider?: string,
+    modelName?: string,
+  ): Promise<StatsResponseDto> {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
@@ -86,10 +90,24 @@ export class AdminService {
     );
     const mostUsedModel = modelResult?.name ?? null;
 
-    const rows = await this.em.execute<{ date: string; messages: string }[]>(
-      `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') AS date, COUNT(*)::text AS messages FROM message WHERE created_at >= ? AND deleted_at IS NULL GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`,
-      [since],
-    );
+    let rows: { date: string; messages: string }[];
+    if (provider) {
+      const params: unknown[] = [since, provider];
+      let extra = '';
+      if (modelName) {
+        extra = ' AND model_name = ?';
+        params.push(modelName);
+      }
+      rows = await this.em.execute<{ date: string; messages: string }[]>(
+        `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') AS date, COUNT(*)::text AS messages FROM usage_log WHERE created_at >= ? AND model_provider = ?${extra} GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`,
+        params,
+      );
+    } else {
+      rows = await this.em.execute<{ date: string; messages: string }[]>(
+        `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') AS date, COUNT(*)::text AS messages FROM message WHERE created_at >= ? AND deleted_at IS NULL GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`,
+        [since],
+      );
+    }
 
     const dailyMap = new Map<string, number>(
       rows.map((r) => [r.date, parseInt(r.messages, 10)]),

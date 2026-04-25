@@ -3,6 +3,13 @@ import { useEffect, useState } from 'react';
 import UserTable from '@/components/admin/UserTable.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.tsx';
 
 import { BarChart3, Bot, Settings, UserCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -30,14 +37,43 @@ interface AdminStats {
   dailyActivity: DailyStat[];
 }
 
-function useAdminStats(tick: number, days: Period) {
+interface ModelOption {
+  id: string;
+  provider: string;
+  name: string;
+  displayLabel: string;
+}
+
+const PROVIDER_LABELS: Record<string, string> = {
+  anthropic: 'Claude',
+  gemini: 'Gemini',
+};
+
+function useModels() {
+  const [models, setModels] = useState<ModelOption[]>([]);
+
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    fetch(`${baseUrl}/models`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: ModelOption[]) => setModels(data))
+      .catch(() => setModels([]));
+  }, []);
+
+  return models;
+}
+
+function useAdminStats(tick: number, days: Period, provider: string, modelName: string) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
     setLoading(true);
-    fetch(`${baseUrl}/admin/stats?days=${days}`, { credentials: 'include' })
+    const params = new URLSearchParams({ days: String(days) });
+    if (provider !== 'all') params.set('provider', provider);
+    if (provider !== 'all' && modelName !== 'all') params.set('model', modelName);
+    fetch(`${baseUrl}/admin/stats?${params}`, { credentials: 'include' })
       .then((r) => {
         if (!r.ok) throw new Error();
         return r.json();
@@ -45,7 +81,7 @@ function useAdminStats(tick: number, days: Period) {
       .then((data: AdminStats) => setStats(data))
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
-  }, [tick, days]);
+  }, [tick, days, provider, modelName]);
 
   return { stats, loading };
 }
@@ -67,9 +103,20 @@ export default function AdminSection() {
   const { t } = useTranslation();
   const [tick, setTick] = useState(0);
   const [days, setDays] = useState<Period>(30);
+  const [selectedProvider, setSelectedProvider] = useState('all');
+  const [selectedModel, setSelectedModel] = useState('all');
   const refetch = () => setTick((n) => n + 1);
 
-  const { stats, loading } = useAdminStats(tick, days);
+  const models = useModels();
+  const providers = Array.from(new Set(models.map((m) => m.provider)));
+  const modelsForProvider = models.filter((m) => m.provider === selectedProvider);
+
+  const handleProviderChange = (value: string) => {
+    setSelectedProvider(value);
+    setSelectedModel('all');
+  };
+
+  const { stats, loading } = useAdminStats(tick, days, selectedProvider, selectedModel);
 
   const kpis = [
     {
@@ -136,10 +183,42 @@ export default function AdminSection() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 size={20} />
-              {t('admin.statistics.title')}
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 size={20} />
+                {t('admin.statistics.title')}
+              </CardTitle>
+              <div className="flex gap-2">
+                <Select value={selectedProvider} onValueChange={handleProviderChange}>
+                  <SelectTrigger className="h-8 w-36 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('admin.statistics.filterAll')}</SelectItem>
+                    {providers.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {PROVIDER_LABELS[p] ?? p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedProvider !== 'all' && (
+                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <SelectTrigger className="h-8 w-44 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('admin.statistics.filterAll')}</SelectItem>
+                      {modelsForProvider.map((m) => (
+                        <SelectItem key={m.name} value={m.name}>
+                          {m.displayLabel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
