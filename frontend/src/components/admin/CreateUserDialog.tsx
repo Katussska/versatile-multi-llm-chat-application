@@ -51,11 +51,11 @@ interface ModelOption {
   provider: string;
 }
 
-interface TokenLimit {
+interface BudgetLimit {
   id: string;
   model: ModelOption;
-  tokenCount: number;
-  usedTokens: number;
+  dollarLimit: number | null;
+  usedDollars: number;
   resetAt: string;
 }
 
@@ -72,11 +72,10 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
   const [step, setStep] = useState<'form' | 'tokens'>('form');
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
   const [models, setModels] = useState<ModelOption[]>([]);
-  const [addedTokens, setAddedTokens] = useState<TokenLimit[]>([]);
+  const [addedBudgets, setAddedBudgets] = useState<BudgetLimit[]>([]);
   const [showTokenForm, setShowTokenForm] = useState(false);
-  const [tokenModelId, setTokenModelId] = useState('');
-  const [tokenCount, setTokenCount] = useState('');
-  const [resetAt, setResetAt] = useState('');
+  const [tokenProvider, setTokenProvider] = useState('');
+  const [dollarLimit, setDollarLimit] = useState('');
   const [submittingToken, setSubmittingToken] = useState(false);
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -160,13 +159,12 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
   });
 
   const resetTokenForm = () => {
-    setTokenModelId('');
-    setTokenCount('');
-    setResetAt('');
+    setTokenProvider('');
+    setDollarLimit('');
   };
 
-  const handleAddToken = async () => {
-    if (!createdUserId || !tokenModelId || !tokenCount || !resetAt) return;
+  const handleAddBudget = async () => {
+    if (!createdUserId || !tokenProvider) return;
     setSubmittingToken(true);
     try {
       const res = await fetch(`${baseUrl}/users/${createdUserId}/tokens`, {
@@ -174,17 +172,16 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          modelId: tokenModelId,
-          tokenCount: Number(tokenCount),
-          resetAt,
+          provider: tokenProvider,
+          dollarLimit: dollarLimit ? Number(dollarLimit) : null,
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message);
       }
-      const newToken = await res.json();
-      setAddedTokens((prev) => [...prev, newToken]);
+      const newBudget = await res.json();
+      setAddedBudgets((prev) => [...prev, newBudget]);
       resetTokenForm();
       setShowTokenForm(false);
       toast.success(t('admin.manageTokens.addSuccess'));
@@ -207,15 +204,18 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
       setStep('form');
       setCreatedUserId(null);
       setModels([]);
-      setAddedTokens([]);
+      setAddedBudgets([]);
       setShowTokenForm(false);
       resetTokenForm();
     }
     setOpen(next);
   };
 
-  const availableModels = models.filter(
-    (m) => !addedTokens.some((t) => t.model.id === m.id),
+  const coveredProviders = new Set(addedBudgets.map((b) => b.model.provider));
+  const availableProviders = models.filter(
+    (m, index, allModels) =>
+      !coveredProviders.has(m.provider) &&
+      index === allModels.findIndex((candidate) => candidate.provider === m.provider),
   );
 
   return (
@@ -363,22 +363,24 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
           {step === 'tokens' && (
             <>
               <div className="space-y-3">
-                {addedTokens.length > 0 && (
+                {addedBudgets.length > 0 && (
                   <div className="space-y-2">
-                    {addedTokens.map((token) => (
+                    {addedBudgets.map((budget) => (
                       <div
-                        key={token.id}
+                        key={budget.id}
                         className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                         <div>
-                          <p className="font-medium">{token.model.name}</p>
+                          <p className="font-medium capitalize">
+                            {budget.model.provider}
+                          </p>
                           <p className="text-muted-foreground text-xs">
-                            {token.tokenCount != null
-                              ? token.tokenCount.toLocaleString()
+                            {budget.dollarLimit != null
+                              ? `$${Number(budget.dollarLimit).toFixed(2)}`
                               : '∞'}{' '}
-                            {t('admin.manageTokens.tokens')}
+                            {t('admin.manageTokens.dollars')}
                             {' · '}
                             {t('admin.manageTokens.resetLabel')}{' '}
-                            {new Date(token.resetAt).toLocaleDateString(undefined, {
+                            {new Date(budget.resetAt).toLocaleDateString(undefined, {
                               timeZone: 'UTC',
                             })}
                           </p>
@@ -392,38 +394,34 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                   <div className="space-y-3 rounded-md border p-3">
                     <div className="space-y-1.5">
                       <Label>{t('admin.manageTokens.model')}</Label>
-                      <Select value={tokenModelId} onValueChange={setTokenModelId}>
+                      <Select value={tokenProvider} onValueChange={setTokenProvider}>
                         <SelectTrigger>
                           <SelectValue
                             placeholder={t('admin.manageTokens.selectModel')}
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableModels.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.name} ({m.provider})
+                          {availableProviders.map((m) => (
+                            <SelectItem key={m.provider} value={m.provider}>
+                              {m.provider}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>{t('admin.manageTokens.tokenCount')}</Label>
+                      <Label>{t('admin.manageTokens.dollarLimit')}</Label>
                       <Input
                         type="number"
-                        min={1}
-                        value={tokenCount}
-                        onChange={(e) => setTokenCount(e.target.value)}
-                        placeholder="100000"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>{t('admin.manageTokens.resetAt')}</Label>
-                      <Input
-                        type="date"
-                        value={resetAt}
-                        onChange={(e) => setResetAt(e.target.value)}
-                        className="[color-scheme:inherit]"
+                        min={0.01}
+                        step={0.01}
+                        value={dollarLimit}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*\.?\d{0,2}$/.test(val))
+                            setDollarLimit(val);
+                        }}
+                        placeholder="∞"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -431,11 +429,9 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        disabled={
-                          submittingToken || !tokenModelId || !tokenCount || !resetAt
-                        }
+                        disabled={submittingToken || !tokenProvider}
                         className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-                        onClick={handleAddToken}>
+                        onClick={handleAddBudget}>
                         {t('admin.manageTokens.addSubmit')}
                       </Button>
                       <Button
@@ -452,7 +448,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                   </div>
                 )}
 
-                {!showTokenForm && availableModels.length > 0 && (
+                {!showTokenForm && availableProviders.length > 0 && (
                   <Button
                     type="button"
                     variant="outline"

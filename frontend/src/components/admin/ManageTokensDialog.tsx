@@ -1,7 +1,4 @@
-import { ArrowLeft, Coins, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 import { type AdminUser } from '@/components/admin/UserSearchList.tsx';
 import { Button } from '@/components/ui/button.tsx';
@@ -22,17 +19,21 @@ import {
   SelectValue,
 } from '@/components/ui/select.tsx';
 
+import { ArrowLeft, DollarSign, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+
 interface ModelOption {
   id: string;
   name: string;
   provider: string;
 }
 
-interface TokenLimit {
+interface BudgetLimit {
   id: string;
   model: ModelOption;
-  tokenCount: number | null;
-  usedTokens: number;
+  dollarLimit: number | null;
+  usedDollars: number;
   resetAt: string;
 }
 
@@ -45,16 +46,21 @@ interface ManageTokensDialogProps {
   onUpdated?: () => void;
 }
 
-export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated }: ManageTokensDialogProps) {
+export default function ManageTokensDialog({
+  open,
+  onOpenChange,
+  user,
+  onUpdated,
+}: ManageTokensDialogProps) {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewState>('list');
   const [models, setModels] = useState<ModelOption[]>([]);
-  const [tokens, setTokens] = useState<TokenLimit[]>([]);
-  const [editingToken, setEditingToken] = useState<TokenLimit | null>(null);
-  const [loadingTokens, setLoadingTokens] = useState(false);
+  const [budgets, setBudgets] = useState<BudgetLimit[]>([]);
+  const [editingBudget, setEditingBudget] = useState<BudgetLimit | null>(null);
+  const [loadingBudgets, setLoadingBudgets] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [modelId, setModelId] = useState('');
-  const [tokenCount, setTokenCount] = useState('');
+  const [provider, setProvider] = useState('');
+  const [dollarLimit, setDollarLimit] = useState('');
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -68,57 +74,59 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
     }
   };
 
-  const fetchTokens = async (userId: string) => {
-    setLoadingTokens(true);
+  const fetchBudgets = async (userId: string) => {
+    setLoadingBudgets(true);
     try {
-      const res = await fetch(`${baseUrl}/users/${userId}/tokens`, { credentials: 'include' });
+      const res = await fetch(`${baseUrl}/users/${userId}/tokens`, {
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error();
-      setTokens(await res.json());
+      setBudgets(await res.json());
     } catch {
       toast.error(t('admin.manageTokens.loadError'));
     } finally {
-      setLoadingTokens(false);
+      setLoadingBudgets(false);
     }
   };
 
   useEffect(() => {
     if (open) {
-      fetchTokens(user.id);
+      fetchBudgets(user.id);
       fetchModels();
       setView('list');
     }
   }, [open, user]);
 
   const resetForm = () => {
-    setModelId('');
-    setTokenCount('');
+    setProvider('');
+    setDollarLimit('');
   };
 
   const handleBack = () => {
     setView('list');
-    setEditingToken(null);
+    setEditingBudget(null);
     resetForm();
   };
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       setView('list');
-      setTokens([]);
-      setEditingToken(null);
+      setBudgets([]);
+      setEditingBudget(null);
       resetForm();
     }
     onOpenChange(next);
   };
 
-  const handleDelete = async (tokenId: string) => {
+  const handleDelete = async (budgetId: string) => {
     try {
-      const res = await fetch(`${baseUrl}/users/${user.id}/tokens/${tokenId}`, {
+      const res = await fetch(`${baseUrl}/users/${user.id}/tokens/${budgetId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (!res.ok) throw new Error();
       toast.success(t('admin.manageTokens.deleteSuccess'));
-      fetchTokens(user.id);
+      fetchBudgets(user.id);
       onUpdated?.();
     } catch {
       toast.error(t('admin.manageTokens.deleteError'));
@@ -126,21 +134,24 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
   };
 
   const handleAdd = async () => {
-    if (!modelId) return;
+    if (!provider) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${baseUrl}/users/${user.id}/tokens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ modelId, tokenCount: tokenCount ? Number(tokenCount) : null }),
+        body: JSON.stringify({
+          provider,
+          dollarLimit: dollarLimit ? Number(dollarLimit) : null,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message);
       }
       toast.success(t('admin.manageTokens.addSuccess'));
-      fetchTokens(user.id);
+      fetchBudgets(user.id);
       onUpdated?.();
       setView('list');
       resetForm();
@@ -152,21 +163,21 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
   };
 
   const handleEdit = async () => {
-    if (!editingToken) return;
+    if (!editingBudget) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${baseUrl}/users/${user.id}/tokens/${editingToken.id}`, {
+      const res = await fetch(`${baseUrl}/users/${user.id}/tokens/${editingBudget.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ tokenCount: tokenCount ? Number(tokenCount) : null }),
+        body: JSON.stringify({ dollarLimit: dollarLimit ? Number(dollarLimit) : null }),
       });
       if (!res.ok) throw new Error();
       toast.success(t('admin.manageTokens.editSuccess'));
-      fetchTokens(user.id);
+      fetchBudgets(user.id);
       onUpdated?.();
       setView('list');
-      setEditingToken(null);
+      setEditingBudget(null);
       resetForm();
     } catch {
       toast.error(t('admin.manageTokens.editError'));
@@ -175,13 +186,33 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
     }
   };
 
-  const availableModels = models.filter((m) => !tokens.some((t) => t.model.id === m.id));
+  const fmtProvider = (p: string): string => {
+    const map: Record<string, string> = {
+      openai: 'OpenAI',
+      anthropic: 'Anthropic',
+      gemini: 'Gemini',
+    };
+    return map[p.toLowerCase()] ?? p;
+  };
+
+  const coveredProviders = new Set(budgets.map((b) => b.model.provider));
+  const availableProviders = models.filter(
+    (m, index, allModels) =>
+      !coveredProviders.has(m.provider) &&
+      index === allModels.findIndex((candidate) => candidate.provider === m.provider),
+  );
 
   const titleKey: Record<ViewState, string> = {
     list: 'admin.manageTokens.titleSelected',
     add: 'admin.manageTokens.addTitle',
     edit: 'admin.manageTokens.editTitle',
   };
+
+  const fmtDollars = (v: number) =>
+    Number(v).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -192,39 +223,64 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
               <button
                 type="button"
                 onClick={handleBack}
-                className="mr-1 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                aria-label={t('admin.manageTokens.back')}
-              >
+                className="text-muted-foreground hover:text-foreground mr-1 rounded p-0.5"
+                aria-label={t('admin.manageTokens.back')}>
                 <ArrowLeft size={16} />
               </button>
             )}
-            <Coins size={20} />
+            <DollarSign size={20} />
             {t(titleKey[view], { email: user.email })}
           </DialogTitle>
         </DialogHeader>
 
         {view === 'list' && (
           <div className="space-y-3">
-            {loadingTokens ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">{t('admin.manageTokens.loading')}</p>
-            ) : tokens.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">{t('admin.manageTokens.empty')}</p>
+            {loadingBudgets ? (
+              <p className="text-muted-foreground py-4 text-center text-sm">
+                {t('admin.manageTokens.loading')}
+              </p>
+            ) : budgets.length === 0 ? (
+              <p className="text-muted-foreground py-4 text-center text-sm">
+                {t('admin.manageTokens.empty')}
+              </p>
             ) : (
               <div className="space-y-2">
-                {tokens.map((token) => (
-                  <div key={token.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                {budgets.map((budget) => (
+                  <div
+                    key={budget.id}
+                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                     <div>
-                      <p className="font-medium">{token.model.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {token.usedTokens.toLocaleString()} / {token.tokenCount != null ? token.tokenCount.toLocaleString() : '∞'} {t('admin.manageTokens.tokens')}
-                        {' · '}{t('admin.manageTokens.resetLabel')} {new Date(token.resetAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                      <p className="font-medium">{fmtProvider(budget.model.provider)}</p>
+                      <p className="text-muted-foreground text-xs">
+                        ${fmtDollars(budget.usedDollars)} /{' '}
+                        {budget.dollarLimit != null
+                          ? `$${fmtDollars(budget.dollarLimit)}`
+                          : '∞'}{' '}
+                        {t('admin.manageTokens.dollars')}
+                        {' · '}
+                        {t('admin.manageTokens.resetLabel')}{' '}
+                        {new Date(budget.resetAt).toLocaleDateString(undefined, {
+                          timeZone: 'UTC',
+                        })}
                       </p>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => { setEditingToken(token); setTokenCount(token.tokenCount != null ? String(token.tokenCount) : ''); setView('edit'); }}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditingBudget(budget);
+                          setDollarLimit(
+                            budget.dollarLimit != null ? String(budget.dollarLimit) : '',
+                          );
+                          setView('edit');
+                        }}>
                         <Pencil size={14} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(token.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(budget.id)}>
                         <Trash2 size={14} />
                       </Button>
                     </div>
@@ -236,9 +292,12 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => { resetForm(); setEditingToken(null); setView('add'); }}
-              disabled={availableModels.length === 0}
-            >
+              onClick={() => {
+                resetForm();
+                setEditingBudget(null);
+                setView('add');
+              }}
+              disabled={availableProviders.length === 0}>
               <Plus size={14} className="mr-1" />
               {t('admin.manageTokens.add')}
             </Button>
@@ -250,33 +309,39 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
             {view === 'add' && (
               <div className="space-y-1.5">
                 <Label>{t('admin.manageTokens.model')}</Label>
-                <Select value={modelId} onValueChange={setModelId}>
+                <Select value={provider} onValueChange={setProvider}>
                   <SelectTrigger>
                     <SelectValue placeholder={t('admin.manageTokens.selectModel')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableModels.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name} ({m.provider})</SelectItem>
+                    {availableProviders.map((m) => (
+                      <SelectItem key={m.provider} value={m.provider}>
+                        {fmtProvider(m.provider)}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
-            {view === 'edit' && editingToken && (
+            {view === 'edit' && editingBudget && (
               <div className="space-y-1.5">
                 <Label>{t('admin.manageTokens.model')}</Label>
-                <p className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  {editingToken.model.name} ({editingToken.model.provider})
+                <p className="bg-muted text-muted-foreground rounded-md border px-3 py-2 text-sm">
+                  {fmtProvider(editingBudget.model.provider)}
                 </p>
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>{t('admin.manageTokens.tokenCount')}</Label>
+              <Label>{t('admin.manageTokens.dollarLimit')}</Label>
               <Input
                 type="number"
-                min={1}
-                value={tokenCount}
-                onChange={(e) => setTokenCount(e.target.value)}
+                min={0.01}
+                step={0.01}
+                value={dollarLimit}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) setDollarLimit(val);
+                }}
                 placeholder="∞"
               />
             </div>
@@ -291,11 +356,12 @@ export default function ManageTokensDialog({ open, onOpenChange, user, onUpdated
             <Button
               type="button"
               variant="outline"
-              disabled={submitting || (view === 'add' && !modelId)}
+              disabled={submitting || (view === 'add' && !provider)}
               className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
-              onClick={view === 'add' ? handleAdd : handleEdit}
-            >
-              {view === 'add' ? t('admin.manageTokens.addSubmit') : t('admin.manageTokens.editSubmit')}
+              onClick={view === 'add' ? handleAdd : handleEdit}>
+              {view === 'add'
+                ? t('admin.manageTokens.addSubmit')
+                : t('admin.manageTokens.editSubmit')}
             </Button>
           </DialogFooter>
         )}

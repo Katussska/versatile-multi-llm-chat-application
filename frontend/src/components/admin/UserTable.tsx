@@ -18,18 +18,18 @@ import { MoreHorizontal, Search, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-interface TokenLimit {
+interface BudgetLimit {
   modelName: string;
   provider: string;
-  tokenCount: number | null;
-  usedTokens: number;
+  dollarLimit: number | null;
+  usedDollars: number;
 }
 
 export interface AdminUserRow {
   id: string;
   name: string;
   email: string;
-  tokenLimits?: TokenLimit[];
+  budgetLimits?: BudgetLimit[];
   role: 'USER' | 'ADMIN';
 }
 
@@ -42,13 +42,14 @@ function barColor(pct: number): string {
   return pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-primary';
 }
 
-function fmtTokens(n: number | null): string {
+function fmtProvider(p: string): string {
+  const map: Record<string, string> = { openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini' };
+  return map[p.toLowerCase()] ?? p;
+}
+
+function fmtUsd(n: number | null): string {
   if (n === null) return '∞';
-  return n >= 1_000_000
-    ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000
-      ? `${Math.round(n / 1_000)}k`
-      : String(n);
+  return `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
@@ -171,36 +172,38 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                   </td>
                   <td className="text-muted-foreground px-4 py-3">{user.email}</td>
                   <td className="px-4 py-3">
-                    {(user.tokenLimits ?? []).length > 0 ? (
+                    {(user.budgetLimits ?? []).length > 0 ? (
                       <div className="space-y-1">
-                        {(user.tokenLimits ?? []).map((tl) => {
+                        {(user.budgetLimits ?? []).map((bl) => {
                           const pct =
-                            tl.tokenCount != null && tl.tokenCount > 0
+                            bl.dollarLimit != null && bl.dollarLimit > 0
                               ? Math.min(
                                   100,
-                                  Math.round((tl.usedTokens / tl.tokenCount) * 100),
+                                  Math.round((bl.usedDollars / bl.dollarLimit) * 100),
                                 )
                               : 0;
                           return (
                             <div
-                              key={`${tl.provider}:${tl.modelName}`}
+                              key={bl.provider}
                               className="text-xs">
                               <div className="flex items-center justify-between gap-3">
                                 <span
-                                  className="max-w-[160px] truncate font-medium"
-                                  title={`${tl.modelName} (${tl.provider})`}>
-                                  {tl.modelName}
+                                  className="max-w-[120px] truncate font-medium"
+                                  title={fmtProvider(bl.provider)}>
+                                  {fmtProvider(bl.provider)}
                                 </span>
                                 <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-                                  {fmtTokens(tl.usedTokens)} / {fmtTokens(tl.tokenCount)}
+                                  {fmtUsd(bl.usedDollars)} / {fmtUsd(bl.dollarLimit)}
                                 </span>
                               </div>
-                              <div className="bg-muted mt-0.5 h-1 w-full overflow-hidden rounded-full">
-                                <div
-                                  className={`h-full rounded-full transition-all ${barColor(pct)}`}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
+                              {bl.dollarLimit != null && (
+                                <div className="bg-muted mt-0.5 h-1 w-full overflow-hidden rounded-full">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${barColor(pct)}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           );
                         })}

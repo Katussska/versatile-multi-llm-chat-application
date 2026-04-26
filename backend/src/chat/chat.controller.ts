@@ -38,7 +38,6 @@ import { PatchMessageDto } from './dto/patch-message.dto';
 import { StreamMessageDto } from './dto/stream-message.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
-import { LimitGuard } from '../llm/limit.guard';
 
 @Controller('chats')
 @UseGuards(AuthGuard)
@@ -221,7 +220,6 @@ export class ChatController {
   }
 
   @Post(':id/stream')
-  @UseGuards(LimitGuard)
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @ApiOperation({ summary: 'Stream LLM response for a chat message' })

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../entities/UserRole';
 
-export class TokenLimitDto {
+export class BudgetLimitDto {
   @ApiProperty()
   modelName!: string;
 
@@ -9,10 +9,10 @@ export class TokenLimitDto {
   provider!: string;
 
   @ApiProperty({ nullable: true })
-  tokenCount!: number | null;
+  dollarLimit!: number | null;
 
   @ApiProperty()
-  usedTokens!: number;
+  usedDollars!: number;
 }
 
 export class UserBasicResponseDto {
@@ -33,6 +33,6 @@ export class UserBasicResponseDto {
 }
 
 export class UserResponseDto extends UserBasicResponseDto {
-  @ApiProperty({ type: [TokenLimitDto] })
-  tokenLimits!: TokenLimitDto[];
+  @ApiProperty({ type: [BudgetLimitDto] })
+  budgetLimits!: BudgetLimitDto[];
 }

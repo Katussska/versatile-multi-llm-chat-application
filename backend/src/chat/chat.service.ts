@@ -13,6 +13,7 @@ import { Chat } from '../entities/Chat';
 import { Message } from '../entities/Message';
 import { User } from '../entities/User';
 import { Model } from '../entities/Model';
+import { ModelPricing } from '../entities/ModelPricing';
 import { Token } from '../entities/Token';
 import { UsageLog } from '../entities/UsageLog';
 import { CreateChatDto } from './dto/create-chat.dto';
@@ -347,12 +348,25 @@ export class ChatService {
     );
   }
 
-  private async updateUsedTokens(
+  private calculateCost(
+    pricing: ModelPricing | null | undefined,
+    promptTokens: number | null,
+    completionTokens: number | null,
+  ): number {
+    if (!pricing) return 0;
+    const input =
+      ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
+    const output =
+      ((completionTokens ?? 0) / 1_000_000) * Number(pricing.outputPrice);
+    return input + output;
+  }
+
+  private async updateUsedDollars(
     userId: string,
     provider: string,
-    tokens: number,
+    cost: number,
   ): Promise<void> {
-    if (tokens <= 0) return;
+    if (cost <= 0) return;
 
     const tokenLimit = await this.tokenRepository.findOne({
       user: userId,
@@ -362,7 +376,7 @@ export class ChatService {
       await this.em.nativeUpdate(
         Token,
         { user: userId, provider },
-        { usedTokens: raw('used_tokens + ?', [tokens]) },
+        { usedDollars: raw('used_dollars + ?', [cost]) },
       );
       return;
     }
@@ -370,8 +384,8 @@ export class ChatService {
     const usageCounter = this.em.create(Token, {
       user: this.em.getReference(User, userId),
       provider,
-      tokenCount: null,
-      usedTokens: tokens,
+      dollarLimit: null,
+      usedDollars: cost,
       resetAt: nextMonthFirstDay(),
     });
     this.em.persist(usageCounter);
@@ -384,6 +398,7 @@ export class ChatService {
     modelProvider: string,
     promptTokens: number | null,
     completionTokens: number | null,
+    cost: number,
   ): void {
     const usageLog = this.em.create(UsageLog, {
       user: this.em.getReference(User, userId),
@@ -392,6 +407,7 @@ export class ChatService {
       modelProvider,
       promptTokens,
       completionTokens,
+      cost,
     });
     this.em.persist(usageLog);
   }
@@ -421,9 +437,16 @@ export class ChatService {
       res,
     } = opts;
 
+    const pricing = await this.em.findOne(ModelPricing, { model: model.id });
+    const cost = this.calculateCost(
+      pricing,
+      usage.promptTokens,
+      usage.completionTokens,
+    );
+
     if (fullResponse || saveEvenIfEmpty) {
       assistantMessage.content = fullResponse;
-      await this.updateUsedTokens(userId, model.provider, usage.totalTokens);
+      await this.updateUsedDollars(userId, model.provider, cost);
     } else {
       this.em.remove(assistantMessage);
       if (removeUserOnEmpty && userMessage) this.em.remove(userMessage);
@@ -435,6 +458,7 @@ export class ChatService {
       model.provider,
       usage.promptTokens,
       usage.completionTokens,
+      cost,
     );
     await this.em.flush();
     if (sendDone && res) {
@@ -568,21 +592,21 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const tokenLimit = await this.tokenRepository.findOne({
+    const budgetLimit = await this.tokenRepository.findOne({
       user: userId,
       provider: chat.model.provider,
     });
-    if (tokenLimit) {
-      if (new Date() >= tokenLimit.resetAt) {
-        tokenLimit.usedTokens = 0;
-        tokenLimit.resetAt = nextMonthFirstDay();
+    if (budgetLimit) {
+      if (new Date() >= budgetLimit.resetAt) {
+        budgetLimit.usedDollars = 0;
+        budgetLimit.resetAt = nextMonthFirstDay();
         await this.em.flush();
       } else if (
-        tokenLimit.tokenCount !== null &&
-        tokenLimit.usedTokens >= tokenLimit.tokenCount
+        budgetLimit.dollarLimit !== null &&
+        budgetLimit.usedDollars >= budgetLimit.dollarLimit
       ) {
         throw new HttpException(
-          { message: 'Token limit exceeded', resetAt: tokenLimit.resetAt },
+          { message: 'Budget limit exceeded', resetAt: budgetLimit.resetAt },
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }

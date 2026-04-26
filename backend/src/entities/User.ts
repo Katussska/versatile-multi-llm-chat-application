@@ -30,9 +30,6 @@ export class User extends Base {
   @Enum({ items: () => UserRole, nativeEnumName: 'user_role' })
   role: UserRole = UserRole.USER;
 
-  @Property({ type: 'integer', fieldName: 'monthly_token_limit', nullable: true })
-  monthlyTokenLimit: number | null = null;
-
   @OneToMany(() => Chat, (chat) => chat.user)
   chats = new Collection<Chat>(this);
 

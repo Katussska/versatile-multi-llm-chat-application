@@ -50,12 +50,6 @@ import { UserRole } from './entities/UserRole';
                   defaultValue: UserRole.USER,
                   input: false,
                 },
-                monthlyTokenLimit: {
-                  type: 'number',
-                  defaultValue: null,
-                  input: false,
-                  fieldName: 'monthly_token_limit',
-                },
               },
               fields: {
                 emailVerified: 'email_verified',

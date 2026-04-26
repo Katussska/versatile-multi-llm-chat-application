@@ -58,8 +58,8 @@
     "unfavourite": "Remove from favourites",
     "regenerate": "Regenerate",
     "selectProvider": "Select model",
-    "tokenLimitBanner": "Token limit reached. You can send new messages from {{- date}}.",
-    "tokenLimitErrorNoDate": "Token limit reached. Please wait for the reset."
+    "tokenLimitBanner": "Monthly budget limit reached for this provider. You can send new messages from {{- date}}.",
+    "tokenLimitErrorNoDate": "Monthly budget limit reached for this provider. Please wait for the reset."
   },
   "profile": {
     "title": "Profile",
@@ -113,11 +113,12 @@
       }
     },
     "tokens": {
-      "title": "Token usage",
+      "title": "Monthly budget",
       "reset": "Reset:",
-      "used": "Used {{used}} of {{total}} tokens",
-      "allModels": "All models",
-      "loadError": "Failed to load token limits."
+      "used": "Used ${{used}} of ${{total}}",
+      "usedUnlimited": "Used ${{used}} (no limit)",
+      "allModels": "All providers have no limit set.",
+      "loadError": "Failed to load budget limits."
     }
   },
   "admin": {
@@ -153,8 +154,8 @@
         "confirm": "Yes, assign"
       },
       "tokenStep": {
-        "title": "Token settings",
-        "description": "User created. Optionally set token limits for individual models.",
+        "title": "Budget settings",
+        "description": "User created. Optionally set monthly budget limits (in USD) per LLM provider.",
         "done": "Finish"
       }
     },
@@ -195,39 +196,39 @@
       "loadError": "Failed to load users."
     },
     "manageTokens": {
-      "trigger": "Tokens",
-      "title": "Manage token limits",
-      "titleSelected": "Tokens: {{email}}",
-      "description": "Select a user to manage their token limits.",
-      "addTitle": "Add token limit",
-      "editTitle": "Edit token limit",
+      "trigger": "Edit budget",
+      "title": "Manage monthly budget",
+      "titleSelected": "Budget: {{email}}",
+      "description": "Select a user to manage their monthly budget limits.",
+      "addTitle": "Add limit",
+      "editTitle": "Edit limit",
       "loading": "Loading limits...",
-      "empty": "User has no token limits.",
-      "loadError": "Failed to load token limits.",
-      "tokens": "tokens",
+      "empty": "User has no budget limits set.",
+      "loadError": "Failed to load budget limits.",
+      "dollars": "USD",
       "resetLabel": "reset",
-      "model": "Model",
-      "selectModel": "Select model...",
-      "tokenCount": "Token limit",
+      "model": "LLM provider",
+      "selectModel": "Select provider...",
+      "dollarLimit": "Monthly limit (USD)",
       "resetAt": "Reset date",
       "add": "Add limit",
       "addSubmit": "Add",
       "editSubmit": "Save",
-      "addSuccess": "Token limit added.",
-      "addError": "Failed to add token limit.",
-      "editSuccess": "Token limit updated.",
-      "editError": "Failed to update token limit.",
-      "deleteSuccess": "Token limit deleted.",
-      "deleteError": "Failed to delete token limit.",
+      "addSuccess": "Budget limit added.",
+      "addError": "Failed to add budget limit.",
+      "editSuccess": "Budget limit updated.",
+      "editError": "Failed to update budget limit.",
+      "deleteSuccess": "Budget limit deleted.",
+      "deleteError": "Failed to delete budget limit.",
       "back": "Back"
     },
     "userTable": {
       "title": "User overview",
       "name": "Name",
       "email": "Email",
-      "spending": "Spending (tokens)",
-      "limit": "Limit (tokens)",
-      "tokenLimits": "Token limits",
+      "spending": "Spending (USD)",
+      "limit": "Limit (USD)",
+      "tokenLimits": "Budgets",
       "global": "Global",
       "totalSpending": "total used",
       "noLimit": "No limit",
@@ -237,10 +238,10 @@
       "loadError": "Failed to load users."
     },
     "editLimit": {
-      "title": "Edit token limit",
-      "description": "Set a monthly token limit for {{email}}. Leave empty to remove the limit.",
-      "label": "Monthly limit (tokens)",
-      "placeholder": "E.g. 100000",
+      "title": "Edit monthly limit",
+      "description": "Set a monthly limit (in USD) for {{email}}. Leave empty to remove the limit.",
+      "label": "Monthly limit (USD)",
+      "placeholder": "E.g. 10.00",
       "noLimit": "Remove limit",
       "submit": "Save",
       "success": "Limit updated successfully.",

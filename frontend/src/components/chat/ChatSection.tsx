@@ -41,6 +41,7 @@ export default function ChatSection() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
   const [tokenLimitResetAt, setTokenLimitResetAt] = useState<Date | null>(null);
+  const [budgetLimits, setBudgetLimits] = useState<{ model: { provider: string }; dollarLimit: number | null; usedDollars: number; resetAt: string }[]>([]);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -147,6 +148,25 @@ export default function ChatSection() {
       abortControllerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/users/me/tokens`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : Promise.resolve([])))
+      .then(setBudgetLimits)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!selectedModelId || !availableModels?.length) return;
+    const provider = availableModels.find((m) => m.id === selectedModelId)?.provider;
+    if (!provider) return;
+    const budget = budgetLimits.find((b) => b.model.provider === provider);
+    if (budget && budget.dollarLimit !== null && budget.usedDollars >= budget.dollarLimit) {
+      setTokenLimitResetAt(new Date(budget.resetAt));
+    } else {
+      setTokenLimitResetAt(null);
+    }
+  }, [selectedModelId, availableModels, budgetLimits]);
 
   useEffect(() => {
     setTokenLimitResetAt(null);
@@ -290,6 +310,10 @@ export default function ChatSection() {
           params: { path: { id: chatId } },
         }).queryKey,
       }),
+      fetch(`${API_BASE}/users/me/tokens`, { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : Promise.resolve([])))
+        .then(setBudgetLimits)
+        .catch(() => {}),
     ]);
   };
 

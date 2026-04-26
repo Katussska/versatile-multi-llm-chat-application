@@ -40,12 +40,12 @@ import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
 
 function toUserResponse(
   user: User & {
-    tokenLimits?: {
+    budgetLimits?: {
       modelId?: string;
       modelName: string;
       provider: string;
-      tokenCount: number | null;
-      usedTokens: number;
+      dollarLimit: number | null;
+      usedDollars: number;
     }[];
   },
 ): UserResponseDto {
@@ -55,12 +55,12 @@ function toUserResponse(
     name: user.name,
     role: user.role,
     createdAt: user.createdAt,
-    tokenLimits: (user.tokenLimits ?? []).map(
-      ({ modelName, provider, tokenCount, usedTokens }) => ({
+    budgetLimits: (user.budgetLimits ?? []).map(
+      ({ modelName, provider, dollarLimit, usedDollars }) => ({
         modelName,
         provider,
-        tokenCount,
-        usedTokens,
+        dollarLimit,
+        usedDollars,
       }),
     ),
   };
@@ -178,16 +178,18 @@ export class UserController {
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  @ApiOperation({ summary: 'Create token limit for a user (admin only)' })
+  @ApiOperation({
+    summary: 'Create token limit for a user by provider (admin only)',
+  })
   @ApiCreatedResponse({
     description: 'Token limit created',
     type: TokenResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiForbiddenResponse({ description: 'Admin access required' })
-  @ApiNotFoundResponse({ description: 'User or model not found' })
+  @ApiNotFoundResponse({ description: 'User or provider not found' })
   @ApiConflictResponse({
-    description: 'Token limit for this model already exists',
+    description: 'Token limit for this provider already exists',
   })
   async createToken(
     @Param('id') id: string,

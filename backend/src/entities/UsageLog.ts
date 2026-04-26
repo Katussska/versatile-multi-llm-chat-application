@@ -37,6 +37,9 @@ export class UsageLog {
   @Property({ type: 'integer', fieldName: 'completion_tokens', nullable: true })
   completionTokens: number | null = null;
 
+  @Property({ type: 'decimal', precision: 10, scale: 6, fieldName: 'cost', nullable: true })
+  cost: number | null = null;
+
   @Property({
     type: 'datetime',
     onCreate: () => new Date(),

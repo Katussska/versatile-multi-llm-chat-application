@@ -19,10 +19,10 @@ export class TokenResponseDto {
   model: ModelDto;
 
   @ApiProperty({ nullable: true })
-  tokenCount: number | null;
+  dollarLimit: number | null;
 
   @ApiProperty()
-  usedTokens: number;
+  usedDollars: number;
 
   @ApiProperty()
   resetAt: Date;

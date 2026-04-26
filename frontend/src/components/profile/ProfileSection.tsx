@@ -48,11 +48,11 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
-interface TokenLimit {
+interface BudgetLimit {
   id: string;
   model: { id: string; name: string; provider: string };
-  tokenCount: number;
-  usedTokens: number;
+  dollarLimit: number | null;
+  usedDollars: number;
   resetAt: string;
 }
 
@@ -72,7 +72,7 @@ export default function ProfileSection() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConversationConfirmAction>(null);
-  const [tokens, setTokens] = useState<TokenLimit[] | null>(null);
+  const [budgets, setBudgets] = useState<BudgetLimit[] | null>(null);
   const [tokenLimitsLoading, setTokenLimitsLoading] = useState(true);
   const [tokenLimitsError, setTokenLimitsError] = useState(false);
 
@@ -83,9 +83,9 @@ export default function ProfileSection() {
     setTokenLimitsError(false);
     fetch(`${baseUrl}/users/me/tokens`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data: TokenLimit[]) => setTokens(data))
+      .then((data: BudgetLimit[]) => setBudgets(data))
       .catch(() => {
-        setTokens(null);
+        setBudgets(null);
         setTokenLimitsError(true);
       })
       .finally(() => setTokenLimitsLoading(false));
@@ -463,49 +463,49 @@ export default function ProfileSection() {
           <CardContent>
             {tokenLimitsLoading ? null : tokenLimitsError ? (
               <p className="text-destructive text-sm">{t('profile.tokens.loadError')}</p>
-            ) : tokens === null || tokens.length === 0 ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {t('profile.tokens.allModels')}
-                </span>
-                <span className="text-lg font-medium">∞</span>
-              </div>
+            ) : budgets === null || budgets.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t('profile.tokens.allModels')}</p>
             ) : (
               <div className="space-y-4">
-                {tokens.map((token) => {
-                  const hasLimit = token.tokenCount != null;
+                {budgets.map((budget) => {
+                  const hasLimit = budget.dollarLimit != null && budget.dollarLimit > 0;
                   const pct = hasLimit
-                    ? Math.min(100, (token.usedTokens / token.tokenCount) * 100)
+                    ? Math.min(100, (budget.usedDollars / budget.dollarLimit!) * 100)
                     : 0;
                   const barColor =
                     pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-primary';
+                  const fmtUsd = (v: number) =>
+                    Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                   return (
-                    <div key={token.id} className="space-y-1.5">
+                    <div key={budget.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{token.model.name}</span>
+                        <span className="font-medium capitalize">{budget.model.provider}</span>
                         <span className="text-muted-foreground text-xs">
                           {hasLimit ? `${pct.toFixed(1)} %` : '∞'}
                         </span>
                       </div>
-                      <div className="bg-muted h-2 overflow-hidden rounded-full">
-                        <div
-                          className={`h-full rounded-full transition-all ${barColor}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      {hasLimit && (
+                        <div className="bg-muted h-2 overflow-hidden rounded-full">
+                          <div
+                            className={`h-full rounded-full transition-all ${barColor}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      )}
                       <div className="text-muted-foreground flex items-center justify-between text-xs">
                         <span>
-                          {t('profile.tokens.used', {
-                            used: token.usedTokens.toLocaleString(),
-                            total:
-                              token.tokenCount != null
-                                ? token.tokenCount.toLocaleString()
-                                : '∞',
-                          })}
+                          {hasLimit
+                            ? t('profile.tokens.used', {
+                                used: fmtUsd(budget.usedDollars),
+                                total: fmtUsd(budget.dollarLimit!),
+                              })
+                            : t('profile.tokens.usedUnlimited', {
+                                used: fmtUsd(budget.usedDollars),
+                              })}
                         </span>
                         <span>
                           {t('profile.tokens.reset')}{' '}
-                          {new Date(token.resetAt).toLocaleDateString(undefined, {
+                          {new Date(budget.resetAt).toLocaleDateString(undefined, {
                             timeZone: 'UTC',
                           })}
                         </span>

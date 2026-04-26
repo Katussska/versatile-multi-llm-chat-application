@@ -1,14 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateTokenDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  modelId: string;
+  @ApiProperty()
+  @IsString()
+  provider: string;
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  tokenCount?: number | null;
+  @IsNumber()
+  @Min(0.01)
+  dollarLimit?: number | null;
 }

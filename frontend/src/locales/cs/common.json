@@ -58,8 +58,8 @@
     "unfavourite": "Odebrat z oblíbených",
     "regenerate": "Znovu vygenerovat",
     "selectProvider": "Vybrat model",
-    "tokenLimitBanner": "Dosáhli jste limitu tokenů. Nové zprávy lze odesílat od {{- date}}.",
-    "tokenLimitErrorNoDate": "Dosáhli jste limitu tokenů. Počkejte na reset."
+    "tokenLimitBanner": "Dosáhli jste měsíčního limitu pro tento model. Nové zprávy lze odesílat od {{- date}}.",
+    "tokenLimitErrorNoDate": "Dosáhli jste měsíčního limitu pro tento model. Počkejte na reset."
   },
   "profile": {
     "title": "Profil",
@@ -113,11 +113,12 @@
       }
     },
     "tokens": {
-      "title": "Využití tokenů",
+      "title": "Měsíční rozpočet",
       "reset": "Reset:",
-      "used": "Využito {{used}} z {{total}} tokenů",
-      "allModels": "Všechny modely",
-      "loadError": "Nepodařilo se načíst limity tokenů."
+      "used": "Využito ${{used}} z ${{total}}",
+      "usedUnlimited": "Využito ${{used}} (bez limitu)",
+      "allModels": "Všechny modely jsou bez limitu.",
+      "loadError": "Nepodařilo se načíst limity."
     }
   },
   "admin": {
@@ -153,8 +154,8 @@
         "confirm": "Ano, přiřadit"
       },
       "tokenStep": {
-        "title": "Nastavení tokenů",
-        "description": "Uživatel byl vytvořen. Volitelně nastavte limity tokenů pro jednotlivé modely.",
+        "title": "Nastavení rozpočtu",
+        "description": "Uživatel byl vytvořen. Volitelně nastavte měsíční limity (v USD) pro jednotlivé poskytovatele LLM.",
         "done": "Dokončit"
       }
     },
@@ -195,39 +196,39 @@
       "loadError": "Nepodařilo se načíst uživatele."
     },
     "manageTokens": {
-      "trigger": "Tokeny",
-      "title": "Správa limitů tokenů",
-      "titleSelected": "Tokeny: {{email}}",
-      "description": "Vyberte uživatele pro správu jeho limitů tokenů.",
-      "addTitle": "Přidat limit tokenů",
-      "editTitle": "Upravit limit tokenů",
+      "trigger": "Upravit rozpočet",
+      "title": "Správa měsíčního rozpočtu",
+      "titleSelected": "Rozpočet: {{email}}",
+      "description": "Vyberte uživatele pro správu jeho měsíčního rozpočtu.",
+      "addTitle": "Přidat limit",
+      "editTitle": "Upravit limit",
       "loading": "Načítám limity...",
-      "empty": "Uživatel nemá žádné limity tokenů.",
-      "loadError": "Nepodařilo se načíst limity tokenů.",
-      "tokens": "tokenů",
+      "empty": "Uživatel nemá nastaveny žádné limity.",
+      "loadError": "Nepodařilo se načíst limity.",
+      "dollars": "USD",
       "resetLabel": "reset",
-      "model": "Model",
-      "selectModel": "Vyberte model...",
-      "tokenCount": "Limit tokenů",
+      "model": "Poskytovatel LLM",
+      "selectModel": "Vyberte poskytovatele...",
+      "dollarLimit": "Měsíční limit (USD)",
       "resetAt": "Datum resetu",
       "add": "Přidat limit",
       "addSubmit": "Přidat",
       "editSubmit": "Uložit",
-      "addSuccess": "Limit tokenů byl přidán.",
-      "addError": "Nepodařilo se přidat limit tokenů.",
-      "editSuccess": "Limit tokenů byl upraven.",
-      "editError": "Nepodařilo se upravit limit tokenů.",
-      "deleteSuccess": "Limit tokenů byl smazán.",
-      "deleteError": "Nepodařilo se smazat limit tokenů.",
+      "addSuccess": "Limit byl přidán.",
+      "addError": "Nepodařilo se přidat limit.",
+      "editSuccess": "Limit byl upraven.",
+      "editError": "Nepodařilo se upravit limit.",
+      "deleteSuccess": "Limit byl smazán.",
+      "deleteError": "Nepodařilo se smazat limit.",
       "back": "Zpět"
     },
     "userTable": {
       "title": "Přehled uživatelů",
       "name": "Jméno",
       "email": "Email",
-      "spending": "Útrata (tokeny)",
-      "limit": "Limit (tokeny)",
-      "tokenLimits": "Limity tokenů",
+      "spending": "Útrata (USD)",
+      "limit": "Limit (USD)",
+      "tokenLimits": "Rozpočty",
       "global": "Globální",
       "totalSpending": "celkem využito",
       "noLimit": "Bez limitu",
@@ -237,10 +238,10 @@
       "loadError": "Nepodařilo se načíst uživatele."
     },
     "editLimit": {
-      "title": "Upravit limit tokenů",
-      "description": "Nastavte měsíční limit tokenů pro uživatele {{email}}. Ponechte prázdné pro zrušení limitu.",
-      "label": "Měsíční limit (tokeny)",
-      "placeholder": "Např. 100000",
+      "title": "Upravit měsíční limit",
+      "description": "Nastavte měsíční limit (v USD) pro uživatele {{email}}. Ponechte prázdné pro zrušení limitu.",
+      "label": "Měsíční limit (USD)",
+      "placeholder": "Např. 10.00",
       "noLimit": "Zrušit limit",
       "submit": "Uložit",
       "success": "Limit byl úspěšně upraven.",

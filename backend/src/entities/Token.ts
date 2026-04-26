@@ -11,11 +11,11 @@ export class Token extends Base {
   @ManyToOne(() => User)
   user!: Rel<User>;
 
-  @Property({ type: 'number', fieldName: 'token_count', nullable: true })
-  tokenCount: number | null = null;
+  @Property({ type: 'decimal', precision: 10, scale: 6, fieldName: 'dollar_limit', nullable: true })
+  dollarLimit: number | null = null;
 
-  @Property({ type: 'number', default: 0, fieldName: 'used_tokens' })
-  usedTokens: number = 0;
+  @Property({ type: 'decimal', precision: 10, scale: 6, default: 0, fieldName: 'used_dollars' })
+  usedDollars: number = 0;
 
   @Property({ type: 'datetime', fieldName: 'reset_at' })
   resetAt!: Date;

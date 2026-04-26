@@ -1501,37 +1501,37 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
-        "token_count": {
-          "name": "token_count",
-          "type": "int4",
+        "dollar_limit": {
+          "name": "dollar_limit",
+          "type": "numeric(10,6)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
           "length": null,
-          "precision": 32,
-          "scale": 0,
+          "precision": 10,
+          "scale": 6,
           "default": null,
           "comment": null,
           "enumItems": [],
-          "mappedType": "integer"
+          "mappedType": "decimal"
         },
-        "used_tokens": {
-          "name": "used_tokens",
-          "type": "int4",
+        "used_dollars": {
+          "name": "used_dollars",
+          "type": "numeric(10,6)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "unique": false,
           "length": null,
-          "precision": 32,
-          "scale": 0,
+          "precision": 10,
+          "scale": 6,
           "default": "0",
           "comment": null,
           "enumItems": [],
-          "mappedType": "integer"
+          "mappedType": "decimal"
         },
         "reset_at": {
           "name": "reset_at",
@@ -1764,6 +1764,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
+        },
+        "cost": {
+          "name": "cost",
+          "type": "numeric(10,6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 10,
+          "scale": 6,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "decimal"
         }
       },
       "indexes": [
@@ -1994,22 +2010,6 @@
           ],
           "mappedType": "unknown",
           "nativeEnumName": "user_role"
-        },
-        "monthly_token_limit": {
-          "name": "monthly_token_limit",
-          "type": "int4",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": 32,
-          "scale": 0,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "integer"
         }
       },
       "indexes": [

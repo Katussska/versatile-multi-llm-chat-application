@@ -52,12 +52,12 @@ export class UserService {
 
   async getUsers(): Promise<
     (User & {
-      tokenLimits: {
+      budgetLimits: {
         modelId: string;
         modelName: string;
         provider: string;
-        tokenCount: number | null;
-        usedTokens: number;
+        dollarLimit: number | null;
+        usedDollars: number;
       }[];
     })[]
   > {
@@ -66,20 +66,20 @@ export class UserService {
       { orderBy: { createdAt: 'ASC' } },
     );
 
-    const [tokenRows, allModels] = await Promise.all([
+    const [budgetRows, allModels] = await Promise.all([
       this.em.execute<
         {
           user_id: string;
-          token_count: string | null;
-          used_tokens: string;
+          dollar_limit: string | null;
+          used_dollars: string;
           provider: string;
           model_id: string;
           model_name: string;
         }[]
       >(
         `SELECT t.user_id,
-                t.token_count::text,
-                CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_tokens ELSE 0 END::text AS used_tokens,
+                t.dollar_limit::text,
+                CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_dollars ELSE 0 END::text AS used_dollars,
                 t.provider,
                 m.id AS model_id,
                 m.name AS model_name
@@ -102,31 +102,31 @@ export class UserService {
       ),
     ]);
 
-    const tokenMap = new Map<
+    const budgetMap = new Map<
       string,
       {
         modelId: string;
         modelName: string;
         provider: string;
-        tokenCount: number | null;
-        usedTokens: number;
+        dollarLimit: number | null;
+        usedDollars: number;
       }[]
     >();
-    for (const r of tokenRows) {
-      if (!tokenMap.has(r.user_id)) tokenMap.set(r.user_id, []);
-      tokenMap.get(r.user_id)!.push({
+    for (const r of budgetRows) {
+      if (!budgetMap.has(r.user_id)) budgetMap.set(r.user_id, []);
+      budgetMap.get(r.user_id)!.push({
         modelId: r.model_id,
         modelName: r.model_name,
         provider: r.provider,
-        tokenCount: r.token_count != null ? parseInt(r.token_count, 10) : null,
-        usedTokens: parseInt(r.used_tokens, 10),
+        dollarLimit: r.dollar_limit != null ? parseFloat(r.dollar_limit) : null,
+        usedDollars: parseFloat(r.used_dollars),
       });
     }
 
     return users.map((u) => {
-      const existing = tokenMap.get(u.id) ?? [];
+      const existing = budgetMap.get(u.id) ?? [];
       const coveredIds = new Set(existing.map((t) => t.modelId));
-      const tokenLimits = [
+      const budgetLimits = [
         ...existing,
         ...allModels
           .filter((m) => !coveredIds.has(m.id))
@@ -134,13 +134,11 @@ export class UserService {
             modelId: m.id,
             modelName: m.name,
             provider: m.provider,
-            tokenCount: null,
-            usedTokens: 0,
+            dollarLimit: null,
+            usedDollars: 0,
           })),
       ];
-      return Object.assign(u, {
-        tokenLimits,
-      });
+      return Object.assign(u, { budgetLimits });
     });
   }
 
@@ -232,7 +230,7 @@ export class UserService {
     let dirty = false;
     for (const t of tokens) {
       if (t.resetAt.getUTCFullYear() >= 9999 || now >= t.resetAt) {
-        if (now >= t.resetAt) t.usedTokens = 0;
+        if (now >= t.resetAt) t.usedDollars = 0;
         t.resetAt = nextMonthFirstDay();
         dirty = true;
       }
@@ -250,8 +248,8 @@ export class UserService {
       return {
         id: t.id,
         model: { id: model.id, name: model.name, provider: model.provider },
-        tokenCount: t.tokenCount,
-        usedTokens: t.usedTokens,
+        dollarLimit: t.dollarLimit,
+        usedDollars: t.usedDollars,
         resetAt: t.resetAt,
       };
     });
@@ -267,20 +265,25 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const model = await this.modelRepository.findOne({ id: dto.modelId });
-    if (!model) throw new NotFoundException('Model not found');
+    const model = await this.modelRepository.findOne(
+      { provider: dto.provider, deletedAt: null },
+      { orderBy: { name: 'ASC', createdAt: 'ASC' } },
+    );
+    if (!model) throw new NotFoundException('Provider not found');
 
     const existing = await this.tokenRepository.findOne({
       user: userId,
       provider: model.provider,
     });
     if (existing)
-      throw new ConflictException('Token limit for this model already exists');
+      throw new ConflictException(
+        'Budget limit for this provider already exists',
+      );
 
     const token = new Token();
     token.user = user;
     token.provider = model.provider;
-    token.tokenCount = dto.tokenCount ?? null;
+    token.dollarLimit = dto.dollarLimit ?? null;
     token.resetAt = nextMonthFirstDay();
 
     this.em.persist(token);
@@ -289,8 +292,8 @@ export class UserService {
     return {
       id: token.id,
       model: { id: model.id, name: model.name, provider: model.provider },
-      tokenCount: token.tokenCount,
-      usedTokens: token.usedTokens,
+      dollarLimit: token.dollarLimit,
+      usedDollars: token.usedDollars,
       resetAt: token.resetAt,
     };
   }
@@ -304,7 +307,7 @@ export class UserService {
       id: tokenId,
       user: userId,
     });
-    if (!token) throw new NotFoundException('Token limit not found');
+    if (!token) throw new NotFoundException('Budget limit not found');
 
     const model = await this.modelRepository.findOne(
       { provider: token.provider, deletedAt: null },
@@ -316,7 +319,8 @@ export class UserService {
       );
     }
 
-    if (dto.tokenCount !== undefined) token.tokenCount = dto.tokenCount ?? null;
+    if (dto.dollarLimit !== undefined)
+      token.dollarLimit = dto.dollarLimit ?? null;
 
     await this.em.flush();
 
@@ -327,8 +331,8 @@ export class UserService {
         name: model.name,
         provider: model.provider,
       },
-      tokenCount: token.tokenCount,
-      usedTokens: token.usedTokens,
+      dollarLimit: token.dollarLimit,
+      usedDollars: token.usedDollars,
       resetAt: token.resetAt,
     };
   }
@@ -338,7 +342,7 @@ export class UserService {
       id: tokenId,
       user: userId,
     });
-    if (!token) throw new NotFoundException('Token limit not found');
+    if (!token) throw new NotFoundException('Budget limit not found');
 
     this.em.remove(token);
     await this.em.flush();

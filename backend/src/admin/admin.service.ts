@@ -15,7 +15,7 @@ export class AdminService {
   ) {}
 
   async getUsers(): Promise<AdminUserDto[]> {
-    const [rows, tokenRows] = await Promise.all([
+    const [rows, budgetRows] = await Promise.all([
       this.em.execute<
         {
           id: string;
@@ -35,15 +35,15 @@ export class AdminService {
           user_id: string;
           model_name: string;
           provider: string;
-          token_count: number | null;
-          used_tokens: number;
+          dollar_limit: number | null;
+          used_dollars: number;
         }[]
       >(
         `SELECT t.user_id,
                 COALESCE(m.name, t.provider) AS model_name,
                 t.provider,
-                t.token_count,
-                CASE WHEN t.reset_at > NOW() THEN t.used_tokens ELSE 0 END AS used_tokens
+                t.dollar_limit,
+                CASE WHEN t.reset_at > NOW() THEN t.used_dollars ELSE 0 END AS used_dollars
          FROM token t
          LEFT JOIN LATERAL (
            SELECT name
@@ -57,10 +57,10 @@ export class AdminService {
       ),
     ]);
 
-    const tokensByUser = new Map<string, typeof tokenRows>();
-    for (const tr of tokenRows) {
-      if (!tokensByUser.has(tr.user_id)) tokensByUser.set(tr.user_id, []);
-      tokensByUser.get(tr.user_id)!.push(tr);
+    const budgetsByUser = new Map<string, typeof budgetRows>();
+    for (const tr of budgetRows) {
+      if (!budgetsByUser.has(tr.user_id)) budgetsByUser.set(tr.user_id, []);
+      budgetsByUser.get(tr.user_id)!.push(tr);
     }
 
     return rows.map((r) => ({
@@ -69,11 +69,11 @@ export class AdminService {
       name: r.name,
       role: r.role,
       createdAt: r.created_at,
-      tokenLimits: (tokensByUser.get(r.id) ?? []).map((tl) => ({
+      budgetLimits: (budgetsByUser.get(r.id) ?? []).map((tl) => ({
         modelName: tl.model_name,
         provider: tl.provider,
-        tokenCount: tl.token_count,
-        usedTokens: tl.used_tokens,
+        dollarLimit: tl.dollar_limit,
+        usedDollars: tl.used_dollars,
       })),
     }));
   }

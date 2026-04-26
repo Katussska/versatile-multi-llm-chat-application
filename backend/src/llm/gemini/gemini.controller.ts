@@ -9,10 +9,9 @@ import {
 import { GeminiService } from './gemini.service';
 import { GetAIMessageDTO } from './model/get-ai-response.dto';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
-import { LimitGuard } from '../limit.guard';
 
 @Controller('gemini')
-@UseGuards(AuthGuard, LimitGuard)
+@UseGuards(AuthGuard)
 export class GeminiController {
   constructor(private readonly service: GeminiService) {}
 
