@@ -1140,6 +1140,38 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "decimal"
+        },
+        "context_cache_price_long_ctx": {
+          "name": "context_cache_price_long_ctx",
+          "type": "numeric(10,6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 10,
+          "scale": 6,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "decimal"
+        },
+        "context_cache_storage_price": {
+          "name": "context_cache_storage_price",
+          "type": "numeric(10,6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 10,
+          "scale": 6,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "decimal"
         }
       },
       "indexes": [

@@ -10,6 +10,8 @@ type PricingDef = {
   cacheWrite1hPrice?: number;
   cacheReadPrice?: number;
   contextCachePrice?: number;
+  contextCachePriceLongCtx?: number;
+  contextCacheStoragePrice?: number;
   thinkingOutputPrice?: number;
   cachedInputPrice?: number;
   inputPriceLongCtx?: number;
@@ -33,8 +35,10 @@ const MODELS: {
     apiEndpoint: (name: string) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
     pricing: {
-      inputPrice: 0.1,
-      outputPrice: 0.4,
+      inputPrice: 0.10,
+      outputPrice: 0.40,
+      contextCachePrice: 0.01,
+      contextCacheStoragePrice: 1.00,
     },
   },
   {
@@ -45,10 +49,10 @@ const MODELS: {
     apiEndpoint: (name: string) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
     pricing: {
-      inputPrice: 0.15,
-      outputPrice: 0.6,
-      thinkingOutputPrice: 1.0,
-      contextCachePrice: 0.0375,
+      inputPrice: 0.30,
+      outputPrice: 2.50,
+      contextCachePrice: 0.03,
+      contextCacheStoragePrice: 1.00,
     },
   },
   {
@@ -60,11 +64,12 @@ const MODELS: {
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
     pricing: {
       inputPrice: 1.25,
-      outputPrice: 10.0,
-      thinkingOutputPrice: 3.5,
-      contextCachePrice: 0.3125,
-      inputPriceLongCtx: 2.5,
-      outputPriceLongCtx: 10.0,
+      outputPrice: 10.00,
+      contextCachePrice: 0.125,
+      contextCachePriceLongCtx: 0.25,
+      contextCacheStoragePrice: 4.50,
+      inputPriceLongCtx: 2.50,
+      outputPriceLongCtx: 15.00,
     },
   },
   {
@@ -74,11 +79,11 @@ const MODELS: {
     iconKey: 'anthropic',
     apiEndpoint: () => 'https://api.anthropic.com/v1/messages',
     pricing: {
-      inputPrice: 0.8,
-      outputPrice: 4.0,
-      cacheWrite5mPrice: 1.0,
-      cacheWrite1hPrice: 1.2,
-      cacheReadPrice: 0.08,
+      inputPrice: 1,
+      outputPrice: 5,
+      cacheWrite5mPrice: 1.25,
+      cacheWrite1hPrice: 2,
+      cacheReadPrice: 0.10,
     },
   },
   {
@@ -91,7 +96,7 @@ const MODELS: {
       inputPrice: 3.0,
       outputPrice: 15.0,
       cacheWrite5mPrice: 3.75,
-      cacheWrite1hPrice: 4.5,
+      cacheWrite1hPrice: 6,
       cacheReadPrice: 0.3,
     },
   },
@@ -102,11 +107,11 @@ const MODELS: {
     iconKey: 'anthropic',
     apiEndpoint: () => 'https://api.anthropic.com/v1/messages',
     pricing: {
-      inputPrice: 15.0,
-      outputPrice: 75.0,
-      cacheWrite5mPrice: 18.75,
-      cacheWrite1hPrice: 22.5,
-      cacheReadPrice: 1.5,
+      inputPrice: 5,
+      outputPrice: 25,
+      cacheWrite5mPrice: 6.25,
+      cacheWrite1hPrice: 10,
+      cacheReadPrice: 0.50,
     },
   },
   {
@@ -116,9 +121,9 @@ const MODELS: {
     iconKey: 'openai',
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
-      inputPrice: 0.1,
-      outputPrice: 0.4,
-      cachedInputPrice: 0.05,
+      inputPrice: 0.20,
+      outputPrice: 1.25,
+      cachedInputPrice: 0.02,
     },
   },
   {
@@ -128,9 +133,9 @@ const MODELS: {
     iconKey: 'openai',
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
-      inputPrice: 0.4,
-      outputPrice: 1.6,
-      cachedInputPrice: 0.2,
+      inputPrice: 0.75,
+      outputPrice: 4.50,
+      cachedInputPrice: 0.075,
     },
   },
   {
@@ -140,9 +145,12 @@ const MODELS: {
     iconKey: 'openai',
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
-      inputPrice: 10.0,
-      outputPrice: 30.0,
-      cachedInputPrice: 5.0,
+      inputPrice: 5,
+      outputPrice: 30,
+      cachedInputPrice: 0.50,
+      inputPriceLongCtx: 10,
+      outputPriceLongCtx: 45,
+      cachedInputPriceLongCtx: 1,
     },
   },
   {
@@ -152,9 +160,12 @@ const MODELS: {
     iconKey: 'openai',
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
-      inputPrice: 2.5,
-      outputPrice: 10.0,
-      cachedInputPrice: 1.25,
+      inputPrice: 2.50,
+      outputPrice: 15,
+      cachedInputPrice: 0.25,
+      inputPriceLongCtx: 5,
+      outputPriceLongCtx: 22.50,
+      cachedInputPriceLongCtx: 0.50,
     },
   },
 ];
@@ -198,6 +209,8 @@ export class ModelSeeder extends Seeder {
           cacheWrite1hPrice: def.pricing.cacheWrite1hPrice ?? null,
           cacheReadPrice: def.pricing.cacheReadPrice ?? null,
           contextCachePrice: def.pricing.contextCachePrice ?? null,
+          contextCachePriceLongCtx: def.pricing.contextCachePriceLongCtx ?? null,
+          contextCacheStoragePrice: def.pricing.contextCacheStoragePrice ?? null,
           thinkingOutputPrice: def.pricing.thinkingOutputPrice ?? null,
           cachedInputPrice: def.pricing.cachedInputPrice ?? null,
           inputPriceLongCtx: def.pricing.inputPriceLongCtx ?? null,
@@ -213,6 +226,8 @@ export class ModelSeeder extends Seeder {
         existingPricing.cacheWrite1hPrice = def.pricing.cacheWrite1hPrice ?? null;
         existingPricing.cacheReadPrice = def.pricing.cacheReadPrice ?? null;
         existingPricing.contextCachePrice = def.pricing.contextCachePrice ?? null;
+        existingPricing.contextCachePriceLongCtx = def.pricing.contextCachePriceLongCtx ?? null;
+        existingPricing.contextCacheStoragePrice = def.pricing.contextCacheStoragePrice ?? null;
         existingPricing.thinkingOutputPrice = def.pricing.thinkingOutputPrice ?? null;
         existingPricing.cachedInputPrice = def.pricing.cachedInputPrice ?? null;
         existingPricing.inputPriceLongCtx = def.pricing.inputPriceLongCtx ?? null;
