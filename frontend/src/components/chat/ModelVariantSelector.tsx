@@ -21,7 +21,7 @@ const MODEL_PRICING: Record<string, string> = {
   'gemini-2.5-flash': '$$',
   'gemini-2.5-flash-lite': '$',
   'claude-opus-4-7': '$$$',
-  'claude-sonnet-4-6': '$$',
+  'claude-sonnet-4-5': '$$',
   'claude-haiku-4-5-20251001': '$',
   'gpt-5.4': '$$$',
   'gpt-5.5': '$$$$',

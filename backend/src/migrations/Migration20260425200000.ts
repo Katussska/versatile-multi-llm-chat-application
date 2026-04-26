@@ -37,9 +37,9 @@ export class Migration20260425200000 extends Migration {
       },
       {
         provider: 'anthropic',
-        name: 'claude-sonnet-4-6',
+        name: 'claude-sonnet-4-5',
         apiEndpoint: 'https://api.anthropic.com/v1/messages',
-        displayLabel: 'Claude Sonnet 4.6',
+        displayLabel: 'Claude Sonnet 4.5',
         iconKey: 'anthropic',
         isDefault: false,
       },
@@ -84,7 +84,7 @@ export class Migration20260425200000 extends Migration {
     // Remove new models
     this.addSql(`
       UPDATE "model" SET deleted_at = NOW()
-      WHERE name IN ('gemini-2.5-flash-lite', 'gemini-2.5-pro', 'claude-sonnet-4-6', 'claude-opus-4-7', 'gpt-5.4', 'gpt-5.4-nano')
+      WHERE name IN ('gemini-2.5-flash-lite', 'gemini-2.5-pro', 'claude-sonnet-4-5', 'claude-opus-4-7', 'gpt-5.4', 'gpt-5.4-nano')
       AND deleted_at IS NULL;
     `);
 
