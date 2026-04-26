@@ -3,6 +3,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';
 import { User } from '../entities/User';
 import { AdminUserDto } from './dto/admin-user.dto';
+import { ChartDataPointDto } from './dto/chart-data.dto';
 import { StatsResponseDto } from '../user/dto/stats-response.dto';
 import { UserRole } from '../entities/UserRole';
 
@@ -78,57 +79,89 @@ export class AdminService {
     }));
   }
 
-  async getStats(
-    days: number,
-    provider?: string,
-    modelName?: string,
-  ): Promise<StatsResponseDto> {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+  async getStats(from: string, to: string): Promise<StatsResponseDto> {
+    const fromDate = new Date(from + 'T00:00:00Z');
+    const toDate = new Date(to + 'T00:00:00Z');
+    toDate.setUTCDate(toDate.getUTCDate() + 1);
 
     const totalUsers = await this.userRepository.count({ deletedAt: null });
 
     const [activeResult] = await this.em.execute<{ count: string }[]>(
-      `SELECT COUNT(DISTINCT user_id)::text AS count FROM chat WHERE created_at >= ? AND deleted_at IS NULL`,
-      [since],
+      `SELECT COUNT(DISTINCT user_id)::text AS count FROM chat WHERE created_at >= ? AND created_at < ? AND deleted_at IS NULL`,
+      [fromDate, toDate],
     );
     const activeUsers = parseInt(activeResult?.count ?? '0', 10);
 
     const [modelResult] = await this.em.execute<{ name: string }[]>(
-      `SELECT m.name FROM chat c JOIN model m ON c.model_id = m.id WHERE c.deleted_at IS NULL AND c.created_at >= ? GROUP BY m.name ORDER BY COUNT(c.id) DESC LIMIT 1`,
-      [since],
+      `SELECT m.name FROM chat c JOIN model m ON c.model_id = m.id WHERE c.deleted_at IS NULL AND c.created_at >= ? AND c.created_at < ? GROUP BY m.name ORDER BY COUNT(c.id) DESC LIMIT 1`,
+      [fromDate, toDate],
     );
     const mostUsedModel = modelResult?.name ?? null;
 
-    let rows: { date: string; messages: string }[];
+    return { totalUsers, activeUsers, mostUsedModel };
+  }
+
+  async getChartData(
+    from: string,
+    to: string,
+    provider?: string,
+    model?: string,
+    userId?: string,
+  ): Promise<ChartDataPointDto[]> {
+    const fromDate = new Date(from + 'T00:00:00Z');
+    const toDate = new Date(to + 'T00:00:00Z');
+    toDate.setUTCDate(toDate.getUTCDate() + 1);
+
+    const conditions: string[] = ['ul.created_at >= ?', 'ul.created_at < ?'];
+    const params: unknown[] = [fromDate, toDate];
+
     if (provider) {
-      const params: unknown[] = [since, provider];
-      let extra = '';
-      if (modelName) {
-        extra = ' AND model_name = ?';
-        params.push(modelName);
-      }
-      rows = await this.em.execute<{ date: string; messages: string }[]>(
-        `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') AS date, COUNT(*)::text AS messages FROM usage_log WHERE created_at >= ? AND model_provider = ?${extra} GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`,
-        params,
-      );
-    } else {
-      rows = await this.em.execute<{ date: string; messages: string }[]>(
-        `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') AS date, COUNT(*)::text AS messages FROM message WHERE created_at >= ? AND deleted_at IS NULL GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date ASC`,
-        [since],
-      );
+      conditions.push('ul.model_provider = ?');
+      params.push(provider);
+    }
+    if (model) {
+      conditions.push('ul.model_name = ?');
+      params.push(model);
+    }
+    if (userId) {
+      conditions.push('ul.user_id = ?');
+      params.push(userId);
     }
 
-    const dailyMap = new Map<string, number>(
-      rows.map((r) => [r.date, parseInt(r.messages, 10)]),
+    const rows = await this.em.execute<
+      {
+        date: string;
+        model_name: string;
+        model_provider: string;
+        tokens_in: string;
+        tokens_out: string;
+        tokens_cached: string;
+        cost: string;
+      }[]
+    >(
+      `SELECT
+        TO_CHAR(ul.created_at, 'YYYY-MM-DD') AS date,
+        COALESCE(ul.model_name, '') AS model_name,
+        COALESCE(ul.model_provider, '') AS model_provider,
+        SUM(COALESCE(ul.prompt_tokens, 0))::bigint AS tokens_in,
+        SUM(COALESCE(ul.completion_tokens, 0))::bigint AS tokens_out,
+        SUM(COALESCE(ul.cache_read_tokens, 0) + COALESCE(ul.cached_input_tokens, 0))::bigint AS tokens_cached,
+        SUM(COALESCE(ul.cost, 0))::float AS cost
+       FROM usage_log ul
+       WHERE ${conditions.join(' AND ')}
+       GROUP BY TO_CHAR(ul.created_at, 'YYYY-MM-DD'), ul.model_name, ul.model_provider
+       ORDER BY date ASC`,
+      params,
     );
-    const dailyActivity = Array.from({ length: days }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (days - 1 - i));
-      const date = d.toISOString().split('T')[0];
-      return { date, messages: dailyMap.get(date) ?? 0 };
-    });
 
-    return { totalUsers, activeUsers, mostUsedModel, dailyActivity };
+    return rows.map((r) => ({
+      date: r.date,
+      modelName: r.model_name,
+      modelProvider: r.model_provider,
+      tokensIn: Number(r.tokens_in),
+      tokensOut: Number(r.tokens_out),
+      tokensCached: Number(r.tokens_cached),
+      cost: Number(r.cost),
+    }));
   }
 }

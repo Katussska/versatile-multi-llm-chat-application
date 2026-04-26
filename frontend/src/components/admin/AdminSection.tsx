@@ -1,79 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import CostCharts, {
+  getPeriodDates,
+  PROVIDERS,
+  type PeriodKey,
+  type ProviderId,
+} from '@/components/admin/CostCharts';
+import { formatModelName } from '@/lib/formatModel';
 import UserTable from '@/components/admin/UserTable.tsx';
-import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select.tsx';
+} from '@/components/ui/select';
 
-import { BarChart3, Bot, Settings, UserCheck, Users } from 'lucide-react';
+import { Bot, ChevronDown, Search, Settings, UserCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-
-type Period = 1 | 7 | 14 | 30;
-
-interface DailyStat {
-  date: string;
-  messages: number;
-}
 
 interface AdminStats {
   totalUsers: number;
   activeUsers: number;
   mostUsedModel: string | null;
-  dailyActivity: DailyStat[];
 }
 
-interface ModelOption {
+interface AdminUser {
   id: string;
-  provider: string;
-  name: string;
-  displayLabel: string;
+  email: string;
 }
 
-const PROVIDER_LABELS: Record<string, string> = {
-  anthropic: 'Claude',
-  gemini: 'Gemini',
-};
-
-function useModels() {
-  const [models, setModels] = useState<ModelOption[]>([]);
-
-  useEffect(() => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    fetch(`${baseUrl}/models`, { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: ModelOption[]) => setModels(data))
-      .catch(() => setModels([]));
-  }, []);
-
-  return models;
-}
-
-function useAdminStats(tick: number, days: Period, provider: string, modelName: string) {
+function useAdminStats(tick: number, period: PeriodKey) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const { from, to } = getPeriodDates(period);
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
     setLoading(true);
-    const params = new URLSearchParams({ days: String(days) });
-    if (provider !== 'all') params.set('provider', provider);
-    if (provider !== 'all' && modelName !== 'all') params.set('model', modelName);
-    fetch(`${baseUrl}/admin/stats?${params}`, { credentials: 'include' })
+    fetch(`${baseUrl}/admin/stats?from=${from}&to=${to}`, { credentials: 'include' })
       .then((r) => {
         if (!r.ok) throw new Error();
         return r.json();
@@ -81,43 +48,142 @@ function useAdminStats(tick: number, days: Period, provider: string, modelName: 
       .then((data: AdminStats) => setStats(data))
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
-  }, [tick, days, provider, modelName]);
+  }, [tick, period]);
 
   return { stats, loading };
 }
 
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-');
-  if (!year || !month || !day) return dateStr;
-  return `${Number(day)}.${Number(month)}.`;
+function useAdminUsers(tick: number) {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    fetch(`${baseUrl}/admin/users`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: AdminUser[]) => setUsers(data))
+      .catch(() => setUsers([]));
+  }, [tick]);
+
+  return users;
 }
 
-const PERIODS: { value: Period; labelKey: string }[] = [
-  { value: 1, labelKey: 'admin.period.day' },
-  { value: 7, labelKey: 'admin.period.week' },
-  { value: 14, labelKey: 'admin.period.2weeks' },
-  { value: 30, labelKey: 'admin.period.month' },
-];
+function UserCombobox({
+  users,
+  value,
+  onChange,
+}: {
+  users: AdminUser[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch('');
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const filtered = search
+    ? users.filter((u) => u.email.toLowerCase().includes(search.toLowerCase()))
+    : users;
+
+  const selectedEmail = value === 'all' ? null : users.find((u) => u.id === value)?.email;
+  const placeholder = t('admin.statistics.allUsers');
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen((o) => !o); setSearch(''); }}
+        className="border-input bg-background ring-offset-background flex h-8 w-48 items-center justify-between rounded-md border px-3 py-1 text-xs shadow-sm focus:outline-none"
+      >
+        <span className={selectedEmail ? '' : 'text-muted-foreground truncate'}>
+          {selectedEmail ?? placeholder}
+        </span>
+        <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+      </button>
+
+      {open && (
+        <div className="bg-popover text-popover-foreground absolute left-0 top-full z-50 mt-1 w-64 rounded-md border shadow-md">
+          <div className="p-2">
+            <div className="relative">
+              <Search className="text-muted-foreground absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2" />
+              <Input
+                autoFocus
+                className="h-7 pl-7 text-xs"
+                placeholder={t('admin.userList.searchPlaceholder')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="max-h-52 overflow-y-auto p-1">
+            <button
+              type="button"
+              className={`hover:bg-accent w-full rounded px-2 py-1.5 text-left text-xs ${value === 'all' ? 'bg-accent' : ''}`}
+              onClick={() => { onChange('all'); setOpen(false); setSearch(''); }}
+            >
+              {placeholder}
+            </button>
+            {filtered.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                className={`hover:bg-accent w-full truncate rounded px-2 py-1.5 text-left text-xs ${value === u.id ? 'bg-accent' : ''}`}
+                onClick={() => { onChange(u.id); setOpen(false); setSearch(''); }}
+              >
+                {u.email}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-muted-foreground px-2 py-1.5 text-xs">{t('admin.userList.empty')}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminSection() {
   const { t } = useTranslation();
   const [tick, setTick] = useState(0);
-  const [days, setDays] = useState<Period>(30);
-  const [selectedProvider, setSelectedProvider] = useState('all');
-  const [selectedModel, setSelectedModel] = useState('all');
   const refetch = () => setTick((n) => n + 1);
 
-  const models = useModels();
-  const providers = Array.from(new Set(models.map((m) => m.provider)));
-  const modelsForProvider = models.filter((m) => m.provider === selectedProvider);
+  // ─── Filter state ─────────────────────────────────────────────────────────
+  const [period, setPeriod] = useState<PeriodKey>('30days');
+  const [selectedProvider, setSelectedProvider] = useState<ProviderId>('all');
+  const [selectedModel, setSelectedModel] = useState('all');
+  const [selectedUser, setSelectedUser] = useState('all');
 
-  const handleProviderChange = (value: string) => {
-    setSelectedProvider(value);
-    setSelectedModel('all');
-  };
+  const { stats, loading } = useAdminStats(tick, period);
+  const adminUsers = useAdminUsers(tick);
 
-  const { stats, loading } = useAdminStats(tick, days, selectedProvider, selectedModel);
+  const PERIOD_OPTIONS: { value: PeriodKey; label: string }[] = [
+    { value: 'today', label: t('admin.statistics.period.today') },
+    { value: 'yesterday', label: t('admin.statistics.period.yesterday') },
+    { value: '7days', label: t('admin.statistics.period.7days') },
+    { value: '30days', label: t('admin.statistics.period.30days') },
+    { value: '90days', label: t('admin.statistics.period.90days') },
+  ];
 
+  const PROVIDER_OPTIONS: { value: ProviderId; label: string }[] = [
+    { value: 'all', label: t('admin.statistics.allProviders') },
+    { value: 'openai', label: 'ChatGPT' },
+    { value: 'anthropic', label: 'Claude' },
+    { value: 'gemini', label: 'Gemini' },
+  ];
+
+  // ─── KPI cards ────────────────────────────────────────────────────────────
   const kpis = [
     {
       icon: Users,
@@ -132,154 +198,120 @@ export default function AdminSection() {
     {
       icon: Bot,
       label: t('admin.stats.mostUsedModel'),
-      value: loading ? '…' : (stats?.mostUsedModel ?? t('admin.stats.noModel')),
+      value: loading ? '…' : (stats?.mostUsedModel ? formatModelName(stats.mostUsedModel) : t('admin.stats.noModel')),
     },
   ];
 
-  const chartData = (stats?.dailyActivity ?? []).map((d) => ({
-    date: formatDate(d.date),
-    messages: d.messages,
-  }));
-  const hasActivityData = chartData.some((d) => d.messages > 0);
-
-  const xAxisInterval = days <= 7 ? 0 : days === 14 ? 1 : 4;
-
   return (
-    <div className="flex flex-1 flex-col items-center overflow-y-auto p-8 pt-20">
-      <div className="w-full max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Settings size={24} />
-            <h1 className="text-2xl font-semibold">{t('admin.title')}</h1>
-          </div>
-          <div className="flex gap-1">
-            {PERIODS.map(({ value, labelKey }) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={days === value ? 'default' : 'outline'}
-                onClick={() => setDays(value)}>
-                {t(labelKey)}
-              </Button>
-            ))}
-          </div>
-        </div>
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      {/* Header with title and filters — sticky at top */}
+      <div className="bg-background sticky top-0 z-50 border-b">
+        <div className="flex items-center justify-center">
+          <div className="w-full max-w-4xl">
+            {/* Title */}
+            <div className="flex items-center justify-center gap-3 p-4 sm:p-6">
+              <Settings size={24} />
+              <h1 className="text-2xl font-semibold">{t('admin.title')}</h1>
+            </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {kpis.map(({ icon: Icon, label, value }) => (
-            <Card key={label}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
-                  <Icon size={16} />
-                  {label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="truncate text-2xl font-bold">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+            {/* Filters */}
+            <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-4 sm:px-6 sm:pb-6">
+              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
+                <SelectTrigger className="h-8 w-36 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 size={20} />
-                {t('admin.statistics.title')}
-              </CardTitle>
-              <div className="flex gap-2">
-                <Select value={selectedProvider} onValueChange={handleProviderChange}>
-                  <SelectTrigger className="h-8 w-36 text-xs">
+              <Select
+                value={selectedProvider}
+                onValueChange={(v) => {
+                  setSelectedProvider(v as ProviderId);
+                  setSelectedModel('all');
+                }}>
+                <SelectTrigger className="h-8 w-36 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDER_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedProvider !== 'all' && (
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger className="h-8 w-48 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{t('admin.statistics.filterAll')}</SelectItem>
-                    {providers.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PROVIDER_LABELS[p] ?? p}
+                    <SelectItem value="all">{t('admin.statistics.allModels')}</SelectItem>
+                    {PROVIDERS[selectedProvider].models.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {formatModelName(m)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedProvider !== 'all' && (
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger className="h-8 w-44 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('admin.statistics.filterAll')}</SelectItem>
-                      {modelsForProvider.map((m) => (
-                        <SelectItem key={m.name} value={m.name}>
-                          {m.displayLabel}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-muted-foreground flex h-48 items-center justify-center text-sm">
-                …
-              </div>
-            ) : !hasActivityData ? (
-              <div className="text-muted-foreground flex h-48 items-center justify-center text-sm">
-                {t('admin.statistics.noData')}
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11 }}
-                    interval={xAxisInterval}
-                    className="text-muted-foreground"
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fontSize: 11 }}
-                    className="text-muted-foreground"
-                  />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{
-                      background: 'hsl(var(--popover))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: 8,
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))', fontSize: 12 }}
-                    itemStyle={{ color: 'hsl(var(--foreground))', fontSize: 12 }}
-                    formatter={(val) => [val, t('admin.statistics.messages')]}
-                  />
-                  <Bar
-                    dataKey="messages"
-                    fill="hsl(var(--sidebar-accent))"
-                    radius={[3, 3, 0, 0]}
-                    activeBar={{ fill: 'hsl(0, 0%, 100%)' }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+              )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users size={20} />
-              {t('admin.users.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <UserTable tick={tick} onChanged={refetch} />
-          </CardContent>
-        </Card>
+              <UserCombobox
+                users={adminUsers}
+                value={selectedUser}
+                onChange={setSelectedUser}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col items-center overflow-y-auto p-4 sm:p-8">
+        <div className="w-full max-w-4xl space-y-6">
+          {/* KPI cards — first two side by side on mobile, third full-width */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            {kpis.map(({ icon: Icon, label, value }, i) => (
+              <Card key={label} className={i === 2 ? 'col-span-2 lg:col-span-1' : ''}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+                    <Icon size={16} />
+                    {label}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="truncate text-2xl font-bold">{value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <CostCharts
+            period={period}
+            selectedProvider={selectedProvider}
+            selectedModel={selectedModel}
+            selectedUser={selectedUser}
+          />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                {t('admin.users.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserTable tick={tick} onChanged={refetch} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

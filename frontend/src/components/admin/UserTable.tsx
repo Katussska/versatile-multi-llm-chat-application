@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { fmtProvider } from '@/lib/formatModel';
+
 import CreateUserDialog from '@/components/admin/CreateUserDialog.tsx';
 import DeleteUserDialog from '@/components/admin/DeleteUserDialog.tsx';
 import EditUserDialog from '@/components/admin/EditUserDialog.tsx';
@@ -40,11 +42,6 @@ interface UserTableProps {
 
 function barColor(pct: number): string {
   return pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-primary';
-}
-
-function fmtProvider(p: string): string {
-  const map: Record<string, string> = { openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini' };
-  return map[p.toLowerCase()] ?? p;
 }
 
 function fmtUsd(n: number | null): string {

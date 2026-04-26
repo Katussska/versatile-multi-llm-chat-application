@@ -137,7 +137,26 @@
       "title": "Activity over the last 30 days",
       "messages": "Messages",
       "noData": "No data yet",
-      "filterAll": "All"
+      "filterAll": "All",
+      "titleCosts": "Global costs",
+      "titleModel": "Model detail",
+      "titleTokens": "Token detail",
+      "allUsers": "All users",
+      "allModels": "All models",
+      "user": "User",
+      "model": "Model",
+      "period": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "7days": "7 days",
+        "30days": "30 days",
+        "90days": "90 days"
+      },
+      "tokenIn": "Input tokens",
+      "tokenOut": "Output tokens",
+      "tokenCached": "Cached tokens",
+      "costUsd": "Cost (USD)",
+      "allProviders": "All providers"
     },
     "createUser": {
       "trigger": "Create user",

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { fmtProvider } from '@/lib/formatModel';
+
 import { Button } from '@/components/ui/button.tsx';
 import {
   Dialog,
@@ -370,8 +372,8 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         key={budget.id}
                         className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                         <div>
-                          <p className="font-medium capitalize">
-                            {budget.model.provider}
+                          <p className="font-medium">
+                            {fmtProvider(budget.model.provider)}
                           </p>
                           <p className="text-muted-foreground text-xs">
                             {budget.dollarLimit != null
@@ -403,7 +405,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         <SelectContent>
                           {availableProviders.map((m) => (
                             <SelectItem key={m.provider} value={m.provider}>
-                              {m.provider}
+                              {fmtProvider(m.provider)}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -484,25 +484,28 @@ export class ChatService {
       usage.cachedInputTokens,
     );
 
-    if (fullResponse || saveEvenIfEmpty) {
+    const saveMessage = fullResponse || saveEvenIfEmpty;
+    if (saveMessage) {
       assistantMessage.content = fullResponse;
-      await this.updateUsedDollars(userId, model.provider, cost);
     } else {
       this.em.remove(assistantMessage);
       if (removeUserOnEmpty && userMessage) this.em.remove(userMessage);
     }
-    this.createUsageLog(
-      userId,
-      model.name,
-      model.name,
-      model.provider,
-      usage.promptTokens,
-      usage.completionTokens,
-      cost,
-      usage.cacheWriteTokens,
-      usage.cacheReadTokens,
-      usage.cachedInputTokens,
-    );
+    if (cost > 0) {
+      await this.updateUsedDollars(userId, model.provider, cost);
+      this.createUsageLog(
+        userId,
+        model.name,
+        model.name,
+        model.provider,
+        usage.promptTokens,
+        usage.completionTokens,
+        cost,
+        usage.cacheWriteTokens,
+        usage.cacheReadTokens,
+        usage.cachedInputTokens,
+      );
+    }
     await this.em.flush();
     if (sendDone && res) {
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

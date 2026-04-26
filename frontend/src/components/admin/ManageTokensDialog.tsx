@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { type AdminUser } from '@/components/admin/UserSearchList.tsx';
+import { fmtProvider } from '@/lib/formatModel';
 import { Button } from '@/components/ui/button.tsx';
 import {
   Dialog,
@@ -184,15 +185,6 @@ export default function ManageTokensDialog({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const fmtProvider = (p: string): string => {
-    const map: Record<string, string> = {
-      openai: 'OpenAI',
-      anthropic: 'Anthropic',
-      gemini: 'Gemini',
-    };
-    return map[p.toLowerCase()] ?? p;
   };
 
   const coveredProviders = new Set(budgets.map((b) => b.model.provider));

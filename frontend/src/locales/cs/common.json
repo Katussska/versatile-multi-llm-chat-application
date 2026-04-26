@@ -137,7 +137,25 @@
       "title": "Aktivita za posledních 30 dní",
       "messages": "Zprávy",
       "noData": "Zatím žádná data",
-      "filterAll": "Vše"
+      "filterAll": "Vše",
+      "titleCosts": "Globální náklady",
+      "titleTokens": "Detail tokenů",
+      "allUsers": "Všichni uživatelé",
+      "allModels": "Všechny modely",
+      "allProviders": "Všichni poskytovatelé",
+      "user": "Uživatel",
+      "model": "Model",
+      "period": {
+        "today": "Dnes",
+        "yesterday": "Včera",
+        "7days": "7 dní",
+        "30days": "30 dní",
+        "90days": "90 dní"
+      },
+      "tokenIn": "Vstupní tokeny",
+      "tokenOut": "Výstupní tokeny",
+      "tokenCached": "Cachované tokeny",
+      "costUsd": "Náklady (USD)"
     },
     "createUser": {
       "trigger": "Vytvořit uživatele",

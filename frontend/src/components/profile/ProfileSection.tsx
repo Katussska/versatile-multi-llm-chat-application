@@ -1,5 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 
+import { fmtProvider } from '@/lib/formatModel';
+
 import { TreeContext } from '@/components/TreeProvider.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
@@ -409,7 +411,7 @@ export default function ProfileSection() {
                   return (
                     <div key={budget.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium capitalize">{budget.model.provider}</span>
+                        <span className="font-medium">{fmtProvider(budget.model.provider)}</span>
                         <span className="text-muted-foreground text-xs">
                           {hasLimit ? `${pct.toFixed(1)} %` : '∞'}
                         </span>
