@@ -386,76 +386,6 @@ export default function ProfileSection() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Globe size={20} />
-              {t('profile.language')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className={
-                  currentLang === 'cs'
-                    ? 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                    : undefined
-                }
-                onClick={() => i18n.changeLanguage('cs')}>
-                CZ
-              </Button>
-              <Button
-                variant="outline"
-                className={
-                  currentLang === 'en'
-                    ? 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                    : undefined
-                }
-                onClick={() => i18n.changeLanguage('en')}>
-                EN
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trash2 size={20} />
-              {t('profile.conversationActions')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={
-                  chats.every((chat) => chat.favourite) ||
-                  isDeletingNonFavoriteChats ||
-                  isDeletingAllChats
-                }
-                onClick={handleDeleteNotFavoriteConversations}
-                className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive">
-                <Trash2 size={14} />
-                {t('profile.deleteNotFavoriteConversations')}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={
-                  chats.length === 0 || isDeletingAllChats || isDeletingNonFavoriteChats
-                }
-                onClick={handleDeleteAllConversations}
-                className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive">
-                <Trash2 size={14} />
-                {t('profile.deleteAllConversations')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
               <Coins size={20} />
               {t('profile.tokens.title')}
             </CardTitle>
@@ -536,6 +466,78 @@ export default function ProfileSection() {
             </CardContent>
           </Card>
         )}
+
+        <div className="grid grid-cols-2 gap-6">
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-center gap-2">
+                <Globe size={20} />
+                {t('profile.language')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-1 items-center">
+              <div className="flex w-full flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className={
+                    currentLang === 'cs'
+                      ? 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                      : undefined
+                  }
+                  onClick={() => i18n.changeLanguage('cs')}>
+                  Čeština
+                </Button>
+                <Button
+                  variant="outline"
+                  className={
+                    currentLang === 'en'
+                      ? 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                      : undefined
+                  }
+                  onClick={() => i18n.changeLanguage('en')}>
+                  English
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-center gap-2">
+                <Trash2 size={20} />
+                {t('profile.conversationActions')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    chats.every((chat) => chat.favourite) ||
+                    isDeletingNonFavoriteChats ||
+                    isDeletingAllChats
+                  }
+                  onClick={handleDeleteNotFavoriteConversations}
+                  className="border-orange-500/50 text-orange-500 hover:border-orange-500 hover:bg-orange-500/10 hover:text-orange-500">
+                  <Trash2 size={14} />
+                  {t('profile.deleteNotFavoriteConversations')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    chats.length === 0 || isDeletingAllChats || isDeletingNonFavoriteChats
+                  }
+                  onClick={handleDeleteAllConversations}
+                  className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 size={14} />
+                  {t('profile.deleteAllConversations')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <Dialog
@@ -547,7 +549,7 @@ export default function ProfileSection() {
         }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{t('profile.conversationActionsConfirmTitle')}</DialogTitle>
+            <DialogTitle className="text-center">{t('profile.conversationActionsConfirmTitle')}</DialogTitle>
             <DialogDescription>{confirmDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
