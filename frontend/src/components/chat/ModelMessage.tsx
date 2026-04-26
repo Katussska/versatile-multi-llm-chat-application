@@ -22,12 +22,10 @@ export default function ModelMessage({
   message,
   isStreaming,
   onRegenerate,
-  onFavourite,
 }: {
   message: Message;
   isStreaming?: boolean;
   onRegenerate?: () => void;
-  onFavourite?: () => void;
 }) {
   const icon = modelIcon(message.modelProvider);
   return (
@@ -105,8 +103,6 @@ export default function ModelMessage({
           <MessageFunctions
             messageId={message.id}
             content={message.content}
-            isFavourite={message.favourite}
-            onFavourite={onFavourite}
             onRegenerate={onRegenerate}
           />
         </div>

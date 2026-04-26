@@ -8,9 +8,6 @@ export class Message extends Base {
   @ManyToOne(() => Chat)
   chat!: Rel<Chat>;
 
-  @Property({ type: 'boolean', default: false })
-  favourite: boolean = false;
-
   @Property({ type: 'text' })
   content!: string;
 

@@ -1,21 +1,17 @@
 import { useState } from 'react';
 
-import { Clipboard, ClipboardCheck, Heart, RefreshCw } from 'lucide-react';
+import { Clipboard, ClipboardCheck, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 interface MessageFunctionsProps {
   messageId: string;
   content: string;
-  isFavourite: boolean;
-  onFavourite?: () => void;
   onRegenerate?: () => void;
 }
 
 export default function MessageFunctions({
   content,
-  isFavourite,
-  onFavourite,
   onRegenerate,
 }: MessageFunctionsProps) {
   const { t } = useTranslation();
@@ -39,16 +35,6 @@ export default function MessageFunctions({
 
   return (
     <div className="mt-1 flex items-center justify-start gap-3 opacity-0 transition-opacity group-hover:opacity-100">
-      {onFavourite && (
-        <button
-          onClick={onFavourite}
-          title={isFavourite ? t('chat.unfavourite') : t('chat.favourite')}
-          aria-label={isFavourite ? t('chat.unfavourite') : t('chat.favourite')}
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Heart size={18} className={isFavourite ? 'fill-current' : ''} />
-        </button>
-      )}
       <button
         onClick={() => void handleCopy()}
         title={t('chat.copy')}

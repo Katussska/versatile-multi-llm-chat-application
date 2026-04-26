@@ -54,8 +54,6 @@
     "copy": "Kopírovat",
     "copiedToClipboard": "Zkopírováno do schránky.",
     "copyFailed": "Kopírování do schránky se nezdařilo.",
-    "favourite": "Přidat do oblíbených",
-    "unfavourite": "Odebrat z oblíbených",
     "regenerate": "Znovu vygenerovat",
     "selectProvider": "Vybrat model",
     "tokenLimitBanner": "Dosáhli jste měsíčního limitu pro tento model. Nové zprávy lze odesílat od {{- date}}.",

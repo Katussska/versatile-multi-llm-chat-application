@@ -54,8 +54,6 @@
     "copy": "Copy",
     "copiedToClipboard": "Copied to clipboard.",
     "copyFailed": "Failed to copy message to clipboard.",
-    "favourite": "Add to favourites",
-    "unfavourite": "Remove from favourites",
     "regenerate": "Regenerate",
     "selectProvider": "Select model",
     "tokenLimitBanner": "Monthly budget limit reached for this provider. You can send new messages from {{- date}}.",

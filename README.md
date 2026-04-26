@@ -51,6 +51,8 @@ Planned features:
 - MikroORM 7 + PostgreSQL 16
 - Better Auth (session-based, mounted at `/api/auth/*`)
 - Google Generative AI (Gemini)
+- Anthropic SDK (Claude)
+- OpenAI SDK (ChatGPT)
 - Swagger / OpenAPI
 
 ### Tooling
@@ -69,32 +71,37 @@ What is implemented end-to-end:
 - full auth flow: register, login, session management (Better Auth)
 - sidebar with chat list and new chat creation
 - chat history: list, create, rename, soft delete (with confirmation)
-- message actions: copy, delete, toggle favourite
+- message actions: copy, delete, regenerate — any assistant message can be regenerated using the currently selected model, even if the original response came from a different provider (e.g. regenerate a Gemini reply with Claude)
 - real-time streaming chat via SSE (`POST /chats/:id/stream`) — response streams word-by-word with animated rendering
 - stop-streaming button to abort an in-flight response
 - user message saved to DB before streaming; assistant reply saved after stream completes
-- per-session Gemini chat history (context preserved within a session)
+- per-session chat history (context preserved within a session)
 - auto-scroll to latest message during streaming
 - markdown rendering of AI responses
-- model selector UI (Gemini models)
+- model selector UI with per-provider model variants
+- per-message model icon displayed in chat
 - dark/light theme switching
 - profile page: update display name, read-only email, change password (with live validation rules), language switcher (CS/EN)
-- token usage overview on profile page (progress bars per model, reset date)
+- cost/budget overview on profile page (spending per provider, reset date)
 - Czech/English localization (i18next)
 - admin panel (`/admin`, accessible to admin users only):
   - KPI cards: total users, active users, most-used model
   - activity chart — daily message count, selectable period (1 day / 1 week / 2 weeks / 1 month)
+  - cost charts — spending by provider and model
   - user management: create, edit (email / password / admin role), delete
-  - token limit management: set per-user per-model limits with a reset date
-- per-user per-model token limits enforced at stream time (HTTP 429 when exceeded, auto-reset after reset date)
-- per-user global monthly token limit (`monthlyTokenLimit`) enforced at stream time via `LimitGuard` (HTTP 429 when calendar-month usage exceeded); no API endpoint or UI to configure it yet
+  - budget management: set per-user per-provider dollar limits with a reset date
+  - admin stats filterable by provider and model
+- per-user per-provider **dollar budget** limits enforced at stream time (HTTP 429 when exceeded, auto-reset after reset date); cost computed from `ModelPricing` including cache token pricing
+- prompt caching tracked in `UsageLog` (cache write / read / cached-input tokens) for Anthropic and OpenAI
+- per-message cost recorded in `UsageLog.cost` (USD) using provider-specific pricing
 - admin role enforced via `RolesGuard` on both `AdminController` and `UserController` admin endpoints
-- admin API endpoints: `/admin/users`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, token limit management)
+- admin API endpoints: `/admin/users`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, budget management)
 
 Currently supported LLM providers:
 
 - **Gemini** (Google) — fully integrated, model configurable via `GEMINI_MODEL` env var
-- **Claude** (Anthropic) — integrated, model configurable via `ANTHROPIC_MODEL` env var (default: `claude-haiku-4-5-20251001`)
+- **Claude** (Anthropic) — fully integrated, model configurable via `ANTHROPIC_MODEL` env var ; prompt caching supported
+- **ChatGPT** (OpenAI) — fully integrated, configurable via `OPENAI_API_KEY`; prompt caching supported
 
 Work in progress / placeholders:
 
@@ -169,9 +176,13 @@ GEMINI_API_KEY=your-gemini-api-key
 # Get an API key at https://console.anthropic.com/
 ANTHROPIC_API_KEY=your-anthropic-api-key
 ANTHROPIC_MODEL=claude-haiku-4-5-20251001
+
+# Optional — only needed if you want to use OpenAI models
+# Get an API key at https://platform.openai.com/api-keys
+OPENAI_API_KEY=your-openai-api-key
 ```
 
-To use a Claude model in a chat, create a `Model` record in the database with `provider = 'anthropic'` and `name` matching `ANTHROPIC_MODEL` (e.g. `claude-haiku-4-5-20251001`). The model can then be selected when creating a chat via `modelId`.
+Models available in chat are seeded automatically via `db:seed`. Each provider's models are registered in the database along with their pricing data (`ModelPricing`).
 
 Full default `.env` for reference:
 
@@ -196,6 +207,8 @@ GEMINI_MODEL=gemini-2.5-flash
 
 ANTHROPIC_API_KEY=replace-with-api-key
 ANTHROPIC_MODEL=claude-haiku-4-5-20251001
+
+OPENAI_API_KEY=replace-with-api-key
 
 DB_RESET_CONFIRM=false
 DB_RESET_ALLOW_NON_DEVELOPMENT=false
@@ -320,17 +333,18 @@ pnpm fe typecheck     # Frontend TypeScript check
 
 Entities managed by MikroORM and stored in PostgreSQL:
 
-| Entity         | Purpose                                                                              |
-|----------------|--------------------------------------------------------------------------------------|
-| `User`         | App users; `role` (USER/ADMIN), `monthlyTokenLimit` optional global monthly token cap|
-| `Chat`         | Conversations (soft delete supported)                                                |
-| `Message`      | Individual messages; `cost_usd` records per-message API cost                         |
-| `Model`        | Available LLM models; `price_per_token` used to calculate message cost               |
-| `Token`        | Per-user per-model token limits with `used_tokens` and `reset_at`                    |
-| `UsageLog`     | Per-message token usage log (prompt + completion tokens) used by `LimitGuard`        |
-| `Session`      | Better Auth sessions                                                                 |
-| `Account`      | Better Auth OAuth accounts                                                           |
-| `Verification` | Better Auth email verification                                                       |
+| Entity | Purpose |
+| ------ | ------- |
+| `User` | App users; `role` (USER/ADMIN) |
+| `Chat` | Conversations (soft delete supported) |
+| `Message` | Individual messages; `cost_usd` records per-message API cost |
+| `Model` | Available LLM models; references `ModelPricing` for cost calculation |
+| `ModelPricing` | Per-model pricing: `inputPrice`, `outputPrice`, and provider-specific cache prices (Anthropic / Gemini / OpenAI) |
+| `Token` | Per-user per-provider **dollar budget**: `dollarLimit`, `usedDollars`, and `resetAt` |
+| `UsageLog` | Per-message token log: prompt/completion tokens, `cost` (USD), and cache tokens (write/read/cached-input) |
+| `Session` | Better Auth sessions |
+| `Account` | Better Auth OAuth accounts |
+| `Verification` | Better Auth email verification |
 
 ---
 

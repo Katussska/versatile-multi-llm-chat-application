@@ -154,7 +154,6 @@ export class ChatService {
       chat,
       content: messageDto.content,
       path: messageDto.path,
-      favourite: false,
       modelKey: chat.model.name,
       modelProvider: chat.model.provider,
     });
@@ -214,7 +213,7 @@ export class ChatService {
     messageId: string,
     chatId: string,
     userId: string,
-    data: { content?: string; favourite?: boolean },
+    data: { content?: string },
   ): Promise<void> {
     const message = await this.em.findOne(
       Message,
@@ -231,7 +230,6 @@ export class ChatService {
     }
 
     if (data.content !== undefined) message.content = data.content;
-    if (data.favourite !== undefined) message.favourite = data.favourite;
     await this.em.flush();
   }
 
@@ -693,7 +691,6 @@ export class ChatService {
         chat,
         content,
         path: 'user',
-        favourite: false,
         parentMessageId: parentMessageId ?? null,
         modelKey: chat.model.name,
         modelProvider: chat.model.provider,
@@ -705,7 +702,6 @@ export class ChatService {
       chat,
       content: '',
       path: 'model',
-      favourite: false,
       parentMessageId: regenerate
         ? (parentMessageId ?? null)
         : (userMessage?.id ?? null),

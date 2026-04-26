@@ -19,7 +19,6 @@ export interface Message {
   role: 'user' | 'model';
   createdAt: Date;
   isStreaming?: boolean;
-  favourite: boolean;
   modelProvider?: string | null;
 }
 
@@ -43,6 +42,7 @@ export default function ChatSection() {
   const [tokenLimitResetAt, setTokenLimitResetAt] = useState<Date | null>(null);
   const [budgetLimits, setBudgetLimits] = useState<{ model: { provider: string }; dollarLimit: number | null; usedDollars: number; resetAt: string }[]>([]);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wordQueueRef = useRef<string[]>([]);
@@ -192,7 +192,6 @@ export default function ChatSection() {
           content: message.content,
           role: message.path === 'user' ? 'user' : 'model',
           createdAt: new Date(message.createdAt),
-          favourite: message.favourite,
           modelProvider: message.modelProvider ?? null,
         })),
       );
@@ -420,7 +419,6 @@ export default function ChatSection() {
       content: trimmedContent,
       role: 'user',
       createdAt: new Date(),
-      favourite: false,
     };
 
     const assistantPlaceholder: Message = {
@@ -429,7 +427,6 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      favourite: false,
       modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
 
@@ -507,7 +504,6 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      favourite: false,
       modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
     setMessages([...truncated, assistantPlaceholder]);
@@ -565,7 +561,6 @@ export default function ChatSection() {
       content: newContent,
       role: 'user',
       createdAt: new Date(),
-      favourite: false,
     };
     const assistantPlaceholder: Message = {
       id: streamingPlaceholderIdRef.current,
@@ -573,7 +568,6 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      favourite: false,
       modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
     setMessages([...truncated, newUserMessage, assistantPlaceholder]);
@@ -615,40 +609,15 @@ export default function ChatSection() {
     }
   };
 
-  const handleToggleFavourite = async (messageId: string, currentValue: boolean) => {
-    if (!activeChatId) return;
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, favourite: !currentValue } : msg,
-      ),
-    );
-    try {
-      const response = await fetch(
-        `${API_BASE}/chats/${activeChatId}/messages/${messageId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ favourite: !currentValue }),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to toggle favourite: ${response.status}`);
-      }
-    } catch {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId ? { ...msg, favourite: currentValue } : msg,
-        ),
-      );
-      toast.error(t('chat.sendError'));
-    }
-  };
-
   const handleProviderChange = (provider: string) => {
     if (!availableModels) return;
     const defaultModel = availableModels.find((m) => m.provider === provider);
-    if (defaultModel) void handleModelChange(defaultModel.id);
+    if (!defaultModel) return;
+    void handleModelChange(defaultModel.id);
+    const lastMsg = [...messages].reverse().find(
+      (m) => m.role === 'model' && m.modelProvider === provider,
+    );
+    if (lastMsg) setScrollToMessageId(lastMsg.id);
   };
 
   const handleModelChange = async (newModelId: string) => {
@@ -690,7 +659,8 @@ export default function ChatSection() {
           scrollContainerRef={scrollContainerRef}
           onEditMessage={handleEditMessage}
           onRegenerateMessage={handleRegenerateMessage}
-          onToggleFavourite={handleToggleFavourite}
+          scrollToMessageId={scrollToMessageId}
+          onScrollComplete={() => setScrollToMessageId(null)}
         />
       </div>
       <ChatInput

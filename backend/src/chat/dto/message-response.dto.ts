@@ -13,9 +13,6 @@ export class MessageResponseDto {
   @ApiProperty()
   path!: string;
 
-  @ApiProperty()
-  favourite!: boolean;
-
   @ApiPropertyOptional({ nullable: true })
   parentMessageId!: string | null;
 

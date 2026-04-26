@@ -15,7 +15,8 @@ interface ChatContentProps {
   scrollContainerRef: RefObject<HTMLDivElement>;
   onEditMessage?: (messageIndex: number, newContent: string) => void;
   onRegenerateMessage?: (messageIndex: number) => void;
-  onToggleFavourite?: (messageId: string, currentValue: boolean) => void;
+  scrollToMessageId?: string | null;
+  onScrollComplete?: () => void;
 }
 
 export default function ChatContent({
@@ -27,9 +28,23 @@ export default function ChatContent({
   scrollContainerRef,
   onEditMessage,
   onRegenerateMessage,
-  onToggleFavourite,
+  scrollToMessageId,
+  onScrollComplete,
 }: ChatContentProps) {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!scrollToMessageId || !scrollContainerRef.current) return;
+    requestAnimationFrame(() => {
+      const el = scrollContainerRef.current?.querySelector(
+        `[data-message-id="${scrollToMessageId}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        onScrollComplete?.();
+      }
+    });
+  }, [scrollToMessageId, scrollContainerRef, onScrollComplete]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -58,35 +73,30 @@ export default function ChatContent({
             {t('chat.noMessages')}
           </div>
         ) : (
-          messages.map((message, index) =>
-            message.role === 'user' ? (
-              <UserMessage
-                key={message.id}
-                message={message}
-                onEdit={
-                  onEditMessage
-                    ? (newContent) => onEditMessage(index, newContent)
-                    : undefined
-                }
-              />
-            ) : (
-              <ModelMessage
-                key={message.id}
-                message={message}
-                isStreaming={message.isStreaming}
-                onRegenerate={
-                  onRegenerateMessage && !message.isStreaming && !isRefetching
-                    ? () => onRegenerateMessage(index)
-                    : undefined
-                }
-                onFavourite={
-                  onToggleFavourite && !message.isStreaming && !isRefetching
-                    ? () => onToggleFavourite(message.id, message.favourite)
-                    : undefined
-                }
-              />
-            ),
-          )
+          messages.map((message, index) => (
+            <div key={message.id} data-message-id={message.id}>
+              {message.role === 'user' ? (
+                <UserMessage
+                  message={message}
+                  onEdit={
+                    onEditMessage
+                      ? (newContent) => onEditMessage(index, newContent)
+                      : undefined
+                  }
+                />
+              ) : (
+                <ModelMessage
+                  message={message}
+                  isStreaming={message.isStreaming}
+                  onRegenerate={
+                    onRegenerateMessage && !message.isStreaming && !isRefetching
+                      ? () => onRegenerateMessage(index)
+                      : undefined
+                  }
+                />
+              )}
+            </div>
+          ))
         )}
       </div>
     </div>

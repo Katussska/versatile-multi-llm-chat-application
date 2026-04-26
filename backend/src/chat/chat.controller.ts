@@ -113,7 +113,6 @@ export class ChatController {
       chatId: msg.chat.id,
       content: msg.content,
       path: msg.path,
-      favourite: msg.favourite,
       parentMessageId: msg.parentMessageId,
       modelKey: msg.modelKey,
       modelProvider: msg.modelProvider,
@@ -147,7 +146,6 @@ export class ChatController {
       chatId: message.chat.id,
       content: message.content,
       path: message.path,
-      favourite: message.favourite,
       parentMessageId: message.parentMessageId,
       modelKey: message.modelKey,
       modelProvider: message.modelProvider,
@@ -201,7 +199,7 @@ export class ChatController {
   @Patch(':chatId/messages/:messageId')
   @UsePipes(new ValidationPipe({ whitelist: true }))
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Update message content or favourite status' })
+  @ApiOperation({ summary: 'Update message content' })
   @ApiNoContentResponse({ description: 'Message successfully updated' })
   @ApiUnauthorizedResponse({ description: 'User not authenticated' })
   @ApiNotFoundResponse({ description: 'Message not found or access denied' })
