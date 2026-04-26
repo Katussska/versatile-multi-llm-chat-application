@@ -39,6 +39,7 @@ export class OpenAIService {
         totalTokens: number;
         promptTokens: number | null;
         completionTokens: number | null;
+        cachedInputTokens: number | null;
       }
   > {
     if (!this.client) {
@@ -57,6 +58,7 @@ export class OpenAIService {
 
     let promptTokens: number | null = null;
     let completionTokens: number | null = null;
+    let cachedInputTokens: number | null = null;
 
     try {
       const selectedModel = modelName?.trim() || this.fallbackModel;
@@ -89,6 +91,7 @@ export class OpenAIService {
         if (chunk.usage) {
           promptTokens = chunk.usage.prompt_tokens ?? null;
           completionTokens = chunk.usage.completion_tokens ?? null;
+          cachedInputTokens = (chunk.usage as { prompt_tokens_details?: { cached_tokens?: number } }).prompt_tokens_details?.cached_tokens ?? null;
         }
       }
 
@@ -101,6 +104,7 @@ export class OpenAIService {
           totalTokens: (promptTokens ?? 0) + (completionTokens ?? 0),
           promptTokens,
           completionTokens,
+          cachedInputTokens,
         };
       }
     } catch (error) {

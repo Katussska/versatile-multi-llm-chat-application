@@ -39,6 +39,8 @@ export class AnthropicService {
         totalTokens: number;
         promptTokens: number | null;
         completionTokens: number | null;
+        cacheWriteTokens: number | null;
+        cacheReadTokens: number | null;
       }
   > {
     if (!this.client) {
@@ -47,13 +49,26 @@ export class AnthropicService {
       );
     }
 
+    // Mark the last history message with cache_control to cache the growing conversation prefix
+    const historyParams: Anthropic.MessageParam[] = history.map((msg, i) => {
+      if (i === history.length - 1) {
+        return {
+          role: msg.role,
+          content: [{ type: 'text' as const, text: msg.content, cache_control: { type: 'ephemeral' as const } }],
+        };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+
     const messages: Anthropic.MessageParam[] = [
-      ...history,
+      ...historyParams,
       { role: 'user', content: prompt },
     ];
 
     let inputTokens: number | null = null;
     let outputTokens: number | null = null;
+    let cacheWriteTokens: number | null = null;
+    let cacheReadTokens: number | null = null;
 
     try {
       const selectedModel = modelName?.trim() || this.fallbackModel;
@@ -64,7 +79,17 @@ export class AnthropicService {
           max_tokens: 4096,
           messages,
           stream: true,
-          ...(systemPrompt ? { system: systemPrompt } : {}),
+          ...(systemPrompt
+            ? {
+                system: [
+                  {
+                    type: 'text' as const,
+                    text: systemPrompt,
+                    cache_control: { type: 'ephemeral' as const },
+                  },
+                ],
+              }
+            : {}),
         },
         { signal },
       );
@@ -77,6 +102,8 @@ export class AnthropicService {
           yield { type: 'text', text: event.delta.text };
         } else if (event.type === 'message_start') {
           inputTokens = event.message.usage.input_tokens;
+          cacheWriteTokens = event.message.usage.cache_creation_input_tokens ?? null;
+          cacheReadTokens = event.message.usage.cache_read_input_tokens ?? null;
         } else if (event.type === 'message_delta') {
           outputTokens = event.usage.output_tokens;
         }
@@ -88,6 +115,8 @@ export class AnthropicService {
           totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
           promptTokens: inputTokens,
           completionTokens: outputTokens,
+          cacheWriteTokens,
+          cacheReadTokens,
         };
       }
     } catch (error) {

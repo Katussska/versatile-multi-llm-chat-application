@@ -40,6 +40,15 @@ export class UsageLog {
   @Property({ type: 'decimal', precision: 10, scale: 6, fieldName: 'cost', nullable: true })
   cost: number | null = null;
 
+  @Property({ type: 'integer', fieldName: 'cache_write_tokens', nullable: true })
+  cacheWriteTokens: number | null = null;
+
+  @Property({ type: 'integer', fieldName: 'cache_read_tokens', nullable: true })
+  cacheReadTokens: number | null = null;
+
+  @Property({ type: 'integer', fieldName: 'cached_input_tokens', nullable: true })
+  cachedInputTokens: number | null = null;
+
   @Property({
     type: 'datetime',
     onCreate: () => new Date(),

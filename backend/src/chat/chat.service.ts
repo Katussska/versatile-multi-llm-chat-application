@@ -352,12 +352,40 @@ export class ChatService {
     pricing: ModelPricing | null | undefined,
     promptTokens: number | null,
     completionTokens: number | null,
+    cacheWriteTokens: number | null = null,
+    cacheReadTokens: number | null = null,
+    cachedInputTokens: number | null = null,
   ): number {
     if (!pricing) return 0;
-    const input =
-      ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
     const output =
       ((completionTokens ?? 0) / 1_000_000) * Number(pricing.outputPrice);
+
+    if (cacheWriteTokens !== null || cacheReadTokens !== null) {
+      // Anthropic: input_tokens v response je už pouze nekachovaná část
+      const input =
+        ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
+      const cacheWrite =
+        ((cacheWriteTokens ?? 0) / 1_000_000) *
+        Number(pricing.cacheWrite5mPrice ?? pricing.inputPrice);
+      const cacheRead =
+        ((cacheReadTokens ?? 0) / 1_000_000) *
+        Number(pricing.cacheReadPrice ?? pricing.inputPrice);
+      return input + output + cacheWrite + cacheRead;
+    }
+
+    if (cachedInputTokens !== null) {
+      // OpenAI: prompt_tokens zahrnuje i cached_tokens, ty mají vlastní cenu
+      const regularInput =
+        (((promptTokens ?? 0) - (cachedInputTokens ?? 0)) / 1_000_000) *
+        Number(pricing.inputPrice);
+      const cachedInput =
+        ((cachedInputTokens ?? 0) / 1_000_000) *
+        Number(pricing.cachedInputPrice ?? pricing.inputPrice);
+      return regularInput + cachedInput + output;
+    }
+
+    const input =
+      ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
     return input + output;
   }
 
@@ -399,6 +427,9 @@ export class ChatService {
     promptTokens: number | null,
     completionTokens: number | null,
     cost: number,
+    cacheWriteTokens: number | null = null,
+    cacheReadTokens: number | null = null,
+    cachedInputTokens: number | null = null,
   ): void {
     const usageLog = this.em.create(UsageLog, {
       user: this.em.getReference(User, userId),
@@ -408,6 +439,9 @@ export class ChatService {
       promptTokens,
       completionTokens,
       cost,
+      cacheWriteTokens,
+      cacheReadTokens,
+      cachedInputTokens,
     });
     this.em.persist(usageLog);
   }
@@ -422,6 +456,9 @@ export class ChatService {
       totalTokens: number;
       promptTokens: number | null;
       completionTokens: number | null;
+      cacheWriteTokens: number | null;
+      cacheReadTokens: number | null;
+      cachedInputTokens: number | null;
     },
     opts: {
       saveEvenIfEmpty?: boolean;
@@ -442,6 +479,9 @@ export class ChatService {
       pricing,
       usage.promptTokens,
       usage.completionTokens,
+      usage.cacheWriteTokens,
+      usage.cacheReadTokens,
+      usage.cachedInputTokens,
     );
 
     if (fullResponse || saveEvenIfEmpty) {
@@ -459,6 +499,9 @@ export class ChatService {
       usage.promptTokens,
       usage.completionTokens,
       cost,
+      usage.cacheWriteTokens,
+      usage.cacheReadTokens,
+      usage.cachedInputTokens,
     );
     await this.em.flush();
     if (sendDone && res) {
@@ -493,6 +536,9 @@ export class ChatService {
         totalTokens: number;
         promptTokens: number | null;
         completionTokens: number | null;
+        cacheWriteTokens?: number | null;
+        cacheReadTokens?: number | null;
+        cachedInputTokens?: number | null;
       }
   > {
     if (provider === 'anthropic') {
@@ -679,6 +725,9 @@ export class ChatService {
       totalTokens: 0,
       promptTokens: null as number | null,
       completionTokens: null as number | null,
+      cacheWriteTokens: null as number | null,
+      cacheReadTokens: null as number | null,
+      cachedInputTokens: null as number | null,
     };
     const streamAbort = new AbortController();
     res.on('close', () => {
@@ -707,6 +756,9 @@ export class ChatService {
             totalTokens: item.totalTokens,
             promptTokens: item.promptTokens,
             completionTokens: item.completionTokens,
+            cacheWriteTokens: item.cacheWriteTokens ?? null,
+            cacheReadTokens: item.cacheReadTokens ?? null,
+            cachedInputTokens: item.cachedInputTokens ?? null,
           };
           continue;
         }
@@ -715,8 +767,14 @@ export class ChatService {
         res.write(`data: ${JSON.stringify({ chunk: item.text })}\n\n`);
       }
 
+      const cacheInfo =
+        usage.cacheWriteTokens || usage.cacheReadTokens
+          ? ` cacheWrite=${usage.cacheWriteTokens ?? 0} cacheRead=${usage.cacheReadTokens ?? 0}`
+          : usage.cachedInputTokens
+            ? ` cachedInput=${usage.cachedInputTokens}`
+            : '';
       this.logger.log(
-        `[stream] status=ok provider=${provider} model=${chat.model.name} latencyMs=${Date.now() - streamStart} tokensUsed=${usage.totalTokens} clientDisconnected=${clientDisconnected}`,
+        `[stream] status=ok provider=${provider} model=${chat.model.name} latencyMs=${Date.now() - streamStart} tokensUsed=${usage.totalTokens}${cacheInfo} clientDisconnected=${clientDisconnected}`,
       );
       await flushPromise;
 
