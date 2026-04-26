@@ -1,4 +1,11 @@
-import { createContext, Dispatch, SetStateAction, useEffect, useState, type ReactNode } from 'react';
+import {
+  Dispatch,
+  type ReactNode,
+  SetStateAction,
+  createContext,
+  useEffect,
+  useState,
+} from 'react';
 
 import { $api } from '@/api/client.ts';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,7 +31,11 @@ interface TreeContextType {
   renameChat: (id: string, title: string) => Promise<void>;
   getChatTitle: (chat: ChatListItem) => string;
   deleteChat: (id: string) => Promise<void>;
+  deleteNonFavoriteChats: () => Promise<void>;
+  deleteAllChats: () => Promise<void>;
   isDeletingChat: boolean;
+  isDeletingNonFavoriteChats: boolean;
+  isDeletingAllChats: boolean;
 }
 
 export const TreeContext = createContext<TreeContextType>({
@@ -39,13 +50,19 @@ export const TreeContext = createContext<TreeContextType>({
   renameChat: async () => {},
   getChatTitle: (chat) => chat.title,
   deleteChat: async () => {},
+  deleteNonFavoriteChats: async () => {},
+  deleteAllChats: async () => {},
   isDeletingChat: false,
+  isDeletingNonFavoriteChats: false,
+  isDeletingAllChats: false,
 });
 
 export default function TreeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [selectedChatId, setSelectedChatId] = useState('');
   const [isNewConversation, setIsNewConversation] = useState(false);
+  const [isDeletingNonFavoriteChats, setIsDeletingNonFavoriteChats] = useState(false);
+  const [isDeletingAllChats, setIsDeletingAllChats] = useState(false);
 
   const {
     data: chatsData,
@@ -138,6 +155,60 @@ export default function TreeProvider({ children }: { children: ReactNode }) {
     await deleteChatMutation.mutateAsync({ params: { path: { id } } });
   };
 
+  const finalizeBulkDelete = (deletedIds: Set<string>) => {
+    const remainingChats = chats.filter((chat) => !deletedIds.has(chat.id));
+    if (remainingChats.length === 0) {
+      setSelectedChatId('');
+      setIsNewConversation(true);
+      return;
+    }
+
+    const selectedChatDeleted = selectedChatId !== '' && deletedIds.has(selectedChatId);
+    if (selectedChatDeleted) {
+      setSelectedChatId(remainingChats[0].id);
+      setIsNewConversation(false);
+    }
+  };
+
+  const bulkDeleteChats = async (targetChats: ChatListItem[]) => {
+    if (targetChats.length === 0) {
+      return;
+    }
+
+    const deletedIds = new Set(targetChats.map((chat) => chat.id));
+    for (const chat of targetChats) {
+      await deleteChatMutation.mutateAsync({
+        params: { path: { id: chat.id } },
+      });
+    }
+
+    finalizeBulkDelete(deletedIds);
+    await invalidateChats();
+  };
+
+  const deleteNonFavoriteChats = async () => {
+    const nonFavoriteChats = chats.filter((chat) => !chat.favourite);
+    if (nonFavoriteChats.length === 0) {
+      return;
+    }
+
+    setIsDeletingNonFavoriteChats(true);
+    try {
+      await bulkDeleteChats(nonFavoriteChats);
+    } finally {
+      setIsDeletingNonFavoriteChats(false);
+    }
+  };
+
+  const deleteAllChats = async () => {
+    setIsDeletingAllChats(true);
+    try {
+      await bulkDeleteChats(chats);
+    } finally {
+      setIsDeletingAllChats(false);
+    }
+  };
+
   return (
     <TreeContext.Provider
       value={{
@@ -152,7 +223,11 @@ export default function TreeProvider({ children }: { children: ReactNode }) {
         renameChat,
         getChatTitle,
         deleteChat,
+        deleteNonFavoriteChats,
+        deleteAllChats,
         isDeletingChat: deleteChatMutation.isPending,
+        isDeletingNonFavoriteChats,
+        isDeletingAllChats,
       }}>
       {children}
     </TreeContext.Provider>

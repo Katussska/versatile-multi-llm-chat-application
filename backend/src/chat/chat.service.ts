@@ -349,19 +349,19 @@ export class ChatService {
 
   private async updateUsedTokens(
     userId: string,
-    modelId: string,
+    provider: string,
     tokens: number,
   ): Promise<void> {
     if (tokens <= 0) return;
 
     const tokenLimit = await this.tokenRepository.findOne({
       user: userId,
-      model: modelId,
+      provider,
     });
     if (tokenLimit) {
       await this.em.nativeUpdate(
         Token,
-        { user: userId, model: modelId },
+        { user: userId, provider },
         { usedTokens: raw('used_tokens + ?', [tokens]) },
       );
       return;
@@ -369,7 +369,7 @@ export class ChatService {
 
     const usageCounter = this.em.create(Token, {
       user: this.em.getReference(User, userId),
-      model: this.em.getReference(Model, modelId),
+      provider,
       tokenCount: null,
       usedTokens: tokens,
       resetAt: nextMonthFirstDay(),
@@ -423,7 +423,7 @@ export class ChatService {
 
     if (fullResponse || saveEvenIfEmpty) {
       assistantMessage.content = fullResponse;
-      await this.updateUsedTokens(userId, model.id, usage.totalTokens);
+      await this.updateUsedTokens(userId, model.provider, usage.totalTokens);
     } else {
       this.em.remove(assistantMessage);
       if (removeUserOnEmpty && userMessage) this.em.remove(userMessage);
@@ -570,7 +570,7 @@ export class ChatService {
 
     const tokenLimit = await this.tokenRepository.findOne({
       user: userId,
-      model: chat.model.id,
+      provider: chat.model.provider,
     });
     if (tokenLimit) {
       if (new Date() >= tokenLimit.resetAt) {

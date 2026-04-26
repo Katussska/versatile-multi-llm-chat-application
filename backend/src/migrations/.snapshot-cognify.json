@@ -840,7 +840,7 @@
         },
         "is_enabled": {
           "name": "is_enabled",
-          "type": "boolean",
+          "type": "bool",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,

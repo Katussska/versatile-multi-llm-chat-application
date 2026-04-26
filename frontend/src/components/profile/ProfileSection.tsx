@@ -1,7 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
+import { TreeContext } from '@/components/TreeProvider.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx';
 import {
   Form,
   FormControl,
@@ -31,6 +40,7 @@ import {
   Mail,
   Settings,
   Square,
+  Trash2,
   User,
 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -46,12 +56,22 @@ interface TokenLimit {
   resetAt: string;
 }
 
+type ConversationConfirmAction = 'delete-all' | 'delete-not-favorite' | null;
+
 export default function ProfileSection() {
   const { t } = useTranslation();
   const { user, isAdmin, updateUser, changePassword } = useAuthContext();
+  const {
+    chats,
+    deleteNonFavoriteChats,
+    deleteAllChats,
+    isDeletingNonFavoriteChats,
+    isDeletingAllChats,
+  } = useContext(TreeContext);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConversationConfirmAction>(null);
   const [tokens, setTokens] = useState<TokenLimit[] | null>(null);
   const [tokenLimitsLoading, setTokenLimitsLoading] = useState(true);
   const [tokenLimitsError, setTokenLimitsError] = useState(false);
@@ -125,6 +145,63 @@ export default function ProfileSection() {
       }
     },
   );
+
+  const handleDeleteAllConversations = async () => {
+    if (chats.length === 0 || isDeletingAllChats) {
+      return;
+    }
+
+    setConfirmAction('delete-all');
+  };
+
+  const handleDeleteNotFavoriteConversations = async () => {
+    const nonFavoriteCount = chats.filter((chat) => !chat.favourite).length;
+    if (nonFavoriteCount === 0 || isDeletingNonFavoriteChats) {
+      return;
+    }
+
+    setConfirmAction('delete-not-favorite');
+  };
+
+  const handleConfirmConversationAction = async () => {
+    if (confirmAction === 'delete-all') {
+      try {
+        await deleteAllChats();
+        toast.success(t('profile.deleteAllConversationsSuccess'));
+        setConfirmAction(null);
+      } catch {
+        toast.error(t('profile.deleteAllConversationsError'));
+      }
+      return;
+    }
+
+    if (confirmAction === 'delete-not-favorite') {
+      try {
+        await deleteNonFavoriteChats();
+        toast.success(t('profile.deleteNotFavoriteConversationsSuccess'));
+        setConfirmAction(null);
+      } catch {
+        toast.error(t('profile.deleteNotFavoriteConversationsError'));
+      }
+    }
+  };
+
+  const isConfirmActionPending =
+    confirmAction === 'delete-all'
+      ? isDeletingAllChats
+      : confirmAction === 'delete-not-favorite'
+        ? isDeletingNonFavoriteChats
+        : false;
+
+  const confirmDescription =
+    confirmAction === 'delete-all'
+      ? t('profile.deleteAllConversationsConfirm')
+      : t('profile.deleteNotFavoriteConversationsConfirm');
+
+  const confirmButtonLabel =
+    confirmAction === 'delete-all'
+      ? t('profile.deleteAllConversations')
+      : t('profile.deleteNotFavoriteConversations');
 
   const currentLang = i18n.language?.startsWith('cs') ? 'cs' : 'en';
 
@@ -342,6 +419,43 @@ export default function ProfileSection() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <Trash2 size={20} />
+              {t('profile.conversationActions')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  chats.every((chat) => chat.favourite) ||
+                  isDeletingNonFavoriteChats ||
+                  isDeletingAllChats
+                }
+                onClick={handleDeleteNotFavoriteConversations}
+                className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 size={14} />
+                {t('profile.deleteNotFavoriteConversations')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  chats.length === 0 || isDeletingAllChats || isDeletingNonFavoriteChats
+                }
+                onClick={handleDeleteAllConversations}
+                className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 size={14} />
+                {t('profile.deleteAllConversations')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Coins size={20} />
               {t('profile.tokens.title')}
             </CardTitle>
@@ -423,6 +537,36 @@ export default function ProfileSection() {
           </Card>
         )}
       </div>
+
+      <Dialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => {
+          if (!open && !isConfirmActionPending) {
+            setConfirmAction(null);
+          }
+        }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('profile.conversationActionsConfirmTitle')}</DialogTitle>
+            <DialogDescription>{confirmDescription}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmAction(null)}
+              disabled={isConfirmActionPending}>
+              {t('profile.cancel')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleConfirmConversationAction}
+              disabled={isConfirmActionPending}
+              className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground">
+              {confirmButtonLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

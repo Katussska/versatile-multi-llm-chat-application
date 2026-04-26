@@ -33,12 +33,12 @@ export default function ModelMessage({
   return (
     <div className="group my-10 flex flex-col">
       <div className="flex">
-        <Avatar className="mr-6">
+        <Avatar className="mr-3 shrink-0 sm:mr-6">
           {icon.src && <AvatarImage src={icon.src} />}
           <AvatarFallback>{icon.fallback}</AvatarFallback>
         </Avatar>
-        <div className="mr-5 flex w-max max-w-3xl flex-col">
-          <div className="bg-sidebar-accent rounded-3xl p-4">
+        <div className="mr-2 flex min-w-0 max-w-[85%] flex-col sm:mr-5 sm:max-w-3xl">
+          <div className="bg-sidebar-accent break-words rounded-3xl p-4">
             {isStreaming && !message.content && (
               <Loader2 className="text-muted-foreground size-5 animate-spin" />
             )}

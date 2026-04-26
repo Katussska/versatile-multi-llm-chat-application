@@ -39,10 +39,20 @@ export class AdminService {
           used_tokens: number;
         }[]
       >(
-        `SELECT t.user_id, m.name AS model_name, m.provider, t.token_count,
+        `SELECT t.user_id,
+                COALESCE(m.name, t.provider) AS model_name,
+                t.provider,
+                t.token_count,
                 CASE WHEN t.reset_at > NOW() THEN t.used_tokens ELSE 0 END AS used_tokens
          FROM token t
-         JOIN model m ON t.model_id = m.id
+         LEFT JOIN LATERAL (
+           SELECT name
+           FROM model m
+           WHERE m.provider = t.provider
+             AND m.deleted_at IS NULL
+           ORDER BY m.name ASC, m.created_at ASC
+           LIMIT 1
+         ) m ON TRUE
          WHERE t.deleted_at IS NULL`,
       ),
     ]);

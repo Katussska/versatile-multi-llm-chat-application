@@ -5,6 +5,7 @@ import { TreeContext } from '@/components/TreeProvider.tsx';
 import ChatContent from '@/components/chat/ChatContent.tsx';
 import ChatInput from '@/components/chat/ChatInput.tsx';
 import ModelSelector from '@/components/chat/ModelSelector.tsx';
+import ModelVariantSelector from '@/components/chat/ModelVariantSelector.tsx';
 import { formatChatTitle } from '@/lib/chatTitle.ts';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -55,27 +56,57 @@ export default function ChatSection() {
     useContext(TreeContext);
   const activeChatId = routeChatId ?? selectedChatId;
 
-  const { data: availableModels } = $api.useQuery('get', '/models');
+  const { data: availableModels, isPending: isModelsPending } = $api.useQuery('get', '/models');
   const [selectedModelId, setSelectedModelId] = useState('');
 
-  const geminiDefaultId =
+  const defaultModelId =
     availableModels?.find((m) => m.provider === 'gemini')?.id ??
     availableModels?.[0]?.id ??
     '';
 
+  const {
+    data: chatMessages,
+    isPending: isMessagesPending,
+    error: messagesError,
+  } = $api.useQuery(
+    'get',
+    '/chats/{id}/messages',
+    {
+      params: {
+        path: {
+          id: activeChatId,
+        },
+      },
+    },
+    {
+      enabled: Boolean(activeChatId),
+    },
+  );
+
   useEffect(() => {
     if (!availableModels?.length) return;
     if (!activeChatId) {
-      setSelectedModelId(geminiDefaultId);
+      setSelectedModelId(defaultModelId);
       return;
     }
     const activeChat = chats.find((c) => c.id === activeChatId);
-    if (activeChat?.modelId) {
+    if (activeChat?.modelId && availableModels.some((m) => m.id === activeChat.modelId)) {
       setSelectedModelId(activeChat.modelId);
-    } else {
-      setSelectedModelId(geminiDefaultId);
+      return;
     }
-  }, [activeChatId, availableModels, chats, geminiDefaultId]);
+    // Fallback: use provider from last model message (handles old chats without modelId)
+    if (chatMessages?.length) {
+      const lastModelMsg = [...chatMessages].reverse().find((m) => m.path !== 'user');
+      if (lastModelMsg?.modelProvider) {
+        const fallback = availableModels.find((m) => m.provider === lastModelMsg.modelProvider);
+        if (fallback) {
+          setSelectedModelId(fallback.id);
+          return;
+        }
+      }
+    }
+    setSelectedModelId(defaultModelId);
+  }, [activeChatId, availableModels, chats, defaultModelId, chatMessages]);
 
   useEffect(() => {
     if (!routeChatId || routeChatId === selectedChatId || isChatsPending) {
@@ -120,25 +151,6 @@ export default function ChatSection() {
   useEffect(() => {
     setTokenLimitResetAt(null);
   }, [activeChatId]);
-
-  const {
-    data: chatMessages,
-    isPending: isMessagesPending,
-    error: messagesError,
-  } = $api.useQuery(
-    'get',
-    '/chats/{id}/messages',
-    {
-      params: {
-        path: {
-          id: activeChatId,
-        },
-      },
-    },
-    {
-      enabled: Boolean(activeChatId),
-    },
-  );
 
   useEffect(() => {
     if (isStreaming) return;
@@ -360,7 +372,7 @@ export default function ChatSection() {
         : '';
       toast.error(
         dateStr
-          ? t('chat.tokenLimitError', { date: dateStr })
+          ? t('chat.tokenLimitBanner', { date: dateStr })
           : t('chat.tokenLimitErrorNoDate'),
       );
       return true;
@@ -609,6 +621,12 @@ export default function ChatSection() {
     }
   };
 
+  const handleProviderChange = (provider: string) => {
+    if (!availableModels) return;
+    const defaultModel = availableModels.find((m) => m.provider === provider);
+    if (defaultModel) void handleModelChange(defaultModel.id);
+  };
+
   const handleModelChange = async (newModelId: string) => {
     setSelectedModelId(newModelId);
     if (!activeChatId) return;
@@ -630,7 +648,12 @@ export default function ChatSection() {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
-      <ModelSelector value={selectedModelId} onValueChange={(id) => void handleModelChange(id)} />
+      <ModelSelector
+        models={availableModels ?? []}
+        selectedModelId={selectedModelId}
+        onProviderChange={handleProviderChange}
+        isPending={isModelsPending}
+      />
       <div
         ref={scrollContainerRef}
         className="min-h-0 flex-1 overflow-y-auto p-4 [mask-image:linear-gradient(to_top,transparent_0%,black_50px)]">
@@ -651,6 +674,14 @@ export default function ChatSection() {
         onStop={handleStopStreaming}
         isStreaming={isStreaming}
         tokenLimitResetAt={tokenLimitResetAt}
+        variantSelector={
+          <ModelVariantSelector
+            models={availableModels ?? []}
+            selectedModelId={selectedModelId}
+            onModelChange={(id) => void handleModelChange(id)}
+            disabled={isStreaming}
+          />
+        }
       />
     </div>
   );

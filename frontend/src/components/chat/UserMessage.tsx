@@ -56,7 +56,7 @@ export default function UserMessage({
   if (isEditing) {
     return (
       <div className="my-10 flex justify-end gap-4">
-        <div className="flex w-full max-w-3xl flex-col gap-2">
+        <div className="flex w-full max-w-[85%] flex-col gap-2 sm:max-w-3xl">
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
@@ -92,9 +92,9 @@ export default function UserMessage({
 
   return (
     <div className="group my-10 flex justify-end">
-      <div className="mr-5 flex flex-col items-end">
-        <div className="w-max max-w-3xl rounded-3xl bg-sidebar-foreground p-4">
-          <p className="text-primary-foreground">{message.content}</p>
+      <div className="mr-3 flex min-w-0 flex-col items-end sm:mr-5">
+        <div className="max-w-[85%] rounded-3xl bg-sidebar-foreground p-4 sm:max-w-3xl">
+          <p className="break-words text-primary-foreground">{message.content}</p>
         </div>
         <div className="mt-1 flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover:opacity-100">
           {onEdit && (
