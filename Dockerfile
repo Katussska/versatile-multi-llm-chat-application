@@ -34,4 +34,4 @@ COPY --from=build /app/frontend/dist /app/backend/dist/public
 
 WORKDIR /app/backend
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
