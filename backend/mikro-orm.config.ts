@@ -6,11 +6,11 @@ export default defineConfig({
   entitiesTs: ['src/**/*.entity.ts', 'src/**/entities/*.ts'],
   extensions: [SeedManager],
   migrations: {
-    path: './dist/migrations',
+    path: './dist/src/migrations',
     pathTs: './src/migrations',
   },
   seeder: {
-    path: './dist/seeders',
+    path: './dist/src/seeders',
     pathTs: './src/seeders',
     defaultSeeder: 'DatabaseSeeder',
   },

@@ -1,11 +1,20 @@
 import { createServer } from 'node:net';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { MikroORM } from '@mikro-orm/core';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { setupOpenApi } from './openapi';
+
+type TableExistsRow = {
+  exists: boolean;
+};
+
+type CountRow = {
+  count: number | string;
+};
 
 function parseOrigins(rawOrigins: string): string[] {
   return rawOrigins
@@ -136,6 +145,78 @@ function shouldEnableOpenApi(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
+function parseBooleanEnv(name: string, fallback: boolean): boolean {
+  const rawValue = process.env[name];
+
+  if (rawValue === undefined) {
+    return fallback;
+  }
+
+  const normalizedValue = rawValue.trim().toLowerCase();
+
+  if (['1', 'true', 'yes', 'on'].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalizedValue)) {
+    return false;
+  }
+
+  throw new Error(`Invalid ${name} value "${rawValue}". Use true/false.`);
+}
+
+async function shouldSeedForFreshDatabase(orm: MikroORM): Promise<boolean> {
+  const tableExistsRows = await orm.em.getConnection().execute<TableExistsRow[]>(
+    `
+      select to_regclass('public.mikro_orm_migrations') is not null as exists
+    `,
+  );
+
+  const migrationTableExists = tableExistsRows[0]?.exists === true;
+
+  if (!migrationTableExists) {
+    return true;
+  }
+
+  const migrationCountRows = await orm.em
+    .getConnection()
+    .execute<CountRow[]>(`select count(*) as count from "mikro_orm_migrations"`);
+
+  const migrationCount = Number(migrationCountRows[0]?.count ?? 0);
+
+  return migrationCount === 0;
+}
+
+async function initializeDatabaseIfNeeded(
+  app: NestExpressApplication,
+): Promise<void> {
+  const shouldBootstrapOnEmptyDb = parseBooleanEnv(
+    'DB_BOOTSTRAP_ON_EMPTY',
+    true,
+  );
+
+  if (!shouldBootstrapOnEmptyDb) {
+    return;
+  }
+
+  const orm = app.get(MikroORM);
+  const shouldSeedBecauseFreshDatabase = await shouldSeedForFreshDatabase(orm);
+
+  console.info('Running pending database migrations...');
+  await orm.migrator.up();
+  console.info('Database migrations check completed.');
+
+  const shouldSeedOnEmptyDb = parseBooleanEnv('DB_SEED_ON_EMPTY', true);
+
+  if (!shouldSeedOnEmptyDb || !shouldSeedBecauseFreshDatabase) {
+    return;
+  }
+
+  console.info('Seeding initial data...');
+  await orm.seeder.seedString('DatabaseSeeder');
+  console.info('Initial database seed completed.');
+}
+
 const SPA_EXCLUDED_PATH_PREFIXES = ['/api', '/api-json'];
 
 function isExcludedFromSpaFallback(path: string): boolean {
@@ -144,15 +225,32 @@ function isExcludedFromSpaFallback(path: string): boolean {
   );
 }
 
+function resolveFrontendDistPath(): string | null {
+  const candidatePaths = [
+    join(__dirname, 'public'),
+    join(__dirname, '..', 'public'),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    if (existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return null;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
 
+  await initializeDatabaseIfNeeded(app);
+
   app.setGlobalPrefix('api');
 
-  const frontendDistPath = join(__dirname, 'public');
-  if (existsSync(frontendDistPath)) {
+  const frontendDistPath = resolveFrontendDistPath();
+  if (frontendDistPath !== null) {
     app.useStaticAssets(frontendDistPath);
 
     // Handle SPA routes while keeping API calls untouched.

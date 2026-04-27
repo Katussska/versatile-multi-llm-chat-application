@@ -22,6 +22,9 @@ importers:
       '@mikro-orm/decorators':
         specifier: ^7.0.1
         version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))(reflect-metadata@0.2.2)
+      '@mikro-orm/migrations':
+        specifier: ^7.0.1
+        version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))
       '@mikro-orm/nestjs':
         specifier: ^7.0.1
         version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)
@@ -95,9 +98,6 @@ importers:
       '@mikro-orm/cli':
         specifier: ^7.0.1
         version: 7.0.1(dataloader@2.2.3)
-      '@mikro-orm/migrations':
-        specifier: ^7.0.1
-        version: 7.0.1(@mikro-orm/core@7.0.1(dataloader@2.2.3))
       '@nestjs/cli':
         specifier: ^11.0.16
         version: 11.0.16(@swc/core@1.15.18)(@types/node@25.5.0)

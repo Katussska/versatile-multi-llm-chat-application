@@ -210,15 +210,31 @@ OPENAI_API_KEY=replace-with-api-key
 
 DB_RESET_CONFIRM=false
 DB_RESET_ALLOW_NON_DEVELOPMENT=false
+DB_BOOTSTRAP_ON_EMPTY=true
+DB_SEED_ON_EMPTY=true
 ```
 
-### Step 4 — Run database migrations
+### Step 4 — First-run database bootstrap (automatic)
+
+When the backend starts against a fresh/empty database, it automatically:
+
+- applies all pending MikroORM migrations
+- runs the default seeders (`DatabaseSeeder`)
+
+This bootstrap is skipped when the database is already initialized.
+
+You can still run migrations manually if needed:
 
 ```bash
 pnpm be db:migration:up
 ```
 
-This applies all pending MikroORM migrations, including Better Auth session/account tables.
+You can disable first-run automation in `backend/.env`:
+
+```env
+DB_BOOTSTRAP_ON_EMPTY=false
+DB_SEED_ON_EMPTY=false
+```
 
 ### Step 5 — Configure frontend
 
@@ -228,7 +244,7 @@ Create `frontend/.env`:
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-### Step 6 — Seed a test account
+### Step 6 — Seed a test account (optional)
 
 ```bash
 pnpm be db:seed

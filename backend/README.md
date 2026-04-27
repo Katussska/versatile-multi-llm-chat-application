@@ -22,13 +22,20 @@ pnpm install
 cp backend/.env.example backend/.env
 ```
 
-3. Ensure PostgreSQL is running and apply database migrations:
+3. Ensure PostgreSQL is running.
 
 ```bash
-pnpm --filter @cognify/backend db:migration:up
+pnpm --filter @cognify/backend dev
 ```
 
-4. Start backend in watch mode:
+On first startup with an empty database, the backend now automatically:
+
+- runs all pending migrations
+- runs the default seeder (`DatabaseSeeder`)
+
+If your database is already initialized, startup skips this bootstrap.
+
+4. Start backend in watch mode (if not started in step 3):
 
 ```bash
 pnpm --filter @cognify/backend dev
@@ -78,11 +85,15 @@ GEMINI_MODEL=gemini-2.5-flash
 
 DB_RESET_CONFIRM=false
 DB_RESET_ALLOW_NON_DEVELOPMENT=false
+DB_BOOTSTRAP_ON_EMPTY=true
+DB_SEED_ON_EMPTY=true
 ```
 
 Notes:
 
 - `BETTER_AUTH_SECRET` must be at least 32 characters in production.
+- `DB_BOOTSTRAP_ON_EMPTY=true` runs migrations only when no tables exist in `public`.
+- `DB_SEED_ON_EMPTY=true` runs `DatabaseSeeder` after those first-run migrations.
 
 ## Scripts
 

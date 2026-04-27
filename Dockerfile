@@ -30,7 +30,7 @@ ENV HOST=0.0.0.0
 
 COPY --from=prod-deps /app /app
 COPY --from=build /app/backend/dist /app/backend/dist
-COPY --from=build /app/frontend/dist /app/backend/dist/public
+COPY --from=build /app/frontend/dist /app/backend/dist/src/public
 
 WORKDIR /app/backend
 EXPOSE 3000
