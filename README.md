@@ -129,7 +129,7 @@ Work in progress / placeholders:
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - pnpm 10+
 - Docker + Docker Compose
 
@@ -279,6 +279,38 @@ Log in at <http://localhost:5173/login> with the credentials from Step 6 and sta
 
 ---
 
+## Docker Deployment (Single Image)
+
+The repository now contains a multi-stage Docker build in `Dockerfile` that:
+
+- builds frontend (`frontend/dist`)
+- builds backend (`backend/dist`)
+- copies frontend build into backend static assets
+- serves both frontend and API from one container (`:3000`)
+
+Build locally:
+
+```bash
+docker build -f Dockerfile -t cognify:local .
+```
+
+Run locally:
+
+```bash
+docker run --rm -p 3000:3000 --env-file backend/.env -e HOST=0.0.0.0 cognify:local
+```
+
+When serving frontend and backend from the same host, set these to the same public URL in production:
+
+```env
+BETTER_AUTH_URL=https://your-domain.example
+FRONTEND_ORIGIN=https://your-domain.example
+```
+
+`FRONTEND_ORIGIN` also supports comma-separated values for multi-origin deployments.
+
+---
+
 ## Useful Commands
 
 ### Database
@@ -324,6 +356,29 @@ pnpm fe typecheck     # Frontend TypeScript check
 - Swagger UI (dev only): <http://localhost:3000/api/docs>
 - OpenAPI JSON export: `frontend/openapi.json`
 - CORS is controlled by `FRONTEND_ORIGIN` in `backend/.env` (default: `http://localhost:5173`)
+
+---
+
+## CI/CD (GHCR + Komodo Webhook)
+
+GitHub Actions workflow: `.github/workflows/build-and-publish.yml`
+
+- On `pull_request` to `main`: builds Docker image only (no push)
+- On `push` to `main`: builds and pushes image to GHCR
+- On successful push to default branch: optionally calls Komodo webhook
+
+Published image:
+
+- `ghcr.io/<owner>/<repo>:latest` (default branch)
+- `ghcr.io/<owner>/<repo>:sha-...`
+
+Required repository settings:
+
+- Package permissions: allow workflow `GITHUB_TOKEN` to write packages
+
+Optional secret for automatic redeploy:
+
+- `KOMODO_WEBHOOK_URL` = your Komodo redeploy webhook endpoint
 
 ---
 
