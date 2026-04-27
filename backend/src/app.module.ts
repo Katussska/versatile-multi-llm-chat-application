@@ -17,6 +17,18 @@ import { ModelModule } from './model/model.module';
 import { CleanupModule } from './cleanup/cleanup.module';
 import { UserRole } from './entities/UserRole';
 
+function getTrustedOrigins(config: ConfigService): string[] {
+  const fallbackOrigin = config.get<string>('BETTER_AUTH_URL');
+  const configuredOrigins = config.get<string>('FRONTEND_ORIGIN');
+  const rawOrigins =
+    configuredOrigins ?? fallbackOrigin ?? 'http://localhost:5173';
+
+  return rawOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,7 +55,7 @@ import { UserRole } from './entities/UserRole';
             database: pool,
             baseURL: config.getOrThrow<string>('BETTER_AUTH_URL'),
             secret: config.getOrThrow<string>('BETTER_AUTH_SECRET'),
-            trustedOrigins: [config.getOrThrow<string>('FRONTEND_ORIGIN')],
+            trustedOrigins: getTrustedOrigins(config),
             advanced: { database: { generateId: false } },
             emailAndPassword: { enabled: true },
             user: {

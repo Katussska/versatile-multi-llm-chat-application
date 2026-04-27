@@ -4,8 +4,8 @@ NestJS backend with MikroORM (PostgreSQL) and Better Auth integration.
 
 ## Requirements
 
-- Node.js 20+
-- pnpm 10+
+- Node.js 24+
+- pnpm 9+
 - PostgreSQL running locally (default: `localhost:5432`)
 
 ## Quick Start
@@ -73,10 +73,8 @@ MIKRO_ORM_PASSWORD=postgres
 
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
-
 GEMINI_API_KEY=replace-with-api-key
-ANTHROPIC_API_KEY=replace-with-api-key
-OPENAI_API_KEY=replace-with-api-key
+GEMINI_MODEL=gemini-2.5-flash
 
 DB_RESET_CONFIRM=false
 DB_RESET_ALLOW_NON_DEVELOPMENT=false
@@ -124,7 +122,7 @@ pnpm --filter @cognify/backend db:reset
 
 ## OpenAPI
 
-- Runtime Swagger UI (non-production by default): `http://localhost:3000/api`
+- Runtime Swagger UI (non-production by default): `http://localhost:3000/api/docs`
 - Runtime JSON: `http://localhost:3000/api-json`
 
 Export OpenAPI for frontend (two steps, backend need not be running):

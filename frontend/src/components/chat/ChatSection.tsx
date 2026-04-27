@@ -6,6 +6,7 @@ import ChatContent from '@/components/chat/ChatContent.tsx';
 import ChatInput from '@/components/chat/ChatInput.tsx';
 import ModelSelector from '@/components/chat/ModelSelector.tsx';
 import ModelVariantSelector from '@/components/chat/ModelVariantSelector.tsx';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
 import { formatChatTitle } from '@/lib/chatTitle.ts';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -22,7 +23,7 @@ export interface Message {
   modelProvider?: string | null;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
+const API_BASE = getApiBaseUrl();
 
 class TokenLimitError extends Error {
   constructor(public readonly resetAt: Date | null) {
@@ -40,7 +41,14 @@ export default function ChatSection() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
   const [tokenLimitResetAt, setTokenLimitResetAt] = useState<Date | null>(null);
-  const [budgetLimits, setBudgetLimits] = useState<{ model: { provider: string }; dollarLimit: number | null; usedDollars: number; resetAt: string }[]>([]);
+  const [budgetLimits, setBudgetLimits] = useState<
+    {
+      model: { provider: string };
+      dollarLimit: number | null;
+      usedDollars: number;
+      resetAt: string;
+    }[]
+  >([]);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -57,7 +65,10 @@ export default function ChatSection() {
     useContext(TreeContext);
   const activeChatId = routeChatId ?? selectedChatId;
 
-  const { data: availableModels, isPending: isModelsPending } = $api.useQuery('get', '/models');
+  const { data: availableModels, isPending: isModelsPending } = $api.useQuery(
+    'get',
+    '/models',
+  );
   const [selectedModelId, setSelectedModelId] = useState('');
 
   const defaultModelId =
@@ -99,7 +110,9 @@ export default function ChatSection() {
     if (chatMessages?.length) {
       const lastModelMsg = [...chatMessages].reverse().find((m) => m.path !== 'user');
       if (lastModelMsg?.modelProvider) {
-        const fallback = availableModels.find((m) => m.provider === lastModelMsg.modelProvider);
+        const fallback = availableModels.find(
+          (m) => m.provider === lastModelMsg.modelProvider,
+        );
         if (fallback) {
           setSelectedModelId(fallback.id);
           return;
@@ -161,7 +174,11 @@ export default function ChatSection() {
     const provider = availableModels.find((m) => m.id === selectedModelId)?.provider;
     if (!provider) return;
     const budget = budgetLimits.find((b) => b.model.provider === provider);
-    if (budget && budget.dollarLimit !== null && budget.usedDollars >= budget.dollarLimit) {
+    if (
+      budget &&
+      budget.dollarLimit !== null &&
+      budget.usedDollars >= budget.dollarLimit
+    ) {
       setTokenLimitResetAt(new Date(budget.resetAt));
     } else {
       setTokenLimitResetAt(null);
@@ -427,7 +444,8 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
+      modelProvider:
+        availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
 
     const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
@@ -504,7 +522,8 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
+      modelProvider:
+        availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
     setMessages([...truncated, assistantPlaceholder]);
     setIsStreaming(true);
@@ -568,7 +587,8 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      modelProvider: availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
+      modelProvider:
+        availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
     };
     setMessages([...truncated, newUserMessage, assistantPlaceholder]);
     setIsStreaming(true);
@@ -614,9 +634,9 @@ export default function ChatSection() {
     const defaultModel = availableModels.find((m) => m.provider === provider);
     if (!defaultModel) return;
     void handleModelChange(defaultModel.id);
-    const lastMsg = [...messages].reverse().find(
-      (m) => m.role === 'model' && m.modelProvider === provider,
-    );
+    const lastMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === 'model' && m.modelProvider === provider);
     if (lastMsg) setScrollToMessageId(lastMsg.id);
   };
 

@@ -1,7 +1,31 @@
 import { createServer } from 'node:net';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { setupOpenApi } from './openapi';
+
+function parseOrigins(rawOrigins: string): string[] {
+  return rawOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+}
+
+function getAllowedOrigins(): string[] {
+  const fallbackOrigin = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+  const rawOrigins =
+    process.env.FRONTEND_ORIGIN ?? `${fallbackOrigin},http://localhost:5173`;
+
+  const parsedOrigins = parseOrigins(rawOrigins);
+  if (parsedOrigins.length > 0) {
+    return parsedOrigins;
+  }
+
+  return ['http://localhost:5173'];
+}
 
 async function findAvailablePort(
   startPort: number,
@@ -112,13 +136,54 @@ function shouldEnableOpenApi(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
+const SPA_EXCLUDED_PATH_PREFIXES = ['/api', '/api-json'];
+
+function isExcludedFromSpaFallback(path: string): boolean {
+  return SPA_EXCLUDED_PATH_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
 
+  app.setGlobalPrefix('api');
+
+  const frontendDistPath = join(__dirname, 'public');
+  if (existsSync(frontendDistPath)) {
+    app.useStaticAssets(frontendDistPath);
+
+    // Handle SPA routes while keeping API calls untouched.
+    app.use((request: Request, response: Response, next: NextFunction) => {
+      if (request.method !== 'GET') {
+        next();
+        return;
+      }
+
+      if (request.path.includes('.')) {
+        next();
+        return;
+      }
+
+      if (isExcludedFromSpaFallback(request.path)) {
+        next();
+        return;
+      }
+
+      const acceptHeader = request.headers.accept ?? '';
+      if (!acceptHeader.includes('text/html')) {
+        next();
+        return;
+      }
+
+      response.sendFile(join(frontendDistPath, 'index.html'));
+    });
+  }
+
   app.enableCors({
-    origin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
+    origin: getAllowedOrigins(),
     credentials: true,
   });
 

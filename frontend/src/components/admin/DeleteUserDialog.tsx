@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 import { type AdminUser } from '@/components/admin/UserSearchList.tsx';
 import { Button } from '@/components/ui/button.tsx';
@@ -12,6 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
+
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 interface DeleteUserDialogProps {
   open: boolean;
@@ -20,14 +22,19 @@ interface DeleteUserDialogProps {
   onDeleted?: () => void;
 }
 
-export default function DeleteUserDialog({ open, onOpenChange, user, onDeleted }: DeleteUserDialogProps) {
+export default function DeleteUserDialog({
+  open,
+  onOpenChange,
+  user,
+  onDeleted,
+}: DeleteUserDialogProps) {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/users/${user.id}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -56,15 +63,17 @@ export default function DeleteUserDialog({ open, onOpenChange, user, onDeleted }
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={deleting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={deleting}>
             {t('profile.cancel')}
           </Button>
           <Button
             variant="outline"
             disabled={deleting}
             onClick={handleDelete}
-            className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground"
-          >
+            className="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground">
             {t('admin.deleteUser.confirmBtn')}
           </Button>
         </DialogFooter>

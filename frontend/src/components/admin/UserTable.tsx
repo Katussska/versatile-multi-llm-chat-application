@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { fmtProvider } from '@/lib/formatModel';
-
 import CreateUserDialog from '@/components/admin/CreateUserDialog.tsx';
 import DeleteUserDialog from '@/components/admin/DeleteUserDialog.tsx';
 import EditUserDialog from '@/components/admin/EditUserDialog.tsx';
@@ -15,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
 import { Input } from '@/components/ui/input.tsx';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { fmtProvider } from '@/lib/formatModel';
 
 import { MoreHorizontal, Search, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +60,7 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
   const [tokensOpen, setTokensOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = getApiBaseUrl();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -180,9 +180,7 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                                 )
                               : 0;
                           return (
-                            <div
-                              key={bl.provider}
-                              className="text-xs">
+                            <div key={bl.provider} className="text-xs">
                               <div className="flex items-center justify-between gap-3">
                                 <span
                                   className="max-w-[120px] truncate font-medium"

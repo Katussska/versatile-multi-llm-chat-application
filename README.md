@@ -129,7 +129,7 @@ Work in progress / placeholders:
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - pnpm 10+
 - Docker + Docker Compose
 
@@ -225,7 +225,6 @@ This applies all pending MikroORM migrations, including Better Auth session/acco
 Create `frontend/.env`:
 
 ```env
-VITE_API_URL=http://localhost:3000
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
@@ -276,6 +275,38 @@ Log in at <http://localhost:5173/login> with the credentials from Step 6 and sta
 | `pnpm build`     | Build both packages                   |
 
 > If `PORT_FALLBACK=false` (default), the backend will error on port conflict. Set `PORT_FALLBACK=true` to auto-pick the next free port.
+
+---
+
+## Docker Deployment (Single Image)
+
+The repository now contains a multi-stage Docker build in `Dockerfile` that:
+
+- builds frontend (`frontend/dist`)
+- builds backend (`backend/dist`)
+- copies frontend build into backend static assets
+- serves both frontend and API from one container (`:3000`)
+
+Build locally:
+
+```bash
+docker build -f Dockerfile -t cognify:local .
+```
+
+Run locally:
+
+```bash
+docker run --rm -p 3000:3000 --env-file backend/.env -e HOST=0.0.0.0 cognify:local
+```
+
+When serving frontend and backend from the same host, set these to the same public URL in production:
+
+```env
+BETTER_AUTH_URL=https://your-domain.example
+FRONTEND_ORIGIN=https://your-domain.example
+```
+
+`FRONTEND_ORIGIN` also supports comma-separated values for multi-origin deployments.
 
 ---
 

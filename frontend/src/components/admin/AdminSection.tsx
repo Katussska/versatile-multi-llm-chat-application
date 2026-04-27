@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 import CostCharts, {
-  getPeriodDates,
   PROVIDERS,
   type PeriodKey,
   type ProviderId,
+  getPeriodDates,
 } from '@/components/admin/CostCharts';
-import { formatModelName } from '@/lib/formatModel';
 import UserTable from '@/components/admin/UserTable.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
 import { Input } from '@/components/ui/input';
@@ -17,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { formatModelName } from '@/lib/formatModel';
 
 import { Bot, ChevronDown, Search, Settings, UserCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +39,7 @@ function useAdminStats(tick: number, period: PeriodKey) {
 
   useEffect(() => {
     const { from, to } = getPeriodDates(period);
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const baseUrl = getApiBaseUrl();
     setLoading(true);
     fetch(`${baseUrl}/admin/stats?from=${from}&to=${to}`, { credentials: 'include' })
       .then((r) => {
@@ -57,7 +58,7 @@ function useAdminUsers(tick: number) {
   const [users, setUsers] = useState<AdminUser[]>([]);
 
   useEffect(() => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const baseUrl = getApiBaseUrl();
     fetch(`${baseUrl}/admin/users`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : []))
       .then((data: AdminUser[]) => setUsers(data))
@@ -103,9 +104,11 @@ function UserCombobox({
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => { setOpen((o) => !o); setSearch(''); }}
-        className="border-input bg-background ring-offset-background flex h-8 w-48 items-center justify-between rounded-md border px-3 py-1 text-xs shadow-sm focus:outline-none"
-      >
+        onClick={() => {
+          setOpen((o) => !o);
+          setSearch('');
+        }}
+        className="border-input bg-background ring-offset-background flex h-8 w-48 items-center justify-between rounded-md border px-3 py-1 text-xs shadow-sm focus:outline-none">
         <span className={selectedEmail ? '' : 'text-muted-foreground truncate'}>
           {selectedEmail ?? placeholder}
         </span>
@@ -130,8 +133,11 @@ function UserCombobox({
             <button
               type="button"
               className={`hover:bg-accent w-full rounded px-2 py-1.5 text-left text-xs ${value === 'all' ? 'bg-accent' : ''}`}
-              onClick={() => { onChange('all'); setOpen(false); setSearch(''); }}
-            >
+              onClick={() => {
+                onChange('all');
+                setOpen(false);
+                setSearch('');
+              }}>
               {placeholder}
             </button>
             {filtered.map((u) => (
@@ -139,13 +145,18 @@ function UserCombobox({
                 key={u.id}
                 type="button"
                 className={`hover:bg-accent w-full truncate rounded px-2 py-1.5 text-left text-xs ${value === u.id ? 'bg-accent' : ''}`}
-                onClick={() => { onChange(u.id); setOpen(false); setSearch(''); }}
-              >
+                onClick={() => {
+                  onChange(u.id);
+                  setOpen(false);
+                  setSearch('');
+                }}>
                 {u.email}
               </button>
             ))}
             {filtered.length === 0 && (
-              <p className="text-muted-foreground px-2 py-1.5 text-xs">{t('admin.userList.empty')}</p>
+              <p className="text-muted-foreground px-2 py-1.5 text-xs">
+                {t('admin.userList.empty')}
+              </p>
             )}
           </div>
         </div>
@@ -198,7 +209,11 @@ export default function AdminSection() {
     {
       icon: Bot,
       label: t('admin.stats.mostUsedModel'),
-      value: loading ? '…' : (stats?.mostUsedModel ? formatModelName(stats.mostUsedModel) : t('admin.stats.noModel')),
+      value: loading
+        ? '…'
+        : stats?.mostUsedModel
+          ? formatModelName(stats.mostUsedModel)
+          : t('admin.stats.noModel'),
     },
   ];
 

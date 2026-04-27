@@ -1,7 +1,5 @@
 import { useState } from 'react';
 
-import { fmtProvider } from '@/lib/formatModel';
-
 import { Button } from '@/components/ui/button.tsx';
 import {
   Dialog,
@@ -29,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.tsx';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { fmtProvider } from '@/lib/formatModel';
 import { generatePassword } from '@/lib/utils.ts';
 import { CreateUserSchema, createUserSchema } from '@/schemas/admin.ts';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -80,7 +80,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
   const [dollarLimit, setDollarLimit] = useState('');
   const [submittingToken, setSubmittingToken] = useState(false);
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = getApiBaseUrl();
 
   const form = useForm<CreateUserSchema>({
     resolver: zodResolver(createUserSchema(t)),
