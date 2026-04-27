@@ -96,12 +96,15 @@ What is implemented end-to-end:
 - per-message cost recorded in `UsageLog.cost` (USD) using provider-specific pricing
 - admin role enforced via `RolesGuard` on both `AdminController` and `UserController` admin endpoints
 - admin API endpoints: `/admin/users`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, budget management)
+- automated data cleanup (`CleanupModule`): runs nightly at midnight — hard-deletes soft-deleted chats and users after 30 days, purges `UsageLog` entries older than 90 days
 
 Currently supported LLM providers:
 
-- **Gemini** (Google) — fully integrated, model configurable via `GEMINI_MODEL` env var
-- **Claude** (Anthropic) — fully integrated, model configurable via `ANTHROPIC_MODEL` env var ; prompt caching supported
-- **ChatGPT** (OpenAI) — fully integrated, configurable via `OPENAI_API_KEY`; prompt caching supported
+- **Gemini** (Google) — fully integrated; available models: `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.5-pro`
+- **Claude** (Anthropic) — fully integrated; available models: `claude-haiku-4-5-20251001`, `claude-sonnet-4-5`, `claude-opus-4-7`; prompt caching supported
+- **ChatGPT** (OpenAI) — fully integrated; available models: `gpt-5.4-nano`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.5`; prompt caching supported
+
+All models are registered in the database via `db:seed` along with their pricing data. The active model is selected per-message in the UI — no env var required.
 
 Work in progress / placeholders:
 
@@ -172,17 +175,14 @@ BETTER_AUTH_SECRET=your-secret-here
 # Get a free API key at https://aistudio.google.com/apikey
 GEMINI_API_KEY=your-gemini-api-key
 
-# Optional — only needed if you want to use Claude models
 # Get an API key at https://console.anthropic.com/
 ANTHROPIC_API_KEY=your-anthropic-api-key
-ANTHROPIC_MODEL=claude-haiku-4-5-20251001
 
-# Optional — only needed if you want to use OpenAI models
 # Get an API key at https://platform.openai.com/api-keys
 OPENAI_API_KEY=your-openai-api-key
 ```
 
-Models available in chat are seeded automatically via `db:seed`. Each provider's models are registered in the database along with their pricing data (`ModelPricing`).
+Models available in chat are seeded automatically via `db:seed`. Each provider's models are registered in the database along with their pricing data (`ModelPricing`). No model env var is required — the active model is selected per-message in the UI.
 
 Full default `.env` for reference:
 
@@ -203,10 +203,8 @@ BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=replace-with-a-strong-secret-at-least-32-characters
 
 GEMINI_API_KEY=replace-with-api-key
-GEMINI_MODEL=gemini-2.5-flash
 
 ANTHROPIC_API_KEY=replace-with-api-key
-ANTHROPIC_MODEL=claude-haiku-4-5-20251001
 
 OPENAI_API_KEY=replace-with-api-key
 
