@@ -1485,6 +1485,22 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "model_id": {
+          "name": "model_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
         "user_id": {
           "name": "user_id",
           "type": "uuid",
@@ -1492,7 +1508,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -1564,22 +1580,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
         }
       },
       "indexes": [
@@ -1592,21 +1592,23 @@
           "keyName": "token_pkey",
           "unique": true,
           "primary": true
-        },
-        {
-          "columnNames": [
-            "user_id",
-            "provider"
-          ],
-          "composite": true,
-          "constraint": true,
-          "keyName": "token_user_id_provider_unique",
-          "unique": true,
-          "primary": false
         }
       ],
       "checks": [],
       "foreignKeys": {
+        "token_model_id_foreign": {
+          "columnNames": [
+            "model_id"
+          ],
+          "constraintName": "token_model_id_foreign",
+          "localTableName": "public.token",
+          "referencedTableName": "public.model",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "no action",
+          "deleteRule": "no action"
+        },
         "token_user_id_foreign": {
           "columnNames": [
             "user_id"
@@ -2022,22 +2024,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "dollar_limit": {
-          "name": "dollar_limit",
-          "type": "float8",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": 53,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "double"
         },
         "role": {
           "name": "role",

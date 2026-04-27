@@ -10,12 +10,6 @@ export class Migration20260423071626 extends Migration {
       `update "user" set "role" = case when "admin" then 'ADMIN'::user_role else 'USER'::user_role end;`,
     );
     this.addSql(
-      `alter table "user" add column "monthly_token_limit" integer null;`,
-    );
-    this.addSql(
-      `update "user" set "monthly_token_limit" = "monthly_limit"::integer;`,
-    );
-    this.addSql(
       `alter table "user" drop column "admin", drop column "monthly_limit";`,
     );
   }
@@ -25,10 +19,10 @@ export class Migration20260423071626 extends Migration {
       `alter table "user" add column "admin" boolean not null default false, add column "monthly_limit" double precision null;`,
     );
     this.addSql(
-      `update "user" set "admin" = ("role" = 'ADMIN'::user_role), "monthly_limit" = "monthly_token_limit";`,
+      `update "user" set "admin" = ("role" = 'ADMIN'::user_role);`,
     );
     this.addSql(
-      `alter table "user" drop column "role", drop column "monthly_token_limit";`,
+      `alter table "user" drop column "role";`,
     );
     this.addSql(`drop type "user_role";`);
   }
