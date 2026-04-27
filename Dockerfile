@@ -13,7 +13,6 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build
 ARG VITE_API_BASE_URL=http://localhost:3000
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_API_URL=$VITE_API_BASE_URL
 COPY backend backend
 COPY frontend frontend
 RUN pnpm --filter @cognify/frontend build

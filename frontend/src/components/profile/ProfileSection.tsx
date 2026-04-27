@@ -1,7 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
 
-import { fmtProvider } from '@/lib/formatModel';
-
 import { TreeContext } from '@/components/TreeProvider.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx';
@@ -23,7 +21,9 @@ import {
 } from '@/components/ui/form.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import i18n from '@/i18n.ts';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
 import { useAuthContext } from '@/lib/authContext.tsx';
+import { fmtProvider } from '@/lib/formatModel';
 import {
   ChangePasswordSchema,
   UpdateNameSchema,
@@ -78,7 +78,7 @@ export default function ProfileSection() {
   const [tokenLimitsLoading, setTokenLimitsLoading] = useState(true);
   const [tokenLimitsError, setTokenLimitsError] = useState(false);
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = getApiBaseUrl();
 
   useEffect(() => {
     setTokenLimitsLoading(true);
@@ -396,7 +396,9 @@ export default function ProfileSection() {
             {tokenLimitsLoading ? null : tokenLimitsError ? (
               <p className="text-destructive text-sm">{t('profile.tokens.loadError')}</p>
             ) : budgets === null || budgets.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{t('profile.tokens.allModels')}</p>
+              <p className="text-muted-foreground text-sm">
+                {t('profile.tokens.allModels')}
+              </p>
             ) : (
               <div className="space-y-4">
                 {budgets.map((budget) => {
@@ -407,11 +409,16 @@ export default function ProfileSection() {
                   const barColor =
                     pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-primary';
                   const fmtUsd = (v: number) =>
-                    Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    Number(v).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    });
                   return (
                     <div key={budget.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{fmtProvider(budget.model.provider)}</span>
+                        <span className="font-medium">
+                          {fmtProvider(budget.model.provider)}
+                        </span>
                         <span className="text-muted-foreground text-xs">
                           {hasLimit ? `${pct.toFixed(1)} %` : '∞'}
                         </span>
@@ -551,7 +558,9 @@ export default function ProfileSection() {
         }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-center">{t('profile.conversationActionsConfirmTitle')}</DialogTitle>
+            <DialogTitle className="text-center">
+              {t('profile.conversationActionsConfirmTitle')}
+            </DialogTitle>
             <DialogDescription>{confirmDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter>

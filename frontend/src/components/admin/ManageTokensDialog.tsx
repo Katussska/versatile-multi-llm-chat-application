@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
 import { type AdminUser } from '@/components/admin/UserSearchList.tsx';
-import { fmtProvider } from '@/lib/formatModel';
 import { Button } from '@/components/ui/button.tsx';
 import {
   Dialog,
@@ -19,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.tsx';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { fmtProvider } from '@/lib/formatModel';
 
 import { ArrowLeft, DollarSign, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +64,7 @@ export default function ManageTokensDialog({
   const [provider, setProvider] = useState('');
   const [dollarLimit, setDollarLimit] = useState('');
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = getApiBaseUrl();
 
   const fetchModels = async () => {
     try {

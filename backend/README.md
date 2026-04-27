@@ -122,7 +122,7 @@ pnpm --filter @cognify/backend db:reset
 
 ## OpenAPI
 
-- Runtime Swagger UI (non-production by default): `http://localhost:3000/api`
+- Runtime Swagger UI (non-production by default): `http://localhost:3000/api/docs`
 - Runtime JSON: `http://localhost:3000/api-json`
 
 Export OpenAPI for frontend (two steps, backend need not be running):

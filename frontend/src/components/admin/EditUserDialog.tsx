@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form.tsx';
 import { Input } from '@/components/ui/input.tsx';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
 import { generatePassword } from '@/lib/utils.ts';
 import { UpdateUserSchema, updateUserSchema } from '@/schemas/admin.ts';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -109,7 +110,7 @@ export default function EditUserDialog({
     }
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-export const OPENAPI_UI_PATH = 'api';
+export const OPENAPI_UI_PATH = 'api/docs';
 
 export function createOpenApiDocument(app: INestApplication) {
   const swaggerConfig = new DocumentBuilder()

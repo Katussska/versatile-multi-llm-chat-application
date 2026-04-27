@@ -136,10 +136,20 @@ function shouldEnableOpenApi(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
+const SPA_EXCLUDED_PATH_PREFIXES = ['/api', '/api-json'];
+
+function isExcludedFromSpaFallback(path: string): boolean {
+  return SPA_EXCLUDED_PATH_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+
+  app.setGlobalPrefix('api');
 
   const frontendDistPath = join(__dirname, 'public');
   if (existsSync(frontendDistPath)) {
@@ -157,7 +167,13 @@ async function bootstrap() {
         return;
       }
 
-      if (!request.accepts('html')) {
+      if (isExcludedFromSpaFallback(request.path)) {
+        next();
+        return;
+      }
+
+      const acceptHeader = request.headers.accept ?? '';
+      if (!acceptHeader.includes('text/html')) {
         next();
         return;
       }

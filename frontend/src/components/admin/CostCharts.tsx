@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { formatModelName } from '@/lib/formatModel';
-
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from '@/components/ui/chart';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { formatModelName } from '@/lib/formatModel';
 
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { BarChart3, LineChart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -72,16 +72,16 @@ export const PROVIDERS: Record<
 };
 
 const MODEL_COLORS: Record<string, string> = {
-  'gpt-5_4-nano':              '#8AFFEB',
-  'gpt-5_4-mini':              '#2EFFDC',
-  'gpt-5_4':                   '#00D1AE',
-  'gpt-5_5':                   '#007562',
+  'gpt-5_4-nano': '#8AFFEB',
+  'gpt-5_4-mini': '#2EFFDC',
+  'gpt-5_4': '#00D1AE',
+  'gpt-5_5': '#007562',
   'claude-haiku-4-5-20251001': '#FF9D8A',
-  'claude-sonnet-4-5':         '#FF512E',
-  'claude-opus-4-7':           '#D12300',
-  'gemini-2_5-flash-lite':     '#8ADEFF',
-  'gemini-2_5-flash':          '#2EC4FF',
-  'gemini-2_5-pro':            '#0096D1',
+  'claude-sonnet-4-5': '#FF512E',
+  'claude-opus-4-7': '#D12300',
+  'gemini-2_5-flash-lite': '#8ADEFF',
+  'gemini-2_5-flash': '#2EC4FF',
+  'gemini-2_5-pro': '#0096D1',
 };
 
 // ─── Period helpers ───────────────────────────────────────────────────────────
@@ -91,11 +91,16 @@ export type PeriodKey = 'today' | 'yesterday' | '7days' | '30days' | '90days';
 export function getPeriodDates(period: PeriodKey): { from: string; to: string } {
   const today = startOfToday();
   switch (period) {
-    case 'today':     return { from: toYMD(today), to: toYMD(today) };
-    case 'yesterday': return { from: toYMD(subDaysFrom(today, 1)), to: toYMD(subDaysFrom(today, 1)) };
-    case '7days':     return { from: toYMD(subDaysFrom(today, 6)), to: toYMD(today) };
-    case '30days':    return { from: toYMD(subDaysFrom(today, 29)), to: toYMD(today) };
-    case '90days':    return { from: toYMD(subDaysFrom(today, 89)), to: toYMD(today) };
+    case 'today':
+      return { from: toYMD(today), to: toYMD(today) };
+    case 'yesterday':
+      return { from: toYMD(subDaysFrom(today, 1)), to: toYMD(subDaysFrom(today, 1)) };
+    case '7days':
+      return { from: toYMD(subDaysFrom(today, 6)), to: toYMD(today) };
+    case '30days':
+      return { from: toYMD(subDaysFrom(today, 29)), to: toYMD(today) };
+    case '90days':
+      return { from: toYMD(subDaysFrom(today, 89)), to: toYMD(today) };
   }
 }
 
@@ -142,7 +147,7 @@ function useChartData(
     if (model !== 'all') params.set('model', model);
     if (userId !== 'all') params.set('userId', userId);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const baseUrl = getApiBaseUrl();
     setLoading(true);
     fetch(`${baseUrl}/admin/chart-data?${params}`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : []))
@@ -186,19 +191,18 @@ function GlobalCostChart({
     for (const r of data) {
       if (!byDate[r.date]) byDate[r.date] = {};
       const seg = segments.find(
-        (s) =>
-          s.varKey === toVarKey(r.modelName) ||
-          s.varKey === r.modelProvider,
+        (s) => s.varKey === toVarKey(r.modelName) || s.varKey === r.modelProvider,
       );
       if (!seg) continue;
       byDate[r.date][seg.varKey] = (byDate[r.date][seg.varKey] ?? 0) + r.cost;
     }
 
-    const allDates = range.from && range.to ? generateDateRange(range.from, range.to) : [];
+    const allDates =
+      range.from && range.to ? generateDateRange(range.from, range.to) : [];
     return allDates.map((d) => {
       const row: BarDatum = { date: formatDateLabel(d) };
       for (const s of segments) {
-        row[s.varKey] = parseFloat(((byDate[d]?.[s.varKey]) ?? 0).toFixed(4));
+        row[s.varKey] = parseFloat((byDate[d]?.[s.varKey] ?? 0).toFixed(4));
       }
       return row;
     });
@@ -227,7 +231,13 @@ function GlobalCostChart({
       <BarChart data={chartData} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
-        <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={52} />
+        <YAxis
+          tick={{ fontSize: 11 }}
+          tickFormatter={(v: number) =>
+            v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
+          }
+          width={52}
+        />
         <ChartTooltip
           content={
             <ChartTooltipContent
@@ -270,29 +280,42 @@ interface TokenDatum {
   tokensCached: number;
 }
 
-function TokenDetailChart({ data, range, t }: { data: UsageRecord[]; range: { from: string; to: string }; t: (k: string) => string }) {
+function TokenDetailChart({
+  data,
+  range,
+  t,
+}: {
+  data: UsageRecord[];
+  range: { from: string; to: string };
+  t: (k: string) => string;
+}) {
   const config = useMemo<ChartConfig>(
     () => ({
-      tokensIn:     { label: t('admin.statistics.tokenIn'),     color: '#2EC4FF' },
-      tokensOut:    { label: t('admin.statistics.tokenOut'),    color: '#FF512E' },
+      tokensIn: { label: t('admin.statistics.tokenIn'), color: '#2EC4FF' },
+      tokensOut: { label: t('admin.statistics.tokenOut'), color: '#FF512E' },
       tokensCached: { label: t('admin.statistics.tokenCached'), color: '#00D1AE' },
     }),
     [t],
   );
 
   const chartData = useMemo<TokenDatum[]>(() => {
-    const byDate: Record<string, { tokensIn: number; tokensOut: number; tokensCached: number }> = {};
+    const byDate: Record<
+      string,
+      { tokensIn: number; tokensOut: number; tokensCached: number }
+    > = {};
     for (const r of data) {
-      if (!byDate[r.date]) byDate[r.date] = { tokensIn: 0, tokensOut: 0, tokensCached: 0 };
-      byDate[r.date].tokensIn     += r.tokensIn;
-      byDate[r.date].tokensOut    += r.tokensOut;
+      if (!byDate[r.date])
+        byDate[r.date] = { tokensIn: 0, tokensOut: 0, tokensCached: 0 };
+      byDate[r.date].tokensIn += r.tokensIn;
+      byDate[r.date].tokensOut += r.tokensOut;
       byDate[r.date].tokensCached += r.tokensCached;
     }
-    const allDates = range.from && range.to ? generateDateRange(range.from, range.to) : [];
+    const allDates =
+      range.from && range.to ? generateDateRange(range.from, range.to) : [];
     return allDates.map((d) => ({
       date: formatDateLabel(d),
-      tokensIn:     byDate[d]?.tokensIn     ?? 0,
-      tokensOut:    byDate[d]?.tokensOut    ?? 0,
+      tokensIn: byDate[d]?.tokensIn ?? 0,
+      tokensOut: byDate[d]?.tokensOut ?? 0,
       tokensCached: byDate[d]?.tokensCached ?? 0,
     }));
   }, [data, range]);
@@ -313,14 +336,20 @@ function TokenDetailChart({ data, range, t }: { data: UsageRecord[]; range: { fr
         <defs>
           {(['tokensIn', 'tokensOut', 'tokensCached'] as const).map((k) => (
             <linearGradient key={k} id={`grad-${k}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={`var(--color-${k})`} stopOpacity={0.3} />
+              <stop offset="5%" stopColor={`var(--color-${k})`} stopOpacity={0.3} />
               <stop offset="95%" stopColor={`var(--color-${k})`} stopOpacity={0.05} />
             </linearGradient>
           ))}
         </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
-        <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} width={52} />
+        <YAxis
+          tick={{ fontSize: 11 }}
+          tickFormatter={(v: number) =>
+            v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+          }
+          width={52}
+        />
         <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
         <ChartLegend content={<ChartLegendContent />} />
         {(['tokensIn', 'tokensOut', 'tokensCached'] as const).map((k) => (
@@ -347,20 +376,39 @@ interface CostChartsProps {
   selectedUser: string;
 }
 
-export default function CostCharts({ period, selectedProvider, selectedModel, selectedUser }: CostChartsProps) {
+export default function CostCharts({
+  period,
+  selectedProvider,
+  selectedModel,
+  selectedUser,
+}: CostChartsProps) {
   const { t } = useTranslation();
 
-  const { data, loading, range } = useChartData(period, selectedProvider, selectedModel, selectedUser);
+  const { data, loading, range } = useChartData(
+    period,
+    selectedProvider,
+    selectedModel,
+    selectedUser,
+  );
 
   const segments = useMemo<Segment[]>(() => {
     if (selectedProvider === 'all') {
-      return (Object.entries(PROVIDERS) as [Exclude<ProviderId, 'all'>, typeof PROVIDERS[Exclude<ProviderId, 'all'>]][]).map(
-        ([id, p]) => ({ varKey: id, label: p.label, color: p.color }),
-      );
+      return (
+        Object.entries(PROVIDERS) as [
+          Exclude<ProviderId, 'all'>,
+          (typeof PROVIDERS)[Exclude<ProviderId, 'all'>],
+        ][]
+      ).map(([id, p]) => ({ varKey: id, label: p.label, color: p.color }));
     }
     if (selectedModel !== 'all') {
       const key = toVarKey(selectedModel);
-      return [{ varKey: key, label: formatModelName(selectedModel), color: MODEL_COLORS[key] ?? '#888' }];
+      return [
+        {
+          varKey: key,
+          label: formatModelName(selectedModel),
+          color: MODEL_COLORS[key] ?? '#888',
+        },
+      ];
     }
     return PROVIDERS[selectedProvider].models.map((m) => ({
       varKey: toVarKey(m),

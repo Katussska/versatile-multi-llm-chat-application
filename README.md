@@ -225,7 +225,6 @@ This applies all pending MikroORM migrations, including Better Auth session/acco
 Create `frontend/.env`:
 
 ```env
-VITE_API_URL=http://localhost:3000
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
@@ -356,29 +355,6 @@ pnpm fe typecheck     # Frontend TypeScript check
 - Swagger UI (dev only): <http://localhost:3000/api/docs>
 - OpenAPI JSON export: `frontend/openapi.json`
 - CORS is controlled by `FRONTEND_ORIGIN` in `backend/.env` (default: `http://localhost:5173`)
-
----
-
-## CI/CD (GHCR + Komodo Webhook)
-
-GitHub Actions workflow: `.github/workflows/build-and-publish.yml`
-
-- On `pull_request` to `main`: builds Docker image only (no push)
-- On `push` to `main`: builds and pushes image to GHCR
-- On successful push to default branch: optionally calls Komodo webhook
-
-Published image:
-
-- `ghcr.io/<owner>/<repo>:latest` (default branch)
-- `ghcr.io/<owner>/<repo>:sha-...`
-
-Required repository settings:
-
-- Package permissions: allow workflow `GITHUB_TOKEN` to write packages
-
-Optional secret for automatic redeploy:
-
-- `KOMODO_WEBHOOK_URL` = your Komodo redeploy webhook endpoint
 
 ---
 
