@@ -5,7 +5,7 @@ import {
   PrimaryKey,
   Property,
 } from '@mikro-orm/decorators/legacy';
-import { uuidv7 } from 'uuidv7';
+import { v7 as uuidv7 } from 'uuid';
 import { User } from './User';
 
 @Entity({ tableName: 'usage_log' })
@@ -16,11 +16,12 @@ export class UsageLog {
   id: string = uuidv7();
 
   @ManyToOne(() => User, {
-    deleteRule: 'cascade',
+    deleteRule: 'set null',
     fieldName: 'user_id',
+    nullable: true,
     index: true,
   })
-  user!: Rel<User>;
+  user: Rel<User> | null = null;
 
   @Property({ type: 'text', fieldName: 'model_name' })
   modelName!: string;
@@ -37,16 +38,30 @@ export class UsageLog {
   @Property({ type: 'integer', fieldName: 'completion_tokens', nullable: true })
   completionTokens: number | null = null;
 
-  @Property({ type: 'decimal', precision: 10, scale: 6, fieldName: 'cost', nullable: true })
+  @Property({
+    type: 'decimal',
+    precision: 10,
+    scale: 6,
+    fieldName: 'cost',
+    nullable: true,
+  })
   cost: number | null = null;
 
-  @Property({ type: 'integer', fieldName: 'cache_write_tokens', nullable: true })
+  @Property({
+    type: 'integer',
+    fieldName: 'cache_write_tokens',
+    nullable: true,
+  })
   cacheWriteTokens: number | null = null;
 
   @Property({ type: 'integer', fieldName: 'cache_read_tokens', nullable: true })
   cacheReadTokens: number | null = null;
 
-  @Property({ type: 'integer', fieldName: 'cached_input_tokens', nullable: true })
+  @Property({
+    type: 'integer',
+    fieldName: 'cached_input_tokens',
+    nullable: true,
+  })
   cachedInputTokens: number | null = null;
 
   @Property({

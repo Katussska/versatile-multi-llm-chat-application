@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { ConfigService } from '@nestjs/config';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
@@ -13,6 +14,7 @@ import { ChatModule } from './chat/chat.module';
 import { UserModule } from './user/user.module';
 import { AdminModule } from './admin/admin.module';
 import { ModelModule } from './model/model.module';
+import { CleanupModule } from './cleanup/cleanup.module';
 import { UserRole } from './entities/UserRole';
 
 @Module({
@@ -20,6 +22,7 @@ import { UserRole } from './entities/UserRole';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     MikroOrmModule.forRoot({
       ...mikroOrmConfig,
     }),
@@ -97,6 +100,7 @@ import { UserRole } from './entities/UserRole';
     UserModule,
     AdminModule,
     ModelModule,
+    CleanupModule,
   ],
   controllers: [AppController],
   providers: [AppService],

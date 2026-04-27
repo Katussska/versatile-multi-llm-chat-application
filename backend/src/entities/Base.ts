@@ -1,6 +1,6 @@
 import { OptionalProps } from '@mikro-orm/core';
 import { PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
-import { uuidv7 } from 'uuidv7';
+import { v7 as uuidv7 } from 'uuid';
 
 export abstract class Base {
   [OptionalProps]?: 'createdAt' | 'updatedAt';

@@ -675,7 +675,7 @@
             "id"
           ],
           "updateRule": "no action",
-          "deleteRule": "no action"
+          "deleteRule": "cascade"
         }
       },
       "nativeEnums": {
@@ -1659,7 +1659,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": null,
           "precision": null,
@@ -1876,7 +1876,7 @@
             "id"
           ],
           "updateRule": "no action",
-          "deleteRule": "cascade"
+          "deleteRule": "set null"
         }
       },
       "nativeEnums": {

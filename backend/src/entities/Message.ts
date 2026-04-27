@@ -5,7 +5,7 @@ import type { Rel } from '@mikro-orm/core';
 
 @Entity()
 export class Message extends Base {
-  @ManyToOne(() => Chat)
+  @ManyToOne(() => Chat, { deleteRule: 'cascade' })
   chat!: Rel<Chat>;
 
   @Property({ type: 'text' })

@@ -11,6 +11,7 @@ import { User } from '../entities/User';
 import { Account } from '../entities/Account';
 import { Session } from '../entities/Session';
 import { Token } from '../entities/Token';
+import { Chat } from '../entities/Chat';
 import { Model } from '../entities/Model';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -362,7 +363,10 @@ export class UserService {
     await this.em.nativeDelete(Account, { user: id });
     await this.em.nativeDelete(Token, { user: id });
 
-    user.deletedAt = new Date();
+    const now = new Date();
+    await this.em.nativeUpdate(Chat, { user: id, deletedAt: null }, { deletedAt: now });
+
+    user.deletedAt = now;
     await this.em.flush();
   }
 }
