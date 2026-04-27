@@ -27,7 +27,7 @@ export class TestingUserSeeder extends Seeder {
       user.email = email;
       user.name = name;
       user.emailVerified = true;
-      user.role = UserRole.USER;
+      user.role = UserRole.ADMIN;
       em.persist(user);
       await em.flush();
     } else {

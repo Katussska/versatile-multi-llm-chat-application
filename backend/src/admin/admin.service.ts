@@ -41,19 +41,12 @@ export class AdminService {
         }[]
       >(
         `SELECT t.user_id,
-                COALESCE(m.name, t.provider) AS model_name,
-                t.provider,
+                COALESCE(m.name, '') AS model_name,
+                COALESCE(m.provider, '') AS provider,
                 t.dollar_limit,
                 CASE WHEN t.reset_at > NOW() THEN t.used_dollars ELSE 0 END AS used_dollars
          FROM token t
-         LEFT JOIN LATERAL (
-           SELECT name
-           FROM model m
-           WHERE m.provider = t.provider
-             AND m.deleted_at IS NULL
-           ORDER BY m.name ASC, m.created_at ASC
-           LIMIT 1
-         ) m ON TRUE
+         LEFT JOIN model m ON m.id = t.model_id AND m.deleted_at IS NULL
          WHERE t.deleted_at IS NULL`,
       ),
     ]);

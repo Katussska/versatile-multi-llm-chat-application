@@ -392,20 +392,26 @@ export class ChatService {
 
     const tokenLimit = await this.tokenRepository.findOne({
       user: userId,
-      provider,
+      model: { provider },
     });
     if (tokenLimit) {
       await this.em.nativeUpdate(
         Token,
-        { user: userId, provider },
+        { user: userId, model: { provider } },
         { usedDollars: raw('used_dollars + ?', [cost]) },
       );
       return;
     }
 
+    const model = await this.em.findOne(Model, {
+      provider,
+      deletedAt: null,
+    });
+    if (!model) return;
+
     const usageCounter = this.em.create(Token, {
       user: this.em.getReference(User, userId),
-      provider,
+      model,
       dollarLimit: null,
       usedDollars: cost,
       resetAt: nextMonthFirstDay(),
@@ -637,7 +643,7 @@ export class ChatService {
 
     const budgetLimit = await this.tokenRepository.findOne({
       user: userId,
-      provider: chat.model.provider,
+      model: { provider: chat.model.provider },
     });
     if (budgetLimit) {
       if (new Date() >= budgetLimit.resetAt) {

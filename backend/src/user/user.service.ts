@@ -33,24 +33,6 @@ export class UserService {
     private readonly em: EntityManager,
   ) {}
 
-  private async getRepresentativeModelsByProvider(): Promise<
-    Map<string, Model>
-  > {
-    const models = await this.modelRepository.find(
-      { deletedAt: null },
-      { orderBy: { name: 'ASC', createdAt: 'ASC' } },
-    );
-
-    const byProvider = new Map<string, Model>();
-    for (const model of models) {
-      if (!byProvider.has(model.provider)) {
-        byProvider.set(model.provider, model);
-      }
-    }
-
-    return byProvider;
-  }
-
   async getUsers(): Promise<
     (User & {
       budgetLimits: {
@@ -81,18 +63,11 @@ export class UserService {
         `SELECT t.user_id,
                 t.dollar_limit::text,
                 CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_dollars ELSE 0 END::text AS used_dollars,
-                t.provider,
+                m.provider,
                 m.id AS model_id,
                 m.name AS model_name
          FROM token t
-         JOIN LATERAL (
-           SELECT id, name
-           FROM model m
-           WHERE m.provider = t.provider
-             AND m.deleted_at IS NULL
-           ORDER BY m.name ASC, m.created_at ASC
-           LIMIT 1
-         ) m ON TRUE
+         JOIN model m ON m.id = t.model_id AND m.deleted_at IS NULL
          WHERE t.deleted_at IS NULL`,
       ),
       this.em.execute<{ id: string; name: string; provider: string }[]>(
@@ -224,8 +199,10 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const tokens = await this.tokenRepository.find({ user: userId });
-    const modelsByProvider = await this.getRepresentativeModelsByProvider();
+    const tokens = await this.tokenRepository.find(
+      { user: userId },
+      { populate: ['model'] },
+    );
 
     const now = new Date();
     let dirty = false;
@@ -239,13 +216,7 @@ export class UserService {
     if (dirty) await this.em.flush();
 
     return tokens.map((t) => {
-      const model = modelsByProvider.get(t.provider);
-      if (!model) {
-        throw new NotFoundException(
-          `Model for provider ${t.provider} not found`,
-        );
-      }
-
+      const model = t.model;
       return {
         id: t.id,
         model: { id: model.id, name: model.name, provider: model.provider },
@@ -274,7 +245,7 @@ export class UserService {
 
     const existing = await this.tokenRepository.findOne({
       user: userId,
-      provider: model.provider,
+      model: { provider: model.provider },
     });
     if (existing)
       throw new ConflictException(
@@ -283,7 +254,7 @@ export class UserService {
 
     const token = new Token();
     token.user = user;
-    token.provider = model.provider;
+    token.model = model;
     token.dollarLimit = dto.dollarLimit ?? null;
     token.resetAt = nextMonthFirstDay();
 
@@ -304,21 +275,13 @@ export class UserService {
     tokenId: string,
     dto: UpdateTokenDto,
   ): Promise<TokenResponseDto> {
-    const token = await this.tokenRepository.findOne({
-      id: tokenId,
-      user: userId,
-    });
+    const token = await this.tokenRepository.findOne(
+      { id: tokenId, user: userId },
+      { populate: ['model'] },
+    );
     if (!token) throw new NotFoundException('Budget limit not found');
 
-    const model = await this.modelRepository.findOne(
-      { provider: token.provider, deletedAt: null },
-      { orderBy: { name: 'ASC', createdAt: 'ASC' } },
-    );
-    if (!model) {
-      throw new NotFoundException(
-        `Model for provider ${token.provider} not found`,
-      );
-    }
+    const model = token.model;
 
     if (dto.dollarLimit !== undefined)
       token.dollarLimit = dto.dollarLimit ?? null;
