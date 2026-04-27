@@ -165,6 +165,7 @@
       "submit": "Create",
       "success": "User created successfully.",
       "error": "Failed to create user.",
+      "emailConflict": "A user with this email already exists.",
       "confirmAdmin": {
         "title": "Assign administrator role?",
         "description": "The user will have full access to the administration. This can be changed later.",

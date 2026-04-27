@@ -145,6 +145,9 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error(t('admin.createUser.emailConflict'));
+        }
         const error = await response.json().catch(() => ({}));
         throw new Error(error.message ?? t('admin.createUser.error'));
       }

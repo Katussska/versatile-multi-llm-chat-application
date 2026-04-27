@@ -164,6 +164,7 @@
       "submit": "Vytvořit",
       "success": "Uživatel byl úspěšně vytvořen.",
       "error": "Nepodařilo se vytvořit uživatele.",
+      "emailConflict": "Uživatel s tímto e-mailem již existuje.",
       "confirmAdmin": {
         "title": "Přiřadit roli administrátora?",
         "description": "Uživatel získá plný přístup do administrace. Tuto akci lze později změnit.",

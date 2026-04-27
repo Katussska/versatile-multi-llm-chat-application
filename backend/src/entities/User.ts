@@ -18,7 +18,7 @@ export class User extends Base {
   @Property({ type: 'text' })
   name!: string;
 
-  @Property({ type: 'text', unique: true })
+  @Property({ type: 'text' })
   email!: string;
 
   @Property({ type: 'boolean', default: false, fieldName: 'email_verified' })
