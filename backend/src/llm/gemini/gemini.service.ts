@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 @Injectable()
 export class GeminiService {
   private readonly googleAI: GoogleGenerativeAI;
-  private readonly fallbackModel: string;
+  private readonly fallbackModel = 'gemini-2.5-flash-lite';
   // TODO: chatSessions is an in-memory map with no eviction/TTL.
   // With ongoing traffic this can grow without bound and increase
   // memory usage over time. Add TTL/LRU/max-size eviction and cleanup,
@@ -28,7 +28,6 @@ export class GeminiService {
 
   constructor(configService: ConfigService) {
     this.geminiApiKey = configService.getOrThrow('GEMINI_API_KEY');
-    this.fallbackModel = configService.getOrThrow('GEMINI_MODEL');
     this.googleAI = new GoogleGenerativeAI(this.geminiApiKey);
   }
 

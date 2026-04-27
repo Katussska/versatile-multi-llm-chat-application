@@ -13,7 +13,6 @@ function makeConfigService(overrides: Record<string, string | undefined> = {}) {
     get: (key: string) => {
       const values: Record<string, string> = {
         ANTHROPIC_API_KEY: 'test-api-key',
-        ANTHROPIC_MODEL: 'claude-haiku-3-5',
         ...overrides,
       };
       return values[key];

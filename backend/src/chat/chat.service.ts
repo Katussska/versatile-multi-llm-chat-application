@@ -5,7 +5,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { EntityRepository, raw } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -35,7 +34,6 @@ export class ChatService {
     @InjectRepository(Token)
     private readonly tokenRepository: EntityRepository<Token>,
     private readonly em: EntityManager,
-    private readonly configService: ConfigService,
     private readonly geminiService: GeminiService,
     private readonly anthropicService: AnthropicService,
     private readonly openaiService: OpenAIService,
@@ -52,9 +50,7 @@ export class ChatService {
       return existingModel;
     }
 
-    const geminiModelName =
-      this.configService.get<string>('GEMINI_MODEL')?.trim() ||
-      'gemini-2.5-flash';
+    const geminiModelName = 'gemini-2.5-flash-lite';
     const defaultModel = this.em.create(Model, {
       provider: 'gemini',
       name: geminiModelName,

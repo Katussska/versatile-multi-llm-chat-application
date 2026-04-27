@@ -14,7 +14,6 @@ describe('GeminiService', () => {
           useValue: {
             getOrThrow: (key: string) => {
               if (key === 'GEMINI_API_KEY') return 'test-api-key';
-              if (key === 'GEMINI_MODEL') return 'gemini-2.0-flash';
               throw new Error(`Missing config key: ${key}`);
             },
           },
