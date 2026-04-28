@@ -252,8 +252,7 @@ export default function ChatSection() {
   };
 
   const enqueueWords = (text: string) => {
-    const words = text.match(/\S+\s*/g) ?? [];
-    wordQueueRef.current.push(...words);
+    wordQueueRef.current.push(text);
     drainQueue();
   };
 

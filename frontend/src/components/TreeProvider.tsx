@@ -98,8 +98,8 @@ export default function TreeProvider({ children }: { children: ReactNode }) {
   }, [chats, isNewConversation, selectedChatId]);
 
   const startNewConversation = () => {
-    setSelectedChatId('');
     setIsNewConversation(true);
+    setSelectedChatId('');
   };
 
   const handleSetSelectedChatId: Dispatch<SetStateAction<string>> = (value) => {

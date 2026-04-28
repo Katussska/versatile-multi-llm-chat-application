@@ -476,10 +476,10 @@ export default function ProfileSection() {
           </Card>
         )}
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-2">
+              <CardTitle className="flex items-center justify-start gap-2 md:justify-center">
                 <Globe size={20} />
                 {t('profile.language')}
               </CardTitle>

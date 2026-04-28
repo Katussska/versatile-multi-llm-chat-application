@@ -1,4 +1,10 @@
-import { type ReactNode, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from 'react';
 
 import { AlertTriangle, SendHorizontal, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +45,7 @@ export default function ChatInput({
   };
 
   const handleSend = () => {
-    if (isBlocked) return;
+    if (isBlocked || isStreaming) return;
     onSendMessage(inputValue);
     setInputValue('');
     if (textareaRef.current) {
@@ -64,9 +70,11 @@ export default function ChatInput({
   return (
     <div className="flex w-full shrink-0 flex-col px-2 sm:px-4">
       {tokenLimitResetAt && (
-        <div className="mx-2 mt-3 flex self-center items-start gap-2 rounded-md border border-yellow-600/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 sm:mx-8 sm:max-w-3xl dark:text-yellow-300">
+        <div className="mx-2 mt-3 flex items-start gap-2 self-center rounded-md border border-yellow-600/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 sm:mx-8 sm:max-w-3xl dark:text-yellow-300">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-          <span>{t('chat.tokenLimitBanner', { date: tokenLimitResetAt.toLocaleDateString() })}</span>
+          <span>
+            {t('chat.tokenLimitBanner', { date: tokenLimitResetAt.toLocaleDateString() })}
+          </span>
         </div>
       )}
       <div className="flex flex-row items-end justify-center py-[21px]">
@@ -80,23 +88,21 @@ export default function ChatInput({
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming || isBlocked}
+            disabled={isBlocked}
           />
           {isStreaming ? (
             <button
               onClick={onStop}
               className="mb-[7px] shrink-0 cursor-pointer self-end"
               title={t('chat.stopGenerating')}
-              aria-label={t('chat.stopGenerating')}
-            >
+              aria-label={t('chat.stopGenerating')}>
               <Square aria-hidden="true" />
             </button>
           ) : (
             <button
               onClick={handleSend}
-              disabled={isBlocked}
-              className="mb-[7px] shrink-0 cursor-pointer self-end disabled:cursor-not-allowed disabled:opacity-50"
-            >
+              disabled={isBlocked || isStreaming}
+              className="mb-[7px] shrink-0 cursor-pointer self-end disabled:cursor-not-allowed disabled:opacity-50">
               <SendHorizontal />
             </button>
           )}

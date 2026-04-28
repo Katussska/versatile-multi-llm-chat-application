@@ -1,8 +1,8 @@
-import MessageFunctions from '@/components/chat/MessageFunctions.tsx';
 import type { Message } from '@/components/chat/ChatSection.tsx';
+import MessageFunctions from '@/components/chat/MessageFunctions.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
-import { Loader2 } from 'lucide-react';
 
+import { Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -70,7 +70,9 @@ export default function ModelMessage({
                 },
                 ol({ children }) {
                   return (
-                    <ol className="mb-2 list-inside list-decimal space-y-1">{children}</ol>
+                    <ol className="mb-2 list-inside list-decimal space-y-1">
+                      {children}
+                    </ol>
                   );
                 },
                 h1({ children }) {
@@ -91,7 +93,9 @@ export default function ModelMessage({
                 },
                 a({ children, href }) {
                   return (
-                    <a href={href} className="text-blue-500 underline hover:text-blue-400">
+                    <a
+                      href={href}
+                      className="text-blue-500 underline hover:text-blue-400">
                       {children}
                     </a>
                   );

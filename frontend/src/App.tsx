@@ -7,8 +7,8 @@ import UserBadge from '@/components/userBadge/UserBadge.tsx';
 
 import { ThemeProvider } from './components/userBadge/theme-provider.tsx';
 import { AuthProvider } from './lib/authContext.tsx';
-import Login from './routes/login.tsx';
 import AdminRoute from './routes/admin-route.tsx';
+import Login from './routes/login.tsx';
 import ProtectedRoute from './routes/protected-route.tsx';
 import RouteError from './routes/route-error.tsx';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
@@ -16,34 +16,28 @@ import { Toaster } from 'sonner';
 
 const appShell = (
   <ProtectedRoute>
-    <TreeProvider>
-      <Layout className="flex flex-row">
-        <UserBadge />
-        <ChatSection />
-      </Layout>
-    </TreeProvider>
+    <Layout className="flex flex-row">
+      <UserBadge />
+      <ChatSection />
+    </Layout>
   </ProtectedRoute>
 );
 
 const profileShell = (
   <ProtectedRoute>
-    <TreeProvider>
-      <Layout className="flex flex-row">
-        <UserBadge />
-        <ProfileSection />
-      </Layout>
-    </TreeProvider>
+    <Layout className="flex flex-row">
+      <UserBadge />
+      <ProfileSection />
+    </Layout>
   </ProtectedRoute>
 );
 
 const adminShell = (
   <AdminRoute>
-    <TreeProvider>
-      <Layout className="flex flex-row">
-        <UserBadge />
-        <AdminSection />
-      </Layout>
-    </TreeProvider>
+    <Layout className="flex flex-row">
+      <UserBadge />
+      <AdminSection />
+    </Layout>
   </AdminRoute>
 );
 
@@ -79,7 +73,9 @@ export default function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AuthProvider>
-        <RouterProvider router={router} />
+        <TreeProvider>
+          <RouterProvider router={router} />
+        </TreeProvider>
         <Toaster position="bottom-center" offset="96px" />
       </AuthProvider>
     </ThemeProvider>
