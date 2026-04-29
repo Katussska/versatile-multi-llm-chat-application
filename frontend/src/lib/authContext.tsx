@@ -50,13 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       await refetch();
-      // Invalidate queries after successful sign-in so protected data
-      // (chats, messages, etc.) will be re-fetched with the new session.
-      try {
-        await queryClient.invalidateQueries();
-      } catch {
-        // ignore
-      }
     },
   });
 

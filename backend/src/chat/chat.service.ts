@@ -106,10 +106,7 @@ export class ChatService {
     return chats;
   }
 
-  async getChatMessages(
-    chatId: string,
-    userId: string,
-  ): Promise<{ message: Message; versions: Message[] }[]> {
+  async getChatMessages(chatId: string, userId: string): Promise<Message[]> {
     const chat = await this.chatRepository.findOne(
       { id: chatId, deletedAt: null },
       { populate: ['user'] },
@@ -123,66 +120,13 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const all = await this.em.find(
+    const messages = await this.em.find(
       Message,
       { chat: { id: chatId }, deletedAt: null },
       { orderBy: { createdAt: 'ASC', id: 'ASC' } },
     );
 
-    // Group inactive messages by versionGroupId
-    const inactiveByGroup = new Map<string, Message[]>();
-    for (const msg of all) {
-      if (!msg.isActive && msg.versionGroupId) {
-        const list = inactiveByGroup.get(msg.versionGroupId) ?? [];
-        list.push(msg);
-        inactiveByGroup.set(msg.versionGroupId, list);
-      }
-    }
-
-    return all
-      .filter((msg) => msg.isActive)
-      .map((msg) => ({
-        message: msg,
-        versions: msg.versionGroupId
-          ? [...(inactiveByGroup.get(msg.versionGroupId) ?? []), msg].sort(
-              (a, b) =>
-                a.createdAt.getTime() - b.createdAt.getTime() ||
-                a.id.localeCompare(b.id),
-            )
-          : [],
-      }));
-  }
-
-  async activateVersion(
-    messageId: string,
-    chatId: string,
-    userId: string,
-  ): Promise<void> {
-    const message = await this.em.findOne(
-      Message,
-      { id: messageId },
-      { populate: ['chat', 'chat.user'] },
-    );
-
-    if (
-      !message ||
-      message.chat.id !== chatId ||
-      message.chat.user.id !== userId ||
-      !message.versionGroupId
-    ) {
-      throw new NotFoundException('Message not found');
-    }
-
-    const siblings = await this.em.find(Message, {
-      versionGroupId: message.versionGroupId,
-      deletedAt: null,
-    });
-
-    for (const s of siblings) {
-      s.isActive = false;
-    }
-    message.isActive = true;
-    await this.em.flush();
+    return messages;
   }
 
   async addMessage(
@@ -208,7 +152,6 @@ export class ChatService {
       path: messageDto.path,
       modelKey: chat.model.name,
       modelProvider: chat.model.provider,
-      isActive: true,
     });
 
     this.em.persist(message);
@@ -403,26 +346,77 @@ export class ChatService {
     pricing: ModelPricing | null | undefined,
     promptTokens: number | null,
     completionTokens: number | null,
+    cacheWriteTokens: number | null = null,
+    cacheReadTokens: number | null = null,
+    cachedInputTokens: number | null = null,
   ): number {
     if (!pricing) return 0;
-    const input =
-      ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
     const output =
       ((completionTokens ?? 0) / 1_000_000) * Number(pricing.outputPrice);
+
+    if (cacheWriteTokens !== null || cacheReadTokens !== null) {
+      // Anthropic: input_tokens v response je už pouze nekachovaná část
+      const input =
+        ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
+      const cacheWrite =
+        ((cacheWriteTokens ?? 0) / 1_000_000) *
+        Number(pricing.cacheWrite5mPrice ?? pricing.inputPrice);
+      const cacheRead =
+        ((cacheReadTokens ?? 0) / 1_000_000) *
+        Number(pricing.cacheReadPrice ?? pricing.inputPrice);
+      return input + output + cacheWrite + cacheRead;
+    }
+
+    if (cachedInputTokens !== null) {
+      // OpenAI: prompt_tokens zahrnuje i cached_tokens, ty mají vlastní cenu
+      const regularInput =
+        (((promptTokens ?? 0) - (cachedInputTokens ?? 0)) / 1_000_000) *
+        Number(pricing.inputPrice);
+      const cachedInput =
+        ((cachedInputTokens ?? 0) / 1_000_000) *
+        Number(pricing.cachedInputPrice ?? pricing.inputPrice);
+      return regularInput + cachedInput + output;
+    }
+
+    const input =
+      ((promptTokens ?? 0) / 1_000_000) * Number(pricing.inputPrice);
     return input + output;
   }
 
-  private async updateUsedDollars(userId: string, cost: number): Promise<void> {
+  private async updateUsedDollars(
+    userId: string,
+    provider: string,
+    cost: number,
+  ): Promise<void> {
     if (cost <= 0) return;
 
-    const exists = await this.tokenRepository.findOne({ user: userId });
-    if (!exists) return;
+    const tokenLimit = await this.tokenRepository.findOne({
+      user: userId,
+      model: { provider },
+    });
+    if (tokenLimit) {
+      await this.em.nativeUpdate(
+        Token,
+        { user: userId, model: { provider } },
+        { usedDollars: raw('used_dollars + ?', [cost]) },
+      );
+      return;
+    }
 
-    await this.em.nativeUpdate(
-      Token,
-      { user: userId },
-      { usedDollars: raw('used_dollars + ?', [cost]) },
-    );
+    const model = await this.em.findOne(Model, {
+      provider,
+      deletedAt: null,
+    });
+    if (!model) return;
+
+    const usageCounter = this.em.create(Token, {
+      user: this.em.getReference(User, userId),
+      model,
+      dollarLimit: null,
+      usedDollars: cost,
+      resetAt: nextMonthFirstDay(),
+    });
+    this.em.persist(usageCounter);
   }
 
   private createUsageLog(
@@ -433,6 +427,9 @@ export class ChatService {
     promptTokens: number | null,
     completionTokens: number | null,
     cost: number,
+    cacheWriteTokens: number | null = null,
+    cacheReadTokens: number | null = null,
+    cachedInputTokens: number | null = null,
   ): void {
     const usageLog = this.em.create(UsageLog, {
       user: this.em.getReference(User, userId),
@@ -442,6 +439,9 @@ export class ChatService {
       promptTokens,
       completionTokens,
       cost,
+      cacheWriteTokens,
+      cacheReadTokens,
+      cachedInputTokens,
     });
     this.em.persist(usageLog);
   }
@@ -456,6 +456,9 @@ export class ChatService {
       totalTokens: number;
       promptTokens: number | null;
       completionTokens: number | null;
+      cacheWriteTokens: number | null;
+      cacheReadTokens: number | null;
+      cachedInputTokens: number | null;
     },
     opts: {
       saveEvenIfEmpty?: boolean;
@@ -476,6 +479,9 @@ export class ChatService {
       pricing,
       usage.promptTokens,
       usage.completionTokens,
+      usage.cacheWriteTokens,
+      usage.cacheReadTokens,
+      usage.cachedInputTokens,
     );
 
     const saveMessage = fullResponse || saveEvenIfEmpty;
@@ -486,7 +492,7 @@ export class ChatService {
       if (removeUserOnEmpty && userMessage) this.em.remove(userMessage);
     }
     if (cost > 0) {
-      await this.updateUsedDollars(userId, cost);
+      await this.updateUsedDollars(userId, model.provider, cost);
       this.createUsageLog(
         userId,
         model.name,
@@ -495,6 +501,9 @@ export class ChatService {
         usage.promptTokens,
         usage.completionTokens,
         cost,
+        usage.cacheWriteTokens,
+        usage.cacheReadTokens,
+        usage.cachedInputTokens,
       );
     }
     await this.em.flush();
@@ -525,12 +534,14 @@ export class ChatService {
     signal: AbortSignal,
   ): AsyncGenerator<
     | { type: 'text'; text: string }
-    | { type: 'error'; error: string }
     | {
         type: 'usage';
         totalTokens: number;
         promptTokens: number | null;
         completionTokens: number | null;
+        cacheWriteTokens?: number | null;
+        cacheReadTokens?: number | null;
+        cachedInputTokens?: number | null;
       }
   > {
     if (provider === 'anthropic') {
@@ -630,7 +641,10 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const budgetLimit = await this.tokenRepository.findOne({ user: userId });
+    const budgetLimit = await this.tokenRepository.findOne({
+      user: userId,
+      model: { provider: chat.model.provider },
+    });
     if (budgetLimit) {
       if (new Date() >= budgetLimit.resetAt) {
         budgetLimit.usedDollars = 0;
@@ -660,27 +674,7 @@ export class ChatService {
 
     const provider = chat.model.provider;
 
-    let newMessageVersionGroupId: string | null = null;
-
-    if (truncateFromMessageId && regenerate) {
-      // Keep old message as inactive version instead of deleting it
-      const oldMsg = await this.em.findOne(Message, {
-        id: truncateFromMessageId,
-      });
-      if (oldMsg) {
-        if (!oldMsg.versionGroupId) {
-          oldMsg.versionGroupId = crypto.randomUUID();
-        }
-        oldMsg.isActive = false;
-        newMessageVersionGroupId = oldMsg.versionGroupId;
-      }
-      // Delete everything that came AFTER the old message (exclusive)
-      await this.softDeleteTimelineFromMessage(
-        chatId,
-        truncateFromMessageId,
-        false,
-      );
-    } else if (truncateFromMessageId) {
+    if (truncateFromMessageId) {
       await this.softDeleteTimelineFromMessage(
         chatId,
         truncateFromMessageId,
@@ -702,7 +696,6 @@ export class ChatService {
         parentMessageId: parentMessageId ?? null,
         modelKey: chat.model.name,
         modelProvider: chat.model.provider,
-        isActive: true,
       });
       this.em.persist(userMessage);
     }
@@ -716,8 +709,6 @@ export class ChatService {
         : (userMessage?.id ?? null),
       modelKey: chat.model.name,
       modelProvider: chat.model.provider,
-      versionGroupId: newMessageVersionGroupId,
-      isActive: true,
     });
     this.em.persist(assistantMessage);
 
@@ -735,6 +726,9 @@ export class ChatService {
       totalTokens: 0,
       promptTokens: null as number | null,
       completionTokens: null as number | null,
+      cacheWriteTokens: null as number | null,
+      cacheReadTokens: null as number | null,
+      cachedInputTokens: null as number | null,
     };
     const streamAbort = new AbortController();
     res.on('close', () => {
@@ -763,21 +757,25 @@ export class ChatService {
             totalTokens: item.totalTokens,
             promptTokens: item.promptTokens,
             completionTokens: item.completionTokens,
+            cacheWriteTokens: item.cacheWriteTokens ?? null,
+            cacheReadTokens: item.cacheReadTokens ?? null,
+            cachedInputTokens: item.cachedInputTokens ?? null,
           };
           continue;
-        }
-        if (item.type === 'error') {
-          fullResponse = item.error;
-          res.write(`data: ${JSON.stringify({ error: item.error })}\n\n`);
-          break;
         }
         if (clientDisconnected) break;
         fullResponse += item.text;
         res.write(`data: ${JSON.stringify({ chunk: item.text })}\n\n`);
       }
 
+      const cacheInfo =
+        usage.cacheWriteTokens || usage.cacheReadTokens
+          ? ` cacheWrite=${usage.cacheWriteTokens ?? 0} cacheRead=${usage.cacheReadTokens ?? 0}`
+          : usage.cachedInputTokens
+            ? ` cachedInput=${usage.cachedInputTokens}`
+            : '';
       this.logger.log(
-        `[stream] status=ok provider=${provider} model=${chat.model.name} latencyMs=${Date.now() - streamStart} tokensUsed=${usage.totalTokens} clientDisconnected=${clientDisconnected}`,
+        `[stream] status=ok provider=${provider} model=${chat.model.name} latencyMs=${Date.now() - streamStart} tokensUsed=${usage.totalTokens}${cacheInfo} clientDisconnected=${clientDisconnected}`,
       );
       await flushPromise;
 

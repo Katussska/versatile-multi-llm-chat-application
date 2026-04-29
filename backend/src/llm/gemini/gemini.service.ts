@@ -89,7 +89,6 @@ export class GeminiService {
     systemInstruction?: string,
   ): AsyncGenerator<
     | { type: 'text'; text: string }
-    | { type: 'error'; error: string }
     | {
         type: 'usage';
         totalTokens: number;
@@ -97,12 +96,7 @@ export class GeminiService {
         completionTokens: number | null;
       }
   > {
-    const { chat } = this.getChatSession(
-      modelName,
-      sessionId,
-      history,
-      systemInstruction,
-    );
+    const { chat } = this.getChatSession(modelName, sessionId, history, systemInstruction);
     try {
       const result = await chat.sendMessageStream(prompt, { signal });
       for await (const chunk of result.stream) {
@@ -127,43 +121,8 @@ export class GeminiService {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      const errorMessage = this.getErrorMessage(error);
       this.logger.error('Error streaming from Gemini API >> ', error);
-      yield { type: 'error', error: errorMessage };
+      throw new InternalServerErrorException('AI Generation failed');
     }
-  }
-
-  private getErrorMessage(error: unknown): string {
-    const err = error as any;
-
-    // Check for status code errors
-    if (err.status === 503) {
-      return 'The Gemini model is currently experiencing high demand. Please try again in a moment.';
-    }
-    if (err.status === 429) {
-      return 'Too many requests to Gemini API. Please wait a moment before trying again.';
-    }
-    if (err.status === 401 || err.status === 403) {
-      return 'Gemini API authentication failed. Please check your API key configuration.';
-    }
-    if (err.status === 404) {
-      return 'The specified Gemini model was not found.';
-    }
-    if (err.status && err.status >= 500) {
-      return `Gemini API server error (${err.status}). Please try again later.`;
-    }
-    if (err.status && err.status >= 400) {
-      return `Gemini API error: ${err.message || 'Invalid request'}`;
-    }
-
-    // Check for error message patterns
-    if (err.message?.includes('quota')) {
-      return 'Gemini API quota exceeded. Please check your account limits.';
-    }
-    if (err.message?.includes('model') || err.message?.includes('not found')) {
-      return 'The specified Gemini model is not available.';
-    }
-
-    return 'Failed to generate response. Please try again.';
   }
 }

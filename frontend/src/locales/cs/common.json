@@ -57,8 +57,6 @@
     "copiedToClipboard": "Zkopírováno do schránky.",
     "copyFailed": "Kopírování do schránky se nezdařilo.",
     "regenerate": "Znovu vygenerovat",
-    "previousResponse": "Předchozí odpověď",
-    "nextResponse": "Další odpověď",
     "selectProvider": "Vybrat model",
     "tokenLimitBanner": "Dosáhli jste měsíčního limitu pro tento model. Nové zprávy lze odesílat od {{- date}}.",
     "tokenLimitErrorNoDate": "Dosáhli jste měsíčního limitu pro tento model. Počkejte na reset."
@@ -119,7 +117,7 @@
       "reset": "Reset:",
       "used": "Využito ${{used}} z ${{total}}",
       "usedUnlimited": "Využito ${{used}} (bez limitu)",
-      "allModels": "Bez nastaveného limitu.",
+      "allModels": "Všechny modely jsou bez limitu.",
       "loadError": "Nepodařilo se načíst limity."
     }
   },
@@ -156,6 +154,7 @@
       },
       "tokenIn": "Vstupní tokeny",
       "tokenOut": "Výstupní tokeny",
+      "tokenCached": "Cachované tokeny",
       "costUsd": "Náklady (USD)"
     },
     "createUser": {
@@ -175,7 +174,7 @@
       },
       "tokenStep": {
         "title": "Nastavení rozpočtu",
-        "description": "Volitelně nastavte měsíční limit výdajů (v USD) pro nového uživatele.",
+        "description": "Uživatel byl vytvořen. Volitelně nastavte měsíční limity (v USD) pro jednotlivé poskytovatele LLM.",
         "done": "Dokončit"
       }
     },
@@ -220,14 +219,19 @@
       "title": "Správa měsíčního rozpočtu",
       "titleSelected": "Rozpočet: {{email}}",
       "description": "Vyberte uživatele pro správu jeho měsíčního rozpočtu.",
+      "addTitle": "Přidat limit",
       "editTitle": "Upravit limit",
       "loading": "Načítám limity...",
-      "empty": "Uživatel nemá nastaven žádný limit.",
+      "empty": "Uživatel nemá nastaveny žádné limity.",
       "loadError": "Nepodařilo se načíst limity.",
       "dollars": "USD",
       "resetLabel": "reset",
+      "model": "Poskytovatel LLM",
+      "selectModel": "Vyberte poskytovatele...",
       "dollarLimit": "Měsíční limit (USD)",
       "resetAt": "Datum resetu",
+      "add": "Přidat limit",
+      "addSubmit": "Přidat",
       "editSubmit": "Uložit",
       "addSuccess": "Limit byl přidán.",
       "addError": "Nepodařilo se přidat limit.",
@@ -235,7 +239,6 @@
       "editError": "Nepodařilo se upravit limit.",
       "deleteSuccess": "Limit byl smazán.",
       "deleteError": "Nepodařilo se smazat limit.",
-      "add": "Přidat limit",
       "back": "Zpět"
     },
     "userTable": {

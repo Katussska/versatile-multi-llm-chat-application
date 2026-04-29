@@ -6,9 +6,10 @@ import { User } from '../entities/User';
 import { Account } from '../entities/Account';
 import { Session } from '../entities/Session';
 import { Token } from '../entities/Token';
+import { Model } from '../entities/Model';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([User, Account, Session, Token])],
+  imports: [MikroOrmModule.forFeature([User, Account, Session, Token, Model])],
   controllers: [UserController],
   providers: [UserService],
 })

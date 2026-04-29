@@ -1,19 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class MessageVersionDto {
-  @ApiProperty()
-  id!: string;
-
-  @ApiProperty()
-  content!: string;
-
-  @ApiPropertyOptional({ nullable: true })
-  modelProvider!: string | null;
-
-  @ApiProperty()
-  createdAt!: Date;
-}
-
 export class MessageResponseDto {
   @ApiProperty()
   id!: string;
@@ -41,13 +27,4 @@ export class MessageResponseDto {
 
   @ApiProperty()
   updatedAt!: Date;
-
-  @ApiPropertyOptional({ nullable: true })
-  versionGroupId!: string | null;
-
-  @ApiProperty()
-  isActive!: boolean;
-
-  @ApiProperty({ type: [MessageVersionDto] })
-  versions!: MessageVersionDto[];
 }

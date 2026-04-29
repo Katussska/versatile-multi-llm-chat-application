@@ -20,7 +20,15 @@ import {
 } from '@/components/ui/form.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.tsx';
 import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { fmtProvider } from '@/lib/formatModel';
 import { generatePassword } from '@/lib/utils.ts';
 import { CreateUserSchema, createUserSchema } from '@/schemas/admin.ts';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +38,7 @@ import {
   Coins,
   Eye,
   EyeOff,
+  Plus,
   RefreshCw,
   Square,
   UserPlus,
@@ -38,8 +47,15 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+interface ModelOption {
+  id: string;
+  name: string;
+  provider: string;
+}
+
 interface BudgetLimit {
   id: string;
+  model: ModelOption;
   dollarLimit: number | null;
   usedDollars: number;
   resetAt: string;
@@ -57,8 +73,10 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
 
   const [step, setStep] = useState<'form' | 'tokens'>('form');
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
-  const [addedBudget, setAddedBudget] = useState<BudgetLimit | null>(null);
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [addedBudgets, setAddedBudgets] = useState<BudgetLimit[]>([]);
   const [showTokenForm, setShowTokenForm] = useState(false);
+  const [tokenProvider, setTokenProvider] = useState('');
   const [dollarLimit, setDollarLimit] = useState('');
   const [submittingToken, setSubmittingToken] = useState(false);
 
@@ -108,6 +126,15 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
     setConfirmAdminOpen(false);
   };
 
+  const fetchModels = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/users/models`, { credentials: 'include' });
+      if (res.ok) setModels(await res.json());
+    } catch {
+      // models stay empty
+    }
+  };
+
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       const response = await fetch(`${baseUrl}/users`, {
@@ -122,41 +149,49 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
           throw new Error(t('admin.createUser.emailConflict'));
         }
         const error = await response.json().catch(() => ({}));
-        throw new Error((error as { message?: string }).message ?? t('admin.createUser.error'));
+        throw new Error(error.message ?? t('admin.createUser.error'));
       }
 
       const created = await response.json();
       setCreatedUserId(created.id);
+      await fetchModels();
       toast.success(t('admin.createUser.success'));
       setStep('tokens');
-      setShowTokenForm(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : t('admin.createUser.error');
       toast.error(message);
     }
   });
 
+  const resetTokenForm = () => {
+    setTokenProvider('');
+    setDollarLimit('');
+  };
+
   const handleAddBudget = async () => {
-    if (!createdUserId) return;
+    if (!createdUserId || !tokenProvider) return;
     setSubmittingToken(true);
     try {
       const res = await fetch(`${baseUrl}/users/${createdUserId}/tokens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ dollarLimit: dollarLimit ? Number(dollarLimit) : null }),
+        body: JSON.stringify({
+          provider: tokenProvider,
+          dollarLimit: dollarLimit ? Number(dollarLimit) : null,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message);
+        throw new Error(err.message);
       }
-      const newBudget: BudgetLimit = await res.json();
-      setAddedBudget(newBudget);
-      setDollarLimit('');
+      const newBudget = await res.json();
+      setAddedBudgets((prev) => [...prev, newBudget]);
+      resetTokenForm();
       setShowTokenForm(false);
       toast.success(t('admin.manageTokens.addSuccess'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('admin.manageTokens.editError'));
+      toast.error(err instanceof Error ? err.message : t('admin.manageTokens.addError'));
     } finally {
       setSubmittingToken(false);
     }
@@ -173,12 +208,20 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
       setShowPassword(false);
       setStep('form');
       setCreatedUserId(null);
-      setAddedBudget(null);
+      setModels([]);
+      setAddedBudgets([]);
       setShowTokenForm(false);
-      setDollarLimit('');
+      resetTokenForm();
     }
     setOpen(next);
   };
+
+  const coveredProviders = new Set(addedBudgets.map((b) => b.model.provider));
+  const availableProviders = models.filter(
+    (m, index, allModels) =>
+      !coveredProviders.has(m.provider) &&
+      index === allModels.findIndex((candidate) => candidate.provider === m.provider),
+  );
 
   return (
     <>
@@ -325,24 +368,52 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
           {step === 'tokens' && (
             <>
               <div className="space-y-3">
-                {addedBudget && (
-                  <div className="rounded-md border px-3 py-2 text-sm">
-                    <p className="text-muted-foreground text-xs">
-                      {addedBudget.dollarLimit != null
-                        ? `$${Number(addedBudget.dollarLimit).toFixed(2)}`
-                        : '∞'}{' '}
-                      {t('admin.manageTokens.dollars')}
-                      {' · '}
-                      {t('admin.manageTokens.resetLabel')}{' '}
-                      {new Date(addedBudget.resetAt).toLocaleDateString(undefined, {
-                        timeZone: 'UTC',
-                      })}
-                    </p>
+                {addedBudgets.length > 0 && (
+                  <div className="space-y-2">
+                    {addedBudgets.map((budget) => (
+                      <div
+                        key={budget.id}
+                        className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                        <div>
+                          <p className="font-medium">
+                            {fmtProvider(budget.model.provider)}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {budget.dollarLimit != null
+                              ? `$${Number(budget.dollarLimit).toFixed(2)}`
+                              : '∞'}{' '}
+                            {t('admin.manageTokens.dollars')}
+                            {' · '}
+                            {t('admin.manageTokens.resetLabel')}{' '}
+                            {new Date(budget.resetAt).toLocaleDateString(undefined, {
+                              timeZone: 'UTC',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 {showTokenForm && (
                   <div className="space-y-3 rounded-md border p-3">
+                    <div className="space-y-1.5">
+                      <Label>{t('admin.manageTokens.model')}</Label>
+                      <Select value={tokenProvider} onValueChange={setTokenProvider}>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={t('admin.manageTokens.selectModel')}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableProviders.map((m) => (
+                            <SelectItem key={m.provider} value={m.provider}>
+                              {fmtProvider(m.provider)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="space-y-1.5">
                       <Label>{t('admin.manageTokens.dollarLimit')}</Label>
                       <Input
@@ -363,10 +434,10 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        disabled={submittingToken}
+                        disabled={submittingToken || !tokenProvider}
                         className="border-white/70 bg-transparent text-white hover:border-white hover:bg-white hover:text-slate-900"
                         onClick={handleAddBudget}>
-                        {t('admin.manageTokens.editSubmit')}
+                        {t('admin.manageTokens.addSubmit')}
                       </Button>
                       <Button
                         type="button"
@@ -374,7 +445,7 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                         size="sm"
                         onClick={() => {
                           setShowTokenForm(false);
-                          setDollarLimit('');
+                          resetTokenForm();
                         }}>
                         {t('profile.cancel')}
                       </Button>
@@ -382,13 +453,14 @@ export default function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
                   </div>
                 )}
 
-                {!showTokenForm && !addedBudget && (
+                {!showTokenForm && availableProviders.length > 0 && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="w-full"
                     onClick={() => setShowTokenForm(true)}>
+                    <Plus size={14} className="mr-1" />
                     {t('admin.manageTokens.add')}
                   </Button>
                 )}

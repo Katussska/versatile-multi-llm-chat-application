@@ -14,12 +14,15 @@ import {
 } from '@/components/ui/dropdown-menu.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { getApiBaseUrl } from '@/lib/api-url.ts';
+import { fmtProvider } from '@/lib/formatModel';
 
 import { MoreHorizontal, Search, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-interface Budget {
+interface BudgetLimit {
+  modelName: string;
+  provider: string;
   dollarLimit: number | null;
   usedDollars: number;
 }
@@ -28,7 +31,7 @@ export interface AdminUserRow {
   id: string;
   name: string;
   email: string;
-  budget?: Budget | null;
+  budgetLimits?: BudgetLimit[];
   role: 'USER' | 'ADMIN';
 }
 
@@ -166,38 +169,39 @@ export default function UserTable({ tick = 0, onChanged }: UserTableProps) {
                   </td>
                   <td className="text-muted-foreground px-4 py-3">{user.email}</td>
                   <td className="px-4 py-3">
-                    {user.budget ? (
-                      <div className="text-xs">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-                            {fmtUsd(user.budget.usedDollars)} /{' '}
-                            {user.budget.dollarLimit != null
-                              ? fmtUsd(user.budget.dollarLimit)
-                              : t('admin.userTable.noLimit')}
-                          </span>
-                        </div>
-                        {user.budget.dollarLimit != null && (
-                          <div className="bg-muted mt-0.5 h-1 w-full overflow-hidden rounded-full">
-                            <div
-                              className={`h-full rounded-full transition-all ${barColor(
-                                Math.min(
+                    {(user.budgetLimits ?? []).length > 0 ? (
+                      <div className="space-y-1">
+                        {(user.budgetLimits ?? []).map((bl) => {
+                          const pct =
+                            bl.dollarLimit != null && bl.dollarLimit > 0
+                              ? Math.min(
                                   100,
-                                  Math.round(
-                                    (user.budget.usedDollars / user.budget.dollarLimit) * 100,
-                                  ),
-                                ),
-                              )}`}
-                              style={{
-                                width: `${Math.min(
-                                  100,
-                                  Math.round(
-                                    (user.budget.usedDollars / user.budget.dollarLimit) * 100,
-                                  ),
-                                )}%`,
-                              }}
-                            />
-                          </div>
-                        )}
+                                  Math.round((bl.usedDollars / bl.dollarLimit) * 100),
+                                )
+                              : 0;
+                          return (
+                            <div key={bl.provider} className="text-xs">
+                              <div className="flex items-center justify-between gap-3">
+                                <span
+                                  className="max-w-[120px] truncate font-medium"
+                                  title={fmtProvider(bl.provider)}>
+                                  {fmtProvider(bl.provider)}
+                                </span>
+                                <span className="text-muted-foreground whitespace-nowrap tabular-nums">
+                                  {fmtUsd(bl.usedDollars)} / {fmtUsd(bl.dollarLimit)}
+                                </span>
+                              </div>
+                              {bl.dollarLimit != null && (
+                                <div className="bg-muted mt-0.5 h-1 w-full overflow-hidden rounded-full">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${barColor(pct)}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>

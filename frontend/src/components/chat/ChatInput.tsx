@@ -2,7 +2,6 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
   type ReactNode,
-  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -16,7 +15,6 @@ interface ChatInputProps {
   isStreaming: boolean;
   tokenLimitResetAt?: Date | null;
   variantSelector?: ReactNode;
-  focusKey?: string | null;
 }
 
 export default function ChatInput({
@@ -25,15 +23,10 @@ export default function ChatInput({
   isStreaming,
   tokenLimitResetAt,
   variantSelector,
-  focusKey,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (focusKey != null) textareaRef.current?.focus();
-  }, [focusKey]);
 
   const MAX_TEXTAREA_HEIGHT = 160;
   const isBlocked = Boolean(tokenLimitResetAt);

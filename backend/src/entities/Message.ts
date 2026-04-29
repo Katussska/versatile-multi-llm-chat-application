@@ -23,10 +23,4 @@ export class Message extends Base {
   @Property({ type: 'text', nullable: true, fieldName: 'model_provider' })
   modelProvider: string | null = null;
 
-  @Property({ type: 'uuid', nullable: true, fieldName: 'version_group_id' })
-  versionGroupId: string | null = null;
-
-  @Property({ default: true, fieldName: 'is_active' })
-  isActive: boolean = true;
-
 }

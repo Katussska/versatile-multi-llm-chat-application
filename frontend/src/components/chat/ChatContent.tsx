@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useEffect } from 'react';
 
 import type { Message } from '@/components/chat/ChatSection';
 import ModelMessage from '@/components/chat/ModelMessage.tsx';
@@ -17,7 +17,6 @@ interface ChatContentProps {
   onRegenerateMessage?: (messageIndex: number) => void;
   scrollToMessageId?: string | null;
   onScrollComplete?: () => void;
-  onActivateVersion?: (messageId: string) => void;
 }
 
 export default function ChatContent({
@@ -31,10 +30,8 @@ export default function ChatContent({
   onRegenerateMessage,
   scrollToMessageId,
   onScrollComplete,
-  onActivateVersion,
 }: ChatContentProps) {
   const { t } = useTranslation();
-  const previousMessageCountRef = useRef(messages.length);
 
   useEffect(() => {
     if (!scrollToMessageId || !scrollContainerRef.current) return;
@@ -50,12 +47,7 @@ export default function ChatContent({
   }, [scrollToMessageId, scrollContainerRef, onScrollComplete]);
 
   useEffect(() => {
-    const previousMessageCount = previousMessageCountRef.current;
-    const shouldStickToBottom = isStreaming || messages.length > previousMessageCount;
-
-    previousMessageCountRef.current = messages.length;
-
-    if (scrollContainerRef.current && shouldStickToBottom) {
+    if (scrollContainerRef.current) {
       requestAnimationFrame(() => {
         scrollContainerRef.current?.scrollTo({
           top: scrollContainerRef.current!.scrollHeight,
@@ -81,53 +73,30 @@ export default function ChatContent({
             {t('chat.noMessages')}
           </div>
         ) : (
-          messages.map((message, index) => {
-            if (message.role === 'user') {
-              return (
-                <div key={message.id} data-message-id={message.id}>
-                  <UserMessage
-                    message={message}
-                    onEdit={
-                      onEditMessage
-                        ? (newContent) => onEditMessage(index, newContent)
-                        : undefined
-                    }
-                  />
-                </div>
-              );
-            }
-
-            const versions = message.versions ?? [];
-            let versionInfo:
-              | { current: number; total: number; onPrev: () => void; onNext: () => void }
-              | undefined;
-
-            if (versions.length > 1) {
-              const currentIdx = versions.findIndex((v) => v.id === message.id);
-              const safeIdx = currentIdx === -1 ? versions.length - 1 : currentIdx;
-              versionInfo = {
-                current: safeIdx + 1,
-                total: versions.length,
-                onPrev: () => onActivateVersion?.(versions[safeIdx - 1].id),
-                onNext: () => onActivateVersion?.(versions[safeIdx + 1].id),
-              };
-            }
-
-            return (
-              <div key={message.id} data-message-id={message.id}>
+          messages.map((message, index) => (
+            <div key={message.id} data-message-id={message.id}>
+              {message.role === 'user' ? (
+                <UserMessage
+                  message={message}
+                  onEdit={
+                    onEditMessage
+                      ? (newContent) => onEditMessage(index, newContent)
+                      : undefined
+                  }
+                />
+              ) : (
                 <ModelMessage
                   message={message}
                   isStreaming={message.isStreaming}
-                  versionInfo={versionInfo}
                   onRegenerate={
                     onRegenerateMessage && !message.isStreaming && !isRefetching
                       ? () => onRegenerateMessage(index)
                       : undefined
                   }
                 />
-              </div>
-            );
-          })
+              )}
+            </div>
+          ))
         )}
       </div>
     </div>

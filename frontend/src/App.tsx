@@ -11,27 +11,26 @@ import AdminRoute from './routes/admin-route.tsx';
 import Login from './routes/login.tsx';
 import ProtectedRoute from './routes/protected-route.tsx';
 import RouteError from './routes/route-error.tsx';
-import { Outlet, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
-// ChatSection stays mounted across chat/profile navigation so streaming isn't interrupted.
-// Hidden via CSS when on profile; ProfileSection renders via Outlet.
-function ChatProfileLayout() {
-  const location = useLocation();
-  const isProfileRoute = location.pathname === '/profile';
+const appShell = (
+  <ProtectedRoute>
+    <Layout className="flex flex-row">
+      <UserBadge />
+      <ChatSection />
+    </Layout>
+  </ProtectedRoute>
+);
 
-  return (
-    <ProtectedRoute>
-      <Layout className="flex flex-row">
-        <UserBadge />
-        <div className={isProfileRoute ? 'hidden' : 'contents'}>
-          <ChatSection />
-        </div>
-        <Outlet />
-      </Layout>
-    </ProtectedRoute>
-  );
-}
+const profileShell = (
+  <ProtectedRoute>
+    <Layout className="flex flex-row">
+      <UserBadge />
+      <ProfileSection />
+    </Layout>
+  </ProtectedRoute>
+);
 
 const adminShell = (
   <AdminRoute>
@@ -44,13 +43,19 @@ const adminShell = (
 
 const router = createBrowserRouter([
   {
-    element: <ChatProfileLayout />,
+    path: '/',
     errorElement: <RouteError />,
-    children: [
-      { index: true, element: null },
-      { path: 'chat/:id', element: null },
-      { path: 'profile', element: <ProfileSection /> },
-    ],
+    element: appShell,
+  },
+  {
+    path: '/chat/:id',
+    errorElement: <RouteError />,
+    element: appShell,
+  },
+  {
+    path: '/profile',
+    errorElement: <RouteError />,
+    element: profileShell,
   },
   {
     path: '/admin',

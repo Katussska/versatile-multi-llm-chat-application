@@ -277,208 +277,6 @@
         "tags": [
           "Chat"
         ]
-      },
-      "patch": {
-        "operationId": "ChatController_patchChat",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchChatDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Chat successfully updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatResponseDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "User not authenticated"
-          },
-          "404": {
-            "description": "Chat not found or access denied"
-          }
-        },
-        "summary": "Update chat title or favourite status",
-        "tags": [
-          "Chat"
-        ]
-      }
-    },
-    "/models": {
-      "get": {
-        "operationId": "ModelController_getModels",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "List of enabled models sorted by creation date",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ModelResponseDto"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "User not authenticated"
-          }
-        },
-        "summary": "Get all available (enabled) models",
-        "tags": [
-          "Model"
-        ]
-      }
-    },
-    "/chats/{chatId}/messages/{messageId}": {
-      "patch": {
-        "operationId": "ChatController_patchMessage",
-        "parameters": [
-          {
-            "name": "chatId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "messageId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchMessageDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Message successfully updated"
-          },
-          "401": {
-            "description": "User not authenticated"
-          },
-          "404": {
-            "description": "Message not found or access denied"
-          }
-        },
-        "summary": "Update message content",
-        "tags": [
-          "Chat"
-        ]
-      }
-    },
-    "/chats/{id}/stream": {
-      "post": {
-        "operationId": "ChatController_streamMessage",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StreamMessageDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Streaming LLM response"
-          },
-          "401": {
-            "description": "User not authenticated"
-          },
-          "404": {
-            "description": "Chat not found or access denied"
-          },
-          "429": {
-            "description": "Monthly token limit exceeded"
-          }
-        },
-        "summary": "Stream LLM response for a chat message",
-        "tags": [
-          "Chat"
-        ]
-      }
-    },
-    "/chats/{chatId}/messages/{messageId}/activate": {
-      "patch": {
-        "operationId": "ChatController_activateVersion",
-        "parameters": [
-          {
-            "name": "chatId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "messageId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Version activated"
-          },
-          "401": {
-            "description": "User not authenticated"
-          },
-          "404": {
-            "description": "Message not found or access denied"
-          }
-        },
-        "summary": "Activate a specific message version",
-        "tags": [
-          "Chat"
-        ]
       }
     }
   },
@@ -579,9 +377,6 @@
           "updatedAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "favourite": {
-            "type": "boolean"
           }
         },
         "required": [
@@ -589,8 +384,7 @@
           "title",
           "modelId",
           "createdAt",
-          "updatedAt",
-          "favourite"
+          "updatedAt"
         ]
       },
       "MessageResponseDto": {
@@ -608,6 +402,9 @@
           "path": {
             "type": "string"
           },
+          "favourite": {
+            "type": "boolean"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -615,31 +412,6 @@
           "updatedAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "versionGroupId": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "versions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MessageVersionDto"
-            }
-          },
-          "parentMessageId": {
-            "type": "string",
-            "nullable": true
-          },
-          "modelKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "modelProvider": {
-            "type": "string",
-            "nullable": true
           }
         },
         "required": [
@@ -647,14 +419,9 @@
           "chatId",
           "content",
           "path",
+          "favourite",
           "createdAt",
-          "updatedAt",
-          "parentMessageId",
-          "modelKey",
-          "modelProvider",
-          "versionGroupId",
-          "isActive",
-          "versions"
+          "updatedAt"
         ]
       },
       "CreateMessageRequestDto": {
@@ -670,104 +437,6 @@
         "required": [
           "content",
           "path"
-        ]
-      },
-      "ModelResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "displayLabel": {
-            "type": "string"
-          },
-          "iconKey": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "provider",
-          "name",
-          "displayLabel",
-          "iconKey"
-        ]
-      },
-      "PatchChatDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
-          },
-          "favourite": {
-            "type": "boolean"
-          },
-          "modelId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
-      "PatchMessageDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string"
-          }
-        }
-      },
-      "StreamMessageDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string"
-          },
-          "parentMessageId": {
-            "type": "string",
-            "nullable": true
-          },
-          "regenerate": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "truncateFromMessageId": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "content"
-        ]
-      },
-      "MessageVersionDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "modelProvider": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "content",
-          "modelProvider",
-          "createdAt"
         ]
       }
     }

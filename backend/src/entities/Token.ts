@@ -1,10 +1,14 @@
 import { Entity, ManyToOne, Property } from '@mikro-orm/decorators/legacy';
 import { Base } from './Base';
 import { User } from './User';
+import { Model } from './Model';
 import type { Rel } from '@mikro-orm/core';
 
 @Entity()
 export class Token extends Base {
+  @ManyToOne(() => Model)
+  model!: Rel<Model>;
+
   @ManyToOne(() => User)
   user!: Rel<User>;
 

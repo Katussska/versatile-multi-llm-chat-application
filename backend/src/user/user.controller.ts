@@ -36,10 +36,18 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
 import { UpdateTokenDto } from './dto/update-token.dto';
-import { TokenResponseDto } from './dto/token-response.dto';
+import { TokenResponseDto, ModelDto } from './dto/token-response.dto';
 
 function toUserResponse(
-  user: User & { budget?: { dollarLimit: number | null; usedDollars: number } | null },
+  user: User & {
+    budgetLimits?: {
+      modelId?: string;
+      modelName: string;
+      provider: string;
+      dollarLimit: number | null;
+      usedDollars: number;
+    }[];
+  },
 ): UserResponseDto {
   return {
     id: user.id,
@@ -47,7 +55,14 @@ function toUserResponse(
     name: user.name,
     role: user.role,
     createdAt: user.createdAt,
-    budget: user.budget ?? null,
+    budgetLimits: (user.budgetLimits ?? []).map(
+      ({ modelName, provider, dollarLimit, usedDollars }) => ({
+        modelName,
+        provider,
+        dollarLimit,
+        usedDollars,
+      }),
+    ),
   };
 }
 
@@ -121,6 +136,21 @@ export class UserController {
     @Param('id') id: string,
   ): Promise<void> {
     await this.userService.deleteUser(id, session.user.id);
+  }
+
+  @Get('models')
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'List available models (admin only)' })
+  @ApiOkResponse({ description: 'List of models', type: [ModelDto] })
+  @ApiUnauthorizedResponse({ description: 'User not authenticated' })
+  @ApiForbiddenResponse({ description: 'Admin access required' })
+  async getModels(): Promise<ModelDto[]> {
+    const models = await this.userService.getModels();
+    return models.map((m) => ({
+      id: m.id,
+      name: m.name,
+      provider: m.provider,
+    }));
   }
 
   @Get('me/tokens')

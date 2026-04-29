@@ -34,28 +34,27 @@ export class AdminService {
       this.em.execute<
         {
           user_id: string;
-          dollar_limit: string | null;
-          used_dollars: string;
+          model_name: string;
+          provider: string;
+          dollar_limit: number | null;
+          used_dollars: number;
         }[]
       >(
         `SELECT t.user_id,
-                t.dollar_limit::text,
-                CASE WHEN t.reset_at > NOW() THEN t.used_dollars ELSE 0 END::text AS used_dollars
+                COALESCE(m.name, '') AS model_name,
+                COALESCE(m.provider, '') AS provider,
+                t.dollar_limit,
+                CASE WHEN t.reset_at > NOW() THEN t.used_dollars ELSE 0 END AS used_dollars
          FROM token t
+         LEFT JOIN model m ON m.id = t.model_id AND m.deleted_at IS NULL
          WHERE t.deleted_at IS NULL`,
       ),
     ]);
 
-    const budgetMap = new Map<
-      string,
-      { dollarLimit: number | null; usedDollars: number }
-    >();
+    const budgetsByUser = new Map<string, typeof budgetRows>();
     for (const tr of budgetRows) {
-      budgetMap.set(tr.user_id, {
-        dollarLimit:
-          tr.dollar_limit != null ? parseFloat(tr.dollar_limit) : null,
-        usedDollars: parseFloat(tr.used_dollars),
-      });
+      if (!budgetsByUser.has(tr.user_id)) budgetsByUser.set(tr.user_id, []);
+      budgetsByUser.get(tr.user_id)!.push(tr);
     }
 
     return rows.map((r) => ({
@@ -64,7 +63,12 @@ export class AdminService {
       name: r.name,
       role: r.role,
       createdAt: r.created_at,
-      budget: budgetMap.get(r.id) ?? null,
+      budgetLimits: (budgetsByUser.get(r.id) ?? []).map((tl) => ({
+        modelName: tl.model_name,
+        provider: tl.provider,
+        dollarLimit: tl.dollar_limit,
+        usedDollars: tl.used_dollars,
+      })),
     }));
   }
 
@@ -124,6 +128,7 @@ export class AdminService {
         model_provider: string;
         tokens_in: string;
         tokens_out: string;
+        tokens_cached: string;
         cost: string;
       }[]
     >(
@@ -133,6 +138,7 @@ export class AdminService {
         COALESCE(ul.model_provider, '') AS model_provider,
         SUM(COALESCE(ul.prompt_tokens, 0))::bigint AS tokens_in,
         SUM(COALESCE(ul.completion_tokens, 0))::bigint AS tokens_out,
+        SUM(COALESCE(ul.cache_read_tokens, 0) + COALESCE(ul.cached_input_tokens, 0))::bigint AS tokens_cached,
         SUM(COALESCE(ul.cost, 0))::float AS cost
        FROM usage_log ul
        WHERE ${conditions.join(' AND ')}
@@ -147,6 +153,7 @@ export class AdminService {
       modelProvider: r.model_provider,
       tokensIn: Number(r.tokens_in),
       tokensOut: Number(r.tokens_out),
+      tokensCached: Number(r.tokens_cached),
       cost: Number(r.cost),
     }));
   }

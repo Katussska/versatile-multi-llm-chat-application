@@ -104,11 +104,11 @@ export class ChatController {
     @Session() session: UserSession,
     @Param('id') chatId: string,
   ): Promise<MessageResponseDto[]> {
-    const rows = await this.chatService.getChatMessages(
+    const messages = await this.chatService.getChatMessages(
       chatId,
       session.user.id,
     );
-    return rows.map(({ message: msg, versions }) => ({
+    return messages.map((msg) => ({
       id: msg.id,
       chatId: msg.chat.id,
       content: msg.content,
@@ -118,14 +118,6 @@ export class ChatController {
       modelProvider: msg.modelProvider,
       createdAt: msg.createdAt,
       updatedAt: msg.updatedAt,
-      versionGroupId: msg.versionGroupId,
-      isActive: msg.isActive,
-      versions: versions.map((v) => ({
-        id: v.id,
-        content: v.content,
-        modelProvider: v.modelProvider,
-        createdAt: v.createdAt,
-      })),
     }));
   }
 
@@ -159,9 +151,6 @@ export class ChatController {
       modelProvider: message.modelProvider,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
-      versionGroupId: message.versionGroupId,
-      isActive: message.isActive,
-      versions: [],
     };
   }
 
@@ -205,24 +194,6 @@ export class ChatController {
     @Param('id') chatId: string,
   ): Promise<void> {
     await this.chatService.deleteChat(chatId, session.user.id);
-  }
-
-  @Patch(':chatId/messages/:messageId/activate')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Activate a specific message version' })
-  @ApiNoContentResponse({ description: 'Version activated' })
-  @ApiUnauthorizedResponse({ description: 'User not authenticated' })
-  @ApiNotFoundResponse({ description: 'Message not found or access denied' })
-  async activateVersion(
-    @Session() session: UserSession,
-    @Param('chatId') chatId: string,
-    @Param('messageId') messageId: string,
-  ): Promise<void> {
-    await this.chatService.activateVersion(
-      messageId,
-      chatId,
-      session.user.id,
-    );
   }
 
   @Patch(':chatId/messages/:messageId')
