@@ -44,6 +44,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.IMAGE_TAG }}
           build-args: |
-            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'http://localhost:3000' }}
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || '/' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
