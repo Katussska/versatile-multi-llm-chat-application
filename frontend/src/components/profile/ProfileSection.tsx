@@ -23,7 +23,6 @@ import { Input } from '@/components/ui/input.tsx';
 import i18n from '@/i18n.ts';
 import { getApiBaseUrl } from '@/lib/api-url.ts';
 import { useAuthContext } from '@/lib/authContext.tsx';
-import { fmtProvider } from '@/lib/formatModel';
 import {
   ChangePasswordSchema,
   UpdateNameSchema,
@@ -38,6 +37,7 @@ import {
   Eye,
   EyeOff,
   Globe,
+  Loader2,
   Lock,
   Mail,
   Settings,
@@ -52,7 +52,6 @@ import { toast } from 'sonner';
 
 interface BudgetLimit {
   id: string;
-  model: { id: string; name: string; provider: string };
   dollarLimit: number | null;
   usedDollars: number;
   resetAt: string;
@@ -74,7 +73,7 @@ export default function ProfileSection() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConversationConfirmAction>(null);
-  const [budgets, setBudgets] = useState<BudgetLimit[] | null>(null);
+  const [budget, setBudget] = useState<BudgetLimit | null>(null);
   const [tokenLimitsLoading, setTokenLimitsLoading] = useState(true);
   const [tokenLimitsError, setTokenLimitsError] = useState(false);
 
@@ -85,9 +84,9 @@ export default function ProfileSection() {
     setTokenLimitsError(false);
     fetch(`${baseUrl}/users/me/tokens`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data: BudgetLimit[]) => setBudgets(data))
+      .then((data: BudgetLimit[]) => setBudget(data[0] ?? null))
       .catch(() => {
-        setBudgets(null);
+        setBudget(null);
         setTokenLimitsError(true);
       })
       .finally(() => setTokenLimitsLoading(false));
@@ -393,67 +392,64 @@ export default function ProfileSection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {tokenLimitsLoading ? null : tokenLimitsError ? (
+            {tokenLimitsLoading ? (
+              <Loader2 size={14} className="text-muted-foreground animate-spin" />
+            ) : tokenLimitsError ? (
               <p className="text-destructive text-sm">{t('profile.tokens.loadError')}</p>
-            ) : budgets === null || budgets.length === 0 ? (
+            ) : budget === null ? (
               <p className="text-muted-foreground text-sm">
                 {t('profile.tokens.allModels')}
               </p>
-            ) : (
-              <div className="space-y-4">
-                {budgets.map((budget) => {
-                  const hasLimit = budget.dollarLimit != null && budget.dollarLimit > 0;
-                  const pct = hasLimit
-                    ? Math.min(100, (budget.usedDollars / budget.dollarLimit!) * 100)
-                    : 0;
-                  const barColor =
-                    pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-primary';
-                  const fmtUsd = (v: number) =>
-                    Number(v).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    });
-                  return (
-                    <div key={budget.id} className="space-y-1.5">
+            ) : (() => {
+                const hasLimit = budget.dollarLimit != null && budget.dollarLimit > 0;
+                const pct = hasLimit
+                  ? Math.min(100, (budget.usedDollars / budget.dollarLimit!) * 100)
+                  : 0;
+                const barColor =
+                  pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-primary';
+                const fmtUsd = (v: number) =>
+                  Number(v).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  });
+                return (
+                  <div className="space-y-1.5">
+                    {hasLimit && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">
-                          {fmtProvider(budget.model.provider)}
-                        </span>
                         <span className="text-muted-foreground text-xs">
-                          {hasLimit ? `${pct.toFixed(1)} %` : '∞'}
+                          {pct.toFixed(1)} %
                         </span>
                       </div>
-                      {hasLimit && (
-                        <div className="bg-muted h-2 overflow-hidden rounded-full">
-                          <div
-                            className={`h-full rounded-full transition-all ${barColor}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      )}
-                      <div className="text-muted-foreground flex items-center justify-between text-xs">
-                        <span>
-                          {hasLimit
-                            ? t('profile.tokens.used', {
-                                used: fmtUsd(budget.usedDollars),
-                                total: fmtUsd(budget.dollarLimit!),
-                              })
-                            : t('profile.tokens.usedUnlimited', {
-                                used: fmtUsd(budget.usedDollars),
-                              })}
-                        </span>
-                        <span>
-                          {t('profile.tokens.reset')}{' '}
-                          {new Date(budget.resetAt).toLocaleDateString(undefined, {
-                            timeZone: 'UTC',
-                          })}
-                        </span>
+                    )}
+                    {hasLimit && (
+                      <div className="bg-muted h-2 overflow-hidden rounded-full">
+                        <div
+                          className={`h-full rounded-full transition-all ${barColor}`}
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
+                    )}
+                    <div className="text-muted-foreground flex items-center justify-between text-xs">
+                      <span>
+                        {hasLimit
+                          ? t('profile.tokens.used', {
+                              used: fmtUsd(budget.usedDollars),
+                              total: fmtUsd(budget.dollarLimit!),
+                            })
+                          : t('profile.tokens.usedUnlimited', {
+                              used: fmtUsd(budget.usedDollars),
+                            })}
+                      </span>
+                      <span>
+                        {t('profile.tokens.reset')}{' '}
+                        {new Date(budget.resetAt).toLocaleDateString(undefined, {
+                          timeZone: 'UTC',
+                        })}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                );
+              })()}
           </CardContent>
         </Card>
 

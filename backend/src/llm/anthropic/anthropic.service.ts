@@ -34,41 +34,26 @@ export class AnthropicService {
     systemPrompt?: string,
   ): AsyncGenerator<
     | { type: 'text'; text: string }
+    | { type: 'error'; error: string }
     | {
         type: 'usage';
         totalTokens: number;
         promptTokens: number | null;
         completionTokens: number | null;
-        cacheWriteTokens: number | null;
-        cacheReadTokens: number | null;
       }
   > {
     if (!this.client) {
-      throw new InternalServerErrorException(
-        'Anthropic API key není nakonfigurován',
-      );
+      yield { type: 'error', error: 'Anthropic API key is not configured' };
+      return;
     }
 
-    // Mark the last history message with cache_control to cache the growing conversation prefix
-    const historyParams: Anthropic.MessageParam[] = history.map((msg, i) => {
-      if (i === history.length - 1) {
-        return {
-          role: msg.role,
-          content: [{ type: 'text' as const, text: msg.content, cache_control: { type: 'ephemeral' as const } }],
-        };
-      }
-      return { role: msg.role, content: msg.content };
-    });
-
     const messages: Anthropic.MessageParam[] = [
-      ...historyParams,
+      ...history.map((msg) => ({ role: msg.role, content: msg.content })),
       { role: 'user', content: prompt },
     ];
 
     let inputTokens: number | null = null;
     let outputTokens: number | null = null;
-    let cacheWriteTokens: number | null = null;
-    let cacheReadTokens: number | null = null;
 
     try {
       const selectedModel = modelName?.trim() || this.fallbackModel;
@@ -102,8 +87,6 @@ export class AnthropicService {
           yield { type: 'text', text: event.delta.text };
         } else if (event.type === 'message_start') {
           inputTokens = event.message.usage.input_tokens;
-          cacheWriteTokens = event.message.usage.cache_creation_input_tokens ?? null;
-          cacheReadTokens = event.message.usage.cache_read_input_tokens ?? null;
         } else if (event.type === 'message_delta') {
           outputTokens = event.usage.output_tokens;
         }
@@ -115,24 +98,49 @@ export class AnthropicService {
           totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
           promptTokens: inputTokens,
           completionTokens: outputTokens,
-          cacheWriteTokens,
-          cacheReadTokens,
         };
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
+      const errorMessage = this.getErrorMessage(error);
       if (error instanceof APIError) {
         this.logger.error(
           `Anthropic API chyba ${error.status}: ${error.message}`,
         );
-        throw new InternalServerErrorException(
-          `Anthropic API selhalo: ${error.message}`,
-        );
+      } else {
+        this.logger.error('Chyba při streamování z Anthropic API >> ', error);
       }
-      this.logger.error('Chyba při streamování z Anthropic API >> ', error);
-      throw new InternalServerErrorException('AI generování selhalo');
+      yield { type: 'error', error: errorMessage };
     }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    const err = error as any;
+
+    if (err instanceof APIError) {
+      if (err.status === 429) {
+        return 'Anthropic API rate limit exceeded. Please wait a moment before trying again.';
+      }
+      if (err.status === 503) {
+        return 'Anthropic API is temporarily unavailable. Please try again later.';
+      }
+      if (err.status === 401 || err.status === 403) {
+        return 'Anthropic API authentication failed. Please check your API key configuration.';
+      }
+      if (err.status === 404) {
+        return 'The specified Anthropic model was not found.';
+      }
+      if (err.status && err.status >= 500) {
+        return `Anthropic server error (${err.status}). Please try again later.`;
+      }
+      if (err.message?.includes('quota')) {
+        return 'Anthropic API quota exceeded. Please check your account limits.';
+      }
+      return `Anthropic API error: ${err.message || 'Request failed'}`;
+    }
+
+    return 'Failed to generate response. Please try again.';
   }
 }

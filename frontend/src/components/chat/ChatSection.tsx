@@ -11,8 +11,15 @@ import { formatChatTitle } from '@/lib/chatTitle.ts';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+
+export interface MessageVersion {
+  id: string;
+  content: string;
+  modelProvider: string | null;
+  createdAt: Date;
+}
 
 export interface Message {
   id: string;
@@ -20,7 +27,10 @@ export interface Message {
   role: 'user' | 'model';
   createdAt: Date;
   isStreaming?: boolean;
+  isError?: boolean;
   modelProvider?: string | null;
+  versionGroupId?: string | null;
+  versions?: MessageVersion[];
 }
 
 const API_BASE = getApiBaseUrl();
@@ -36,25 +46,23 @@ export default function ChatSection() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { id: routeChatId } = useParams<{ id: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
   const [tokenLimitResetAt, setTokenLimitResetAt] = useState<Date | null>(null);
-  const [budgetLimits, setBudgetLimits] = useState<
-    {
-      model: { provider: string };
-      dollarLimit: number | null;
-      usedDollars: number;
-      resetAt: string;
-    }[]
-  >([]);
+  const [globalBudget, setGlobalBudget] = useState<{
+    dollarLimit: number | null;
+    usedDollars: number;
+    resetAt: string;
+  } | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wordQueueRef = useRef<string[]>([]);
-  const drainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drainTimerRef = useRef<number | null>(null);
   const drainResolveRef = useRef<(() => void) | null>(null);
   const wasAbortedRef = useRef(false);
   const streamedContentRef = useRef('');
@@ -149,7 +157,7 @@ export default function ChatSection() {
   useEffect(() => {
     return () => {
       if (drainTimerRef.current) {
-        clearTimeout(drainTimerRef.current);
+        cancelAnimationFrame(drainTimerRef.current);
         drainTimerRef.current = null;
       }
       wordQueueRef.current = [];
@@ -165,25 +173,24 @@ export default function ChatSection() {
   useEffect(() => {
     fetch(`${API_BASE}/users/me/tokens`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.resolve([])))
-      .then(setBudgetLimits)
+      .then(
+        (data: { dollarLimit: number | null; usedDollars: number; resetAt: string }[]) =>
+          setGlobalBudget(data[0] ?? null),
+      )
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!selectedModelId || !availableModels?.length) return;
-    const provider = availableModels.find((m) => m.id === selectedModelId)?.provider;
-    if (!provider) return;
-    const budget = budgetLimits.find((b) => b.model.provider === provider);
     if (
-      budget &&
-      budget.dollarLimit !== null &&
-      budget.usedDollars >= budget.dollarLimit
+      globalBudget &&
+      globalBudget.dollarLimit !== null &&
+      globalBudget.usedDollars >= globalBudget.dollarLimit
     ) {
-      setTokenLimitResetAt(new Date(budget.resetAt));
+      setTokenLimitResetAt(new Date(globalBudget.resetAt));
     } else {
       setTokenLimitResetAt(null);
     }
-  }, [selectedModelId, availableModels, budgetLimits]);
+  }, [globalBudget]);
 
   useEffect(() => {
     setTokenLimitResetAt(null);
@@ -210,6 +217,13 @@ export default function ChatSection() {
           role: message.path === 'user' ? 'user' : 'model',
           createdAt: new Date(message.createdAt),
           modelProvider: message.modelProvider ?? null,
+          versionGroupId: message.versionGroupId ?? null,
+          versions: (message.versions ?? []).map((v) => ({
+            id: v.id,
+            content: v.content,
+            modelProvider: v.modelProvider,
+            createdAt: new Date(v.createdAt),
+          })),
         })),
       );
     } else if (activeChatId && !isCreatingConversation) {
@@ -232,13 +246,22 @@ export default function ChatSection() {
 
   const drainQueue = () => {
     const step = () => {
-      const fragment = wordQueueRef.current.shift();
+      // Display multiple characters per frame for smooth animation
+      // This gives us ~60fps at 16ms per frame with more chars displayed
+      let fragment = '';
+      for (let i = 0; i < 5; i++) {
+        const char = wordQueueRef.current.shift();
+        if (!char) break;
+        fragment += char;
+      }
+
       if (!fragment) {
         drainTimerRef.current = null;
         drainResolveRef.current?.();
         drainResolveRef.current = null;
         return;
       }
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === streamingPlaceholderIdRef.current
@@ -246,20 +269,24 @@ export default function ChatSection() {
             : msg,
         ),
       );
-      drainTimerRef.current = setTimeout(step, 35);
+
+      // Use requestAnimationFrame for smooth 60fps animation
+      drainTimerRef.current = requestAnimationFrame(step);
     };
     if (drainTimerRef.current === null) step();
   };
 
   const enqueueWords = (text: string) => {
-    wordQueueRef.current.push(text);
+    for (const char of text) {
+      wordQueueRef.current.push(char);
+    }
     drainQueue();
   };
 
   const clearQueue = () => {
     wordQueueRef.current = [];
     if (drainTimerRef.current !== null) {
-      clearTimeout(drainTimerRef.current);
+      cancelAnimationFrame(drainTimerRef.current);
       drainTimerRef.current = null;
     }
     drainResolveRef.current?.();
@@ -327,7 +354,11 @@ export default function ChatSection() {
       }),
       fetch(`${API_BASE}/users/me/tokens`, { credentials: 'include' })
         .then((r) => (r.ok ? r.json() : Promise.resolve([])))
-        .then(setBudgetLimits)
+        .then(
+          (
+            data: { dollarLimit: number | null; usedDollars: number; resetAt: string }[],
+          ) => setGlobalBudget(data[0] ?? null),
+        )
         .catch(() => {}),
     ]);
   };
@@ -489,11 +520,46 @@ export default function ChatSection() {
       if (err instanceof Error && err.name === 'AbortError') {
         await handleAbort(chatId!);
       } else {
-        setMessages((prev) =>
-          prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current),
-        );
+        const errorMessage = err instanceof Error ? err.message : t('chat.sendError');
+
         if (!handleTokenLimitError(err)) {
-          toast.error(t('chat.sendError'));
+          // Display error message in chat as assistant response
+          if (streamedMessageIdRef.current) {
+            // Message was created on server
+            await patchModelMessage(chatId!, errorMessage);
+            const realId = streamedMessageIdRef.current;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === streamingPlaceholderIdRef.current
+                  ? {
+                      ...msg,
+                      id: realId,
+                      content: errorMessage,
+                      isStreaming: false,
+                      isError: true,
+                    }
+                  : msg,
+              ),
+            );
+          } else {
+            // Message not created, replace placeholder with error
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === streamingPlaceholderIdRef.current
+                  ? {
+                      ...msg,
+                      content: errorMessage,
+                      isStreaming: false,
+                      isError: true,
+                    }
+                  : msg,
+              ),
+            );
+          }
+        } else {
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== streamingPlaceholderIdRef.current),
+          );
         }
       }
     } finally {
@@ -501,6 +567,19 @@ export default function ChatSection() {
       setIsCreatingConversation(false);
       abortControllerRef.current = null;
     }
+  };
+
+  const handleActivateVersion = async (messageId: string) => {
+    if (!activeChatId) return;
+    await fetch(`${API_BASE}/chats/${activeChatId}/messages/${messageId}/activate`, {
+      method: 'PATCH',
+      credentials: 'include',
+    }).catch(() => {});
+    await queryClient.refetchQueries({
+      queryKey: $api.queryOptions('get', '/chats/{id}/messages', {
+        params: { path: { id: activeChatId } },
+      }).queryKey,
+    });
   };
 
   const handleRegenerateMessage = async (messageIndex: number) => {
@@ -512,6 +591,9 @@ export default function ChatSection() {
     const userMsg = messages[messageIndex - 1];
     if (!userMsg || userMsg.role !== 'user') return;
 
+    const selectedProvider =
+      availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null;
+
     const savedMessages = messages;
     const truncated = messages.slice(0, messageIndex);
     streamingPlaceholderIdRef.current = `streaming-assistant-${Date.now()}`;
@@ -521,8 +603,7 @@ export default function ChatSection() {
       role: 'model',
       createdAt: new Date(),
       isStreaming: true,
-      modelProvider:
-        availableModels?.find((m) => m.id === selectedModelId)?.provider ?? null,
+      modelProvider: selectedProvider,
     };
     setMessages([...truncated, assistantPlaceholder]);
     setIsStreaming(true);
@@ -553,9 +634,44 @@ export default function ChatSection() {
       if (err instanceof Error && err.name === 'AbortError') {
         await handleAbort(activeChatId);
       } else {
-        setMessages(savedMessages);
+        const errorMessage = err instanceof Error ? err.message : t('chat.sendError');
+
         if (!handleTokenLimitError(err)) {
-          toast.error(t('chat.sendError'));
+          // Display error message in chat as assistant response
+          if (streamedMessageIdRef.current) {
+            // Message was created on server
+            await patchModelMessage(activeChatId, errorMessage);
+            const realId = streamedMessageIdRef.current;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === streamingPlaceholderIdRef.current
+                  ? {
+                      ...msg,
+                      id: realId,
+                      content: errorMessage,
+                      isStreaming: false,
+                      isError: true,
+                    }
+                  : msg,
+              ),
+            );
+          } else {
+            // Message not created, replace placeholder with error
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === streamingPlaceholderIdRef.current
+                  ? {
+                      ...msg,
+                      content: errorMessage,
+                      isStreaming: false,
+                      isError: true,
+                    }
+                  : msg,
+              ),
+            );
+          }
+        } else {
+          setMessages(savedMessages);
         }
       }
     } finally {
@@ -617,9 +733,44 @@ export default function ChatSection() {
       if (err instanceof Error && err.name === 'AbortError') {
         await handleAbort(activeChatId);
       } else {
-        setMessages(savedMessages);
+        const errorMessage = err instanceof Error ? err.message : t('chat.sendError');
+
         if (!handleTokenLimitError(err)) {
-          toast.error(t('chat.sendError'));
+          // Display error message in chat as assistant response
+          if (streamedMessageIdRef.current) {
+            // Message was created on server
+            await patchModelMessage(activeChatId, errorMessage);
+            const realId = streamedMessageIdRef.current;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === streamingPlaceholderIdRef.current
+                  ? {
+                      ...msg,
+                      id: realId,
+                      content: errorMessage,
+                      isStreaming: false,
+                      isError: true,
+                    }
+                  : msg,
+              ),
+            );
+          } else {
+            // Message not created, replace placeholder with error
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === streamingPlaceholderIdRef.current
+                  ? {
+                      ...msg,
+                      content: errorMessage,
+                      isStreaming: false,
+                      isError: true,
+                    }
+                  : msg,
+              ),
+            );
+          }
+        } else {
+          setMessages(savedMessages);
         }
       }
     } finally {
@@ -633,10 +784,6 @@ export default function ChatSection() {
     const defaultModel = availableModels.find((m) => m.provider === provider);
     if (!defaultModel) return;
     void handleModelChange(defaultModel.id);
-    const lastMsg = [...messages]
-      .reverse()
-      .find((m) => m.role === 'model' && m.modelProvider === provider);
-    if (lastMsg) setScrollToMessageId(lastMsg.id);
   };
 
   const handleModelChange = async (newModelId: string) => {
@@ -680,6 +827,7 @@ export default function ChatSection() {
           onRegenerateMessage={handleRegenerateMessage}
           scrollToMessageId={scrollToMessageId}
           onScrollComplete={() => setScrollToMessageId(null)}
+          onActivateVersion={handleActivateVersion}
         />
       </div>
       <ChatInput
@@ -687,6 +835,7 @@ export default function ChatSection() {
         onStop={handleStopStreaming}
         isStreaming={isStreaming}
         tokenLimitResetAt={tokenLimitResetAt}
+        focusKey={pathname === '/profile' ? null : (activeChatId ?? 'new')}
         variantSelector={
           <ModelVariantSelector
             models={availableModels ?? []}

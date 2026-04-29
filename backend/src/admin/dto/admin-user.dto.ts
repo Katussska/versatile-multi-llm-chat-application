@@ -1,13 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../entities/UserRole';
 
-export class BudgetLimitDto {
-  @ApiProperty()
-  modelName!: string;
-
-  @ApiProperty()
-  provider!: string;
-
+export class BudgetDto {
   @ApiProperty({ nullable: true })
   dollarLimit!: number | null;
 
@@ -31,6 +25,6 @@ export class AdminUserDto {
   @ApiProperty()
   createdAt!: Date;
 
-  @ApiProperty({ type: [BudgetLimitDto] })
-  budgetLimits!: BudgetLimitDto[];
+  @ApiProperty({ type: BudgetDto, nullable: true })
+  budget!: BudgetDto | null;
 }

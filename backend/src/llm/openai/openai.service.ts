@@ -34,18 +34,17 @@ export class OpenAIService {
     systemPrompt?: string,
   ): AsyncGenerator<
     | { type: 'text'; text: string }
+    | { type: 'error'; error: string }
     | {
         type: 'usage';
         totalTokens: number;
         promptTokens: number | null;
         completionTokens: number | null;
-        cachedInputTokens: number | null;
       }
   > {
     if (!this.client) {
-      throw new InternalServerErrorException(
-        'OpenAI API key není nakonfigurován',
-      );
+      yield { type: 'error', error: 'OpenAI API key is not configured' };
+      return;
     }
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -58,7 +57,6 @@ export class OpenAIService {
 
     let promptTokens: number | null = null;
     let completionTokens: number | null = null;
-    let cachedInputTokens: number | null = null;
 
     try {
       const selectedModel = modelName?.trim() || this.fallbackModel;
@@ -91,7 +89,6 @@ export class OpenAIService {
         if (chunk.usage) {
           promptTokens = chunk.usage.prompt_tokens ?? null;
           completionTokens = chunk.usage.completion_tokens ?? null;
-          cachedInputTokens = (chunk.usage as { prompt_tokens_details?: { cached_tokens?: number } }).prompt_tokens_details?.cached_tokens ?? null;
         }
       }
 
@@ -104,23 +101,47 @@ export class OpenAIService {
           totalTokens: (promptTokens ?? 0) + (completionTokens ?? 0),
           promptTokens,
           completionTokens,
-          cachedInputTokens,
         };
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
+      const errorMessage = this.getErrorMessage(error);
       if (error instanceof APIError) {
-        this.logger.error(
-          `OpenAI API chyba ${error.status}: ${error.message}`,
-        );
-        throw new InternalServerErrorException(
-          `OpenAI API selhalo: ${error.message}`,
-        );
+        this.logger.error(`OpenAI API chyba ${error.status}: ${error.message}`);
+      } else {
+        this.logger.error('Chyba při streamování z OpenAI API >> ', error);
       }
-      this.logger.error('Chyba při streamování z OpenAI API >> ', error);
-      throw new InternalServerErrorException('AI generování selhalo');
+      yield { type: 'error', error: errorMessage };
     }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    const err = error as any;
+
+    if (err instanceof APIError) {
+      if (err.status === 429) {
+        return 'OpenAI API rate limit exceeded. Please wait a moment before trying again.';
+      }
+      if (err.status === 503) {
+        return 'OpenAI API is temporarily unavailable. Please try again later.';
+      }
+      if (err.status === 401 || err.status === 403) {
+        return 'OpenAI API authentication failed. Please check your API key configuration.';
+      }
+      if (err.status === 404) {
+        return 'The specified OpenAI model was not found.';
+      }
+      if (err.status && err.status >= 500) {
+        return `OpenAI server error (${err.status}). Please try again later.`;
+      }
+      if (err.message?.includes('quota')) {
+        return 'OpenAI API quota exceeded. Please check your account limits.';
+      }
+      return `OpenAI API error: ${err.message || 'Request failed'}`;
+    }
+
+    return 'Failed to generate response. Please try again.';
   }
 }

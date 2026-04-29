@@ -112,7 +112,6 @@ interface UsageRecord {
   modelProvider: string;
   tokensIn: number;
   tokensOut: number;
-  tokensCached: number;
   cost: number;
 }
 
@@ -277,7 +276,6 @@ interface TokenDatum {
   date: string;
   tokensIn: number;
   tokensOut: number;
-  tokensCached: number;
 }
 
 function TokenDetailChart({
@@ -293,22 +291,16 @@ function TokenDetailChart({
     () => ({
       tokensIn: { label: t('admin.statistics.tokenIn'), color: '#2EC4FF' },
       tokensOut: { label: t('admin.statistics.tokenOut'), color: '#FF512E' },
-      tokensCached: { label: t('admin.statistics.tokenCached'), color: '#00D1AE' },
     }),
     [t],
   );
 
   const chartData = useMemo<TokenDatum[]>(() => {
-    const byDate: Record<
-      string,
-      { tokensIn: number; tokensOut: number; tokensCached: number }
-    > = {};
+    const byDate: Record<string, { tokensIn: number; tokensOut: number }> = {};
     for (const r of data) {
-      if (!byDate[r.date])
-        byDate[r.date] = { tokensIn: 0, tokensOut: 0, tokensCached: 0 };
+      if (!byDate[r.date]) byDate[r.date] = { tokensIn: 0, tokensOut: 0 };
       byDate[r.date].tokensIn += r.tokensIn;
       byDate[r.date].tokensOut += r.tokensOut;
-      byDate[r.date].tokensCached += r.tokensCached;
     }
     const allDates =
       range.from && range.to ? generateDateRange(range.from, range.to) : [];
@@ -316,7 +308,6 @@ function TokenDetailChart({
       date: formatDateLabel(d),
       tokensIn: byDate[d]?.tokensIn ?? 0,
       tokensOut: byDate[d]?.tokensOut ?? 0,
-      tokensCached: byDate[d]?.tokensCached ?? 0,
     }));
   }, [data, range]);
 
@@ -334,7 +325,7 @@ function TokenDetailChart({
     <ChartContainer config={config} className="h-64 w-full">
       <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
         <defs>
-          {(['tokensIn', 'tokensOut', 'tokensCached'] as const).map((k) => (
+          {(['tokensIn', 'tokensOut'] as const).map((k) => (
             <linearGradient key={k} id={`grad-${k}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={`var(--color-${k})`} stopOpacity={0.3} />
               <stop offset="95%" stopColor={`var(--color-${k})`} stopOpacity={0.05} />
@@ -352,7 +343,7 @@ function TokenDetailChart({
         />
         <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
         <ChartLegend content={<ChartLegendContent />} />
-        {(['tokensIn', 'tokensOut', 'tokensCached'] as const).map((k) => (
+        {(['tokensIn', 'tokensOut'] as const).map((k) => (
           <Area
             key={k}
             type="monotone"

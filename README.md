@@ -71,7 +71,7 @@ What is implemented end-to-end:
 - full auth flow: register, login, session management (Better Auth)
 - sidebar with chat list and new chat creation
 - chat history: list, create, rename, soft delete (with confirmation)
-- message actions: copy, delete, regenerate — any assistant message can be regenerated using the currently selected model, even if the original response came from a different provider (e.g. regenerate a Gemini reply with Claude)
+- message actions: copy, regenerate — any assistant message can be regenerated using the currently selected model, even if the original response came from a different provider (e.g. regenerate a Gemini reply with Claude)
 - real-time streaming chat via SSE (`POST /chats/:id/stream`) — response streams word-by-word with animated rendering
 - stop-streaming button to abort an in-flight response
 - user message saved to DB before streaming; assistant reply saved after stream completes
@@ -82,27 +82,27 @@ What is implemented end-to-end:
 - per-message model icon displayed in chat
 - dark/light theme switching
 - profile page: update display name, read-only email, change password (with live validation rules), language switcher (CS/EN)
-- cost/budget overview on profile page (spending per provider, reset date)
+- cost/budget overview on profile page (total spending, reset date)
 - Czech/English localization (i18next)
 - admin panel (`/admin`, accessible to admin users only):
   - KPI cards: total users, active users, most-used model
   - activity chart — daily message count, selectable period (1 day / 1 week / 2 weeks / 1 month)
   - cost charts — spending by provider and model
   - user management: create, edit (email / password / admin role), delete
-  - budget management: set per-user per-provider dollar limits with a reset date
+  - budget management: set per-user dollar limit with a reset date
   - admin stats filterable by provider and model
-- per-user per-provider **dollar budget** limits enforced at stream time (HTTP 429 when exceeded, auto-reset after reset date); cost computed from `ModelPricing` including cache token pricing
-- prompt caching tracked in `UsageLog` (cache write / read / cached-input tokens) for Anthropic and OpenAI
+- per-user **dollar budget** limit enforced at stream time (HTTP 429 when exceeded, auto-reset after reset date); cost computed from `ModelPricing`; one global limit per user regardless of provider
 - per-message cost recorded in `UsageLog.cost` (USD) using provider-specific pricing
 - admin role enforced via `RolesGuard` on both `AdminController` and `UserController` admin endpoints
-- admin API endpoints: `/admin/users`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, budget management)
+- admin API endpoints: `/admin/users`, `/admin/stats`; user management also accessible via `/users/*` (CRUD, budget management); message versioning via `PATCH /chats/:chatId/messages/:messageId/activate`
 - automated data cleanup (`CleanupModule`): runs nightly at midnight — hard-deletes soft-deleted chats and users after 30 days, purges `UsageLog` entries older than 90 days
+- **message versioning**: regenerated responses are kept as inactive versions instead of being deleted; prev/next navigation between versions is shown directly below each assistant message
 
 Currently supported LLM providers:
 
 - **Gemini** (Google) — fully integrated; available models: `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.5-pro`
-- **Claude** (Anthropic) — fully integrated; available models: `claude-haiku-4-5-20251001`, `claude-sonnet-4-5`, `claude-opus-4-7`; prompt caching supported
-- **ChatGPT** (OpenAI) — fully integrated; available models: `gpt-5.4-nano`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.5`; prompt caching supported
+- **Claude** (Anthropic) — fully integrated; available models: `claude-haiku-4-5-20251001`, `claude-sonnet-4-5`, `claude-opus-4-7`
+- **ChatGPT** (OpenAI) — fully integrated; available models: `gpt-5.4-nano`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.5`
 
 All models are registered in the database via `db:seed` along with their pricing data. The active model is selected per-message in the UI — no env var required.
 
@@ -382,11 +382,11 @@ Entities managed by MikroORM and stored in PostgreSQL:
 | ------ | ------- |
 | `User` | App users; `role` (USER/ADMIN) |
 | `Chat` | Conversations (soft delete supported) |
-| `Message` | Individual messages; `cost_usd` records per-message API cost |
+| `Message` | Individual messages; `path` (user/model), `parentMessageId` (tree structure), `versionGroupId` + `isActive` (versioning) |
 | `Model` | Available LLM models; references `ModelPricing` for cost calculation |
-| `ModelPricing` | Per-model pricing: `inputPrice`, `outputPrice`, and provider-specific cache prices (Anthropic / Gemini / OpenAI) |
-| `Token` | Per-user per-provider **dollar budget**: `dollarLimit`, `usedDollars`, and `resetAt` |
-| `UsageLog` | Per-message token log: prompt/completion tokens, `cost` (USD), and cache tokens (write/read/cached-input) |
+| `ModelPricing` | Per-model pricing: `inputPrice`, `outputPrice`, optional `thinkingOutputPrice`, `inputPriceLongCtx`, `outputPriceLongCtx` |
+| `Token` | Per-user **dollar budget**: `dollarLimit`, `usedDollars`, `resetAt`; one record per user |
+| `UsageLog` | Per-message token log: `promptTokens`, `completionTokens`, `cost` (USD) |
 | `Session` | Better Auth sessions |
 | `Account` | Better Auth OAuth accounts |
 | `Verification` | Better Auth email verification |
