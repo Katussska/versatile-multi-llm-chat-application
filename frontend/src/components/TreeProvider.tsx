@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { $api } from '@/api/client.ts';
+import { useAuthContext } from '@/lib/authContext.tsx';
 import { useQueryClient } from '@tanstack/react-query';
 
 export interface ChatListItem {
@@ -58,6 +59,7 @@ export const TreeContext = createContext<TreeContextType>({
 });
 
 export default function TreeProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuthContext();
   const queryClient = useQueryClient();
   const [selectedChatId, setSelectedChatId] = useState('');
   const [isNewConversation, setIsNewConversation] = useState(false);
@@ -71,6 +73,11 @@ export default function TreeProvider({ children }: { children: ReactNode }) {
   } = $api.useQuery('get', '/chats');
 
   const chats = chatsData ?? [];
+
+  useEffect(() => {
+    setSelectedChatId('');
+    setIsNewConversation(false);
+  }, [user?.id]);
 
   const deleteChatMutation = $api.useMutation('delete', '/chats/{id}', {
     onSuccess: async () => {

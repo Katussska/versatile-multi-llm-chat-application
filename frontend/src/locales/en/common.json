@@ -4,6 +4,8 @@
       "title": "Login",
       "email": "Email",
       "password": "Password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
       "forgotPassword": "Forgot your password? ",
       "submit": "Submit"
     },

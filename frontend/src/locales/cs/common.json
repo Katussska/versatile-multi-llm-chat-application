@@ -4,6 +4,8 @@
       "title": "Přihlášení",
       "email": "Email",
       "password": "Heslo",
+      "showPassword": "Zobrazit heslo",
+      "hidePassword": "Skrýt heslo",
       "forgotPassword": "Zapomněli jste heslo? ",
       "submit": "Přihlásit"
     },
