@@ -485,17 +485,19 @@ export class ChatService {
       this.em.remove(assistantMessage);
       if (removeUserOnEmpty && userMessage) this.em.remove(userMessage);
     }
+    // Always persist a usage_log row so token counts are available for charts
+    // and analytics even when pricing is missing (cost === 0).
+    this.createUsageLog(
+      userId,
+      model.name,
+      model.name,
+      model.provider,
+      usage.promptTokens,
+      usage.completionTokens,
+      cost,
+    );
     if (cost > 0) {
       await this.updateUsedDollars(userId, cost);
-      this.createUsageLog(
-        userId,
-        model.name,
-        model.name,
-        model.provider,
-        usage.promptTokens,
-        usage.completionTokens,
-        cost,
-      );
     }
     await this.em.flush();
     if (sendDone && res) {

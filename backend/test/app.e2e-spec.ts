@@ -47,7 +47,7 @@ describe('AppController (e2e)', () => {
     const app = await bootstrapApp(true);
 
     await request(app.getHttpServer())
-      .get('/api-json')
+      .get('/api/docs-json')
       .expect(200)
       .expect((response) => {
         expect(response.body.openapi).toBeDefined();
@@ -55,7 +55,7 @@ describe('AppController (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .get('/api/')
+      .get('/api/docs')
       .expect(200)
       .expect('Content-Type', /html/);
 
@@ -65,8 +65,8 @@ describe('AppController (e2e)', () => {
   it('does not expose OpenAPI endpoints when disabled', async () => {
     const app = await bootstrapApp(false);
 
-    await request(app.getHttpServer()).get('/api-json').expect(404);
-    await request(app.getHttpServer()).get('/api/').expect(404);
+    await request(app.getHttpServer()).get('/api/docs-json').expect(404);
+    await request(app.getHttpServer()).get('/api/docs').expect(404);
 
     await app.close();
   });

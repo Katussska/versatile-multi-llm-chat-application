@@ -350,10 +350,17 @@ Step 1 exports the schema to `frontend/openapi.json`, step 2 regenerates TypeScr
 ### Tests
 
 ```bash
-pnpm be test          # Unit tests
+pnpm be test          # unit tests
+pnpm be test:watch    # unit tests in watch mode
 pnpm be test:e2e      # E2E tests
-pnpm be test:cov      # Coverage
+pnpm be test:cov      # coverage
 ```
+
+Unit tests are written in Jest and don't need a running database or any API keys — repositories and SDK clients are mocked. Each service has a co-located `*.service.spec.ts`.
+
+Services covered: `AdminService`, `ChatService`, `CleanupService`, `ModelService`, `UserService`, `AnthropicService`, `GeminiService`, `OpenAIService`.
+
+The E2E suite (`test/app.e2e-spec.ts`) boots a minimal NestJS app without a database and checks the health endpoint and OpenAPI setup.
 
 ### Lint & type check
 

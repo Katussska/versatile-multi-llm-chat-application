@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { InternalServerErrorException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { AnthropicService } from './anthropic.service';
 import Anthropic, { APIError } from '@anthropic-ai/sdk';
+
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
 jest.mock('@anthropic-ai/sdk');
 
@@ -75,7 +77,7 @@ describe('AnthropicService', () => {
     expect(MockedAnthropic).not.toHaveBeenCalled();
   });
 
-  it('generateTextStream vyhodí chybu pokud není client', async () => {
+  it('generateTextStream vrátí chybový objekt pokud není client', async () => {
     const module = await Test.createTestingModule({
       providers: [
         AnthropicService,
@@ -87,9 +89,8 @@ describe('AnthropicService', () => {
     }).compile();
 
     const svc = module.get<AnthropicService>(AnthropicService);
-    await expect(
-      collectStream(svc.generateTextStream('ahoj', [])),
-    ).rejects.toThrow(InternalServerErrorException);
+    const items = await collectStream(svc.generateTextStream('ahoj', []));
+    expect(items).toEqual([{ type: 'error', error: 'Anthropic API key is not configured' }]);
   });
 
   it('generateTextStream vrací textové chunky a usage', async () => {
@@ -239,23 +240,22 @@ describe('AnthropicService', () => {
     expect(items).toEqual([]);
   });
 
-  it('generateTextStream převede APIError na InternalServerErrorException', async () => {
+  it('generateTextStream vrátí chybový objekt při APIError', async () => {
     async function* fakeStream() {
       const err = new APIError(429, undefined, 'rate limit', new Headers());
+      Object.assign(err, { status: 429 });
       throw err;
     }
     mockCreate.mockResolvedValue(fakeStream());
 
-    await expect(
-      collectStream(service.generateTextStream('test', [])),
-    ).rejects.toThrow(InternalServerErrorException);
+    const items = await collectStream(service.generateTextStream('test', []));
+    expect(items).toContainEqual({ type: 'error', error: 'Anthropic API rate limit exceeded. Please wait a moment before trying again.' });
   });
 
-  it('generateTextStream převede obecnou chybu na InternalServerErrorException', async () => {
+  it('generateTextStream vrátí chybový objekt při obecné chybě', async () => {
     mockCreate.mockRejectedValue(new Error('network failure'));
 
-    await expect(
-      collectStream(service.generateTextStream('test', [])),
-    ).rejects.toThrow(InternalServerErrorException);
+    const items = await collectStream(service.generateTextStream('test', []));
+    expect(items).toContainEqual({ type: 'error', error: 'Failed to generate response. Please try again.' });
   });
 });
