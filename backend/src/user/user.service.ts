@@ -31,7 +31,9 @@ export class UserService {
   ) {}
 
   async getUsers(): Promise<
-    (User & { budget: { dollarLimit: number | null; usedDollars: number } | null })[]
+    (User & {
+      budget: { dollarLimit: number | null; usedDollars: number } | null;
+    })[]
   > {
     const users = await this.userRepository.find(
       { deletedAt: null },
@@ -48,7 +50,10 @@ export class UserService {
        WHERE t.deleted_at IS NULL`,
     );
 
-    const budgetMap = new Map<string, { dollarLimit: number | null; usedDollars: number }>();
+    const budgetMap = new Map<
+      string,
+      { dollarLimit: number | null; usedDollars: number }
+    >();
     for (const r of budgetRows) {
       budgetMap.set(r.user_id, {
         dollarLimit: r.dollar_limit != null ? parseFloat(r.dollar_limit) : null,
@@ -56,7 +61,9 @@ export class UserService {
       });
     }
 
-    return users.map((u) => Object.assign(u, { budget: budgetMap.get(u.id) ?? null }));
+    return users.map((u) =>
+      Object.assign(u, { budget: budgetMap.get(u.id) ?? null }),
+    );
   }
 
   async createUser(dto: CreateUserDto): Promise<User> {
@@ -109,7 +116,18 @@ export class UserService {
       user.email = emailLower;
     }
 
-    if (dto.role !== undefined) {
+    if (dto.role !== undefined && dto.role !== user.role) {
+      if (dto.role === UserRole.USER && user.role === UserRole.ADMIN) {
+        const adminCount = await this.userRepository.count({
+          role: UserRole.ADMIN,
+          deletedAt: null,
+        });
+        if (adminCount <= 1) {
+          throw new ForbiddenException(
+            'Cannot remove the last admin from the system',
+          );
+        }
+      }
       user.role = dto.role;
     }
 
@@ -130,7 +148,10 @@ export class UserService {
   }
 
   async getTokens(userId: string): Promise<TokenResponseDto[]> {
-    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
+    const user = await this.userRepository.findOne({
+      id: userId,
+      deletedAt: null,
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const tokens = await this.tokenRepository.find({ user: userId });
@@ -154,12 +175,19 @@ export class UserService {
     }));
   }
 
-  async createToken(userId: string, dto: CreateTokenDto): Promise<TokenResponseDto> {
-    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
+  async createToken(
+    userId: string,
+    dto: CreateTokenDto,
+  ): Promise<TokenResponseDto> {
+    const user = await this.userRepository.findOne({
+      id: userId,
+      deletedAt: null,
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const existing = await this.tokenRepository.findOne({ user: userId });
-    if (existing) throw new ConflictException('Budget limit for this user already exists');
+    if (existing)
+      throw new ConflictException('Budget limit for this user already exists');
 
     const token = new Token();
     token.user = user;
@@ -177,11 +205,19 @@ export class UserService {
     };
   }
 
-  async updateToken(userId: string, tokenId: string, dto: UpdateTokenDto): Promise<TokenResponseDto> {
-    const token = await this.tokenRepository.findOne({ id: tokenId, user: userId });
+  async updateToken(
+    userId: string,
+    tokenId: string,
+    dto: UpdateTokenDto,
+  ): Promise<TokenResponseDto> {
+    const token = await this.tokenRepository.findOne({
+      id: tokenId,
+      user: userId,
+    });
     if (!token) throw new NotFoundException('Budget limit not found');
 
-    if (dto.dollarLimit !== undefined) token.dollarLimit = dto.dollarLimit ?? null;
+    if (dto.dollarLimit !== undefined)
+      token.dollarLimit = dto.dollarLimit ?? null;
 
     await this.em.flush();
 
@@ -219,7 +255,11 @@ export class UserService {
     await this.em.nativeDelete(Token, { user: id });
 
     const now = new Date();
-    await this.em.nativeUpdate(Chat, { user: id, deletedAt: null }, { deletedAt: now });
+    await this.em.nativeUpdate(
+      Chat,
+      { user: id, deletedAt: null },
+      { deletedAt: now },
+    );
 
     user.deletedAt = now;
     await this.em.flush();
