@@ -12,7 +12,6 @@ import { Account } from '../entities/Account';
 import { Session } from '../entities/Session';
 import { Token } from '../entities/Token';
 import { Chat } from '../entities/Chat';
-import { Model } from '../entities/Model';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateTokenDto } from './dto/create-token.dto';
@@ -28,94 +27,36 @@ export class UserService {
     private readonly userRepository: EntityRepository<User>,
     @InjectRepository(Token)
     private readonly tokenRepository: EntityRepository<Token>,
-    @InjectRepository(Model)
-    private readonly modelRepository: EntityRepository<Model>,
     private readonly em: EntityManager,
   ) {}
 
   async getUsers(): Promise<
-    (User & {
-      budgetLimits: {
-        modelId: string;
-        modelName: string;
-        provider: string;
-        dollarLimit: number | null;
-        usedDollars: number;
-      }[];
-    })[]
+    (User & { budget: { dollarLimit: number | null; usedDollars: number } | null })[]
   > {
     const users = await this.userRepository.find(
       { deletedAt: null },
       { orderBy: { createdAt: 'ASC' } },
     );
 
-    const [budgetRows, allModels] = await Promise.all([
-      this.em.execute<
-        {
-          user_id: string;
-          dollar_limit: string | null;
-          used_dollars: string;
-          provider: string;
-          model_id: string;
-          model_name: string;
-        }[]
-      >(
-        `SELECT t.user_id,
-                t.dollar_limit::text,
-                CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_dollars ELSE 0 END::text AS used_dollars,
-                m.provider,
-                m.id AS model_id,
-                m.name AS model_name
-         FROM token t
-         JOIN model m ON m.id = t.model_id AND m.deleted_at IS NULL
-         WHERE t.deleted_at IS NULL`,
-      ),
-      this.em.execute<{ id: string; name: string; provider: string }[]>(
-        `SELECT DISTINCT ON (provider) id, name, provider
-         FROM model
-         WHERE deleted_at IS NULL
-         ORDER BY provider, name ASC, created_at ASC`,
-      ),
-    ]);
+    const budgetRows = await this.em.execute<
+      { user_id: string; dollar_limit: string | null; used_dollars: string }[]
+    >(
+      `SELECT t.user_id,
+              t.dollar_limit::text,
+              CASE WHEN t.reset_at IS NULL OR t.reset_at > now() THEN t.used_dollars ELSE 0 END::text AS used_dollars
+       FROM token t
+       WHERE t.deleted_at IS NULL`,
+    );
 
-    const budgetMap = new Map<
-      string,
-      {
-        modelId: string;
-        modelName: string;
-        provider: string;
-        dollarLimit: number | null;
-        usedDollars: number;
-      }[]
-    >();
+    const budgetMap = new Map<string, { dollarLimit: number | null; usedDollars: number }>();
     for (const r of budgetRows) {
-      if (!budgetMap.has(r.user_id)) budgetMap.set(r.user_id, []);
-      budgetMap.get(r.user_id)!.push({
-        modelId: r.model_id,
-        modelName: r.model_name,
-        provider: r.provider,
+      budgetMap.set(r.user_id, {
         dollarLimit: r.dollar_limit != null ? parseFloat(r.dollar_limit) : null,
         usedDollars: parseFloat(r.used_dollars),
       });
     }
 
-    return users.map((u) => {
-      const existing = budgetMap.get(u.id) ?? [];
-      const coveredIds = new Set(existing.map((t) => t.modelId));
-      const budgetLimits = [
-        ...existing,
-        ...allModels
-          .filter((m) => !coveredIds.has(m.id))
-          .map((m) => ({
-            modelId: m.id,
-            modelName: m.name,
-            provider: m.provider,
-            dollarLimit: null,
-            usedDollars: 0,
-          })),
-      ];
-      return Object.assign(u, { budgetLimits });
-    });
+    return users.map((u) => Object.assign(u, { budget: budgetMap.get(u.id) ?? null }));
   }
 
   async createUser(dto: CreateUserDto): Promise<User> {
@@ -188,21 +129,11 @@ export class UserService {
     return user;
   }
 
-  async getModels(): Promise<Model[]> {
-    return this.modelRepository.findAll({ orderBy: { name: 'ASC' } });
-  }
-
   async getTokens(userId: string): Promise<TokenResponseDto[]> {
-    const user = await this.userRepository.findOne({
-      id: userId,
-      deletedAt: null,
-    });
+    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
     if (!user) throw new NotFoundException('User not found');
 
-    const tokens = await this.tokenRepository.find(
-      { user: userId },
-      { populate: ['model'] },
-    );
+    const tokens = await this.tokenRepository.find({ user: userId });
 
     const now = new Date();
     let dirty = false;
@@ -215,46 +146,23 @@ export class UserService {
     }
     if (dirty) await this.em.flush();
 
-    return tokens.map((t) => {
-      const model = t.model;
-      return {
-        id: t.id,
-        model: { id: model.id, name: model.name, provider: model.provider },
-        dollarLimit: t.dollarLimit,
-        usedDollars: t.usedDollars,
-        resetAt: t.resetAt,
-      };
-    });
+    return tokens.map((t) => ({
+      id: t.id,
+      dollarLimit: t.dollarLimit,
+      usedDollars: t.usedDollars,
+      resetAt: t.resetAt,
+    }));
   }
 
-  async createToken(
-    userId: string,
-    dto: CreateTokenDto,
-  ): Promise<TokenResponseDto> {
-    const user = await this.userRepository.findOne({
-      id: userId,
-      deletedAt: null,
-    });
+  async createToken(userId: string, dto: CreateTokenDto): Promise<TokenResponseDto> {
+    const user = await this.userRepository.findOne({ id: userId, deletedAt: null });
     if (!user) throw new NotFoundException('User not found');
 
-    const model = await this.modelRepository.findOne(
-      { provider: dto.provider, deletedAt: null },
-      { orderBy: { name: 'ASC', createdAt: 'ASC' } },
-    );
-    if (!model) throw new NotFoundException('Provider not found');
-
-    const existing = await this.tokenRepository.findOne({
-      user: userId,
-      model: { provider: model.provider },
-    });
-    if (existing)
-      throw new ConflictException(
-        'Budget limit for this provider already exists',
-      );
+    const existing = await this.tokenRepository.findOne({ user: userId });
+    if (existing) throw new ConflictException('Budget limit for this user already exists');
 
     const token = new Token();
     token.user = user;
-    token.model = model;
     token.dollarLimit = dto.dollarLimit ?? null;
     token.resetAt = nextMonthFirstDay();
 
@@ -263,38 +171,22 @@ export class UserService {
 
     return {
       id: token.id,
-      model: { id: model.id, name: model.name, provider: model.provider },
       dollarLimit: token.dollarLimit,
       usedDollars: token.usedDollars,
       resetAt: token.resetAt,
     };
   }
 
-  async updateToken(
-    userId: string,
-    tokenId: string,
-    dto: UpdateTokenDto,
-  ): Promise<TokenResponseDto> {
-    const token = await this.tokenRepository.findOne(
-      { id: tokenId, user: userId },
-      { populate: ['model'] },
-    );
+  async updateToken(userId: string, tokenId: string, dto: UpdateTokenDto): Promise<TokenResponseDto> {
+    const token = await this.tokenRepository.findOne({ id: tokenId, user: userId });
     if (!token) throw new NotFoundException('Budget limit not found');
 
-    const model = token.model;
-
-    if (dto.dollarLimit !== undefined)
-      token.dollarLimit = dto.dollarLimit ?? null;
+    if (dto.dollarLimit !== undefined) token.dollarLimit = dto.dollarLimit ?? null;
 
     await this.em.flush();
 
     return {
       id: token.id,
-      model: {
-        id: model.id,
-        name: model.name,
-        provider: model.provider,
-      },
       dollarLimit: token.dollarLimit,
       usedDollars: token.usedDollars,
       resetAt: token.resetAt,

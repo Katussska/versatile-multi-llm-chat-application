@@ -6,17 +6,9 @@ import { ModelPricing } from '../entities/ModelPricing';
 type PricingDef = {
   inputPrice: number;
   outputPrice: number;
-  cacheWrite5mPrice?: number;
-  cacheWrite1hPrice?: number;
-  cacheReadPrice?: number;
-  contextCachePrice?: number;
-  contextCachePriceLongCtx?: number;
-  contextCacheStoragePrice?: number;
   thinkingOutputPrice?: number;
-  cachedInputPrice?: number;
   inputPriceLongCtx?: number;
   outputPriceLongCtx?: number;
-  cachedInputPriceLongCtx?: number;
 };
 
 const MODELS: {
@@ -35,10 +27,8 @@ const MODELS: {
     apiEndpoint: (name: string) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
     pricing: {
-      inputPrice: 0.10,
-      outputPrice: 0.40,
-      contextCachePrice: 0.01,
-      contextCacheStoragePrice: 1.00,
+      inputPrice: 0.1,
+      outputPrice: 0.4,
     },
   },
   {
@@ -49,10 +39,8 @@ const MODELS: {
     apiEndpoint: (name: string) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
     pricing: {
-      inputPrice: 0.30,
-      outputPrice: 2.50,
-      contextCachePrice: 0.03,
-      contextCacheStoragePrice: 1.00,
+      inputPrice: 0.3,
+      outputPrice: 2.5,
     },
   },
   {
@@ -64,12 +52,9 @@ const MODELS: {
       `https://generativelanguage.googleapis.com/v1beta/models/${name}`,
     pricing: {
       inputPrice: 1.25,
-      outputPrice: 10.00,
-      contextCachePrice: 0.125,
-      contextCachePriceLongCtx: 0.25,
-      contextCacheStoragePrice: 4.50,
-      inputPriceLongCtx: 2.50,
-      outputPriceLongCtx: 15.00,
+      outputPrice: 10.0,
+      inputPriceLongCtx: 2.5,
+      outputPriceLongCtx: 15.0,
     },
   },
   {
@@ -81,9 +66,6 @@ const MODELS: {
     pricing: {
       inputPrice: 1,
       outputPrice: 5,
-      cacheWrite5mPrice: 1.25,
-      cacheWrite1hPrice: 2,
-      cacheReadPrice: 0.10,
     },
   },
   {
@@ -95,9 +77,6 @@ const MODELS: {
     pricing: {
       inputPrice: 3.0,
       outputPrice: 15.0,
-      cacheWrite5mPrice: 3.75,
-      cacheWrite1hPrice: 6,
-      cacheReadPrice: 0.3,
     },
   },
   {
@@ -109,9 +88,6 @@ const MODELS: {
     pricing: {
       inputPrice: 5,
       outputPrice: 25,
-      cacheWrite5mPrice: 6.25,
-      cacheWrite1hPrice: 10,
-      cacheReadPrice: 0.50,
     },
   },
   {
@@ -121,9 +97,8 @@ const MODELS: {
     iconKey: 'openai',
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
-      inputPrice: 0.20,
+      inputPrice: 0.2,
       outputPrice: 1.25,
-      cachedInputPrice: 0.02,
     },
   },
   {
@@ -134,8 +109,7 @@ const MODELS: {
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
       inputPrice: 0.75,
-      outputPrice: 4.50,
-      cachedInputPrice: 0.075,
+      outputPrice: 4.5,
     },
   },
   {
@@ -147,10 +121,8 @@ const MODELS: {
     pricing: {
       inputPrice: 5,
       outputPrice: 30,
-      cachedInputPrice: 0.50,
       inputPriceLongCtx: 10,
       outputPriceLongCtx: 45,
-      cachedInputPriceLongCtx: 1,
     },
   },
   {
@@ -160,12 +132,10 @@ const MODELS: {
     iconKey: 'openai',
     apiEndpoint: () => 'https://api.openai.com/v1/chat/completions',
     pricing: {
-      inputPrice: 2.50,
+      inputPrice: 2.5,
       outputPrice: 15,
-      cachedInputPrice: 0.25,
       inputPriceLongCtx: 5,
-      outputPriceLongCtx: 22.50,
-      cachedInputPriceLongCtx: 0.50,
+      outputPriceLongCtx: 22.5,
     },
   },
 ];
@@ -205,34 +175,21 @@ export class ModelSeeder extends Seeder {
           model,
           inputPrice: def.pricing.inputPrice,
           outputPrice: def.pricing.outputPrice,
-          cacheWrite5mPrice: def.pricing.cacheWrite5mPrice ?? null,
-          cacheWrite1hPrice: def.pricing.cacheWrite1hPrice ?? null,
-          cacheReadPrice: def.pricing.cacheReadPrice ?? null,
-          contextCachePrice: def.pricing.contextCachePrice ?? null,
-          contextCachePriceLongCtx: def.pricing.contextCachePriceLongCtx ?? null,
-          contextCacheStoragePrice: def.pricing.contextCacheStoragePrice ?? null,
           thinkingOutputPrice: def.pricing.thinkingOutputPrice ?? null,
-          cachedInputPrice: def.pricing.cachedInputPrice ?? null,
           inputPriceLongCtx: def.pricing.inputPriceLongCtx ?? null,
           outputPriceLongCtx: def.pricing.outputPriceLongCtx ?? null,
-          cachedInputPriceLongCtx: def.pricing.cachedInputPriceLongCtx ?? null,
         });
         em.persist(pricing);
         console.info(`Seeded pricing for: ${def.provider}/${modelName}`);
       } else {
         existingPricing.inputPrice = def.pricing.inputPrice;
         existingPricing.outputPrice = def.pricing.outputPrice;
-        existingPricing.cacheWrite5mPrice = def.pricing.cacheWrite5mPrice ?? null;
-        existingPricing.cacheWrite1hPrice = def.pricing.cacheWrite1hPrice ?? null;
-        existingPricing.cacheReadPrice = def.pricing.cacheReadPrice ?? null;
-        existingPricing.contextCachePrice = def.pricing.contextCachePrice ?? null;
-        existingPricing.contextCachePriceLongCtx = def.pricing.contextCachePriceLongCtx ?? null;
-        existingPricing.contextCacheStoragePrice = def.pricing.contextCacheStoragePrice ?? null;
-        existingPricing.thinkingOutputPrice = def.pricing.thinkingOutputPrice ?? null;
-        existingPricing.cachedInputPrice = def.pricing.cachedInputPrice ?? null;
-        existingPricing.inputPriceLongCtx = def.pricing.inputPriceLongCtx ?? null;
-        existingPricing.outputPriceLongCtx = def.pricing.outputPriceLongCtx ?? null;
-        existingPricing.cachedInputPriceLongCtx = def.pricing.cachedInputPriceLongCtx ?? null;
+        existingPricing.thinkingOutputPrice =
+          def.pricing.thinkingOutputPrice ?? null;
+        existingPricing.inputPriceLongCtx =
+          def.pricing.inputPriceLongCtx ?? null;
+        existingPricing.outputPriceLongCtx =
+          def.pricing.outputPriceLongCtx ?? null;
         console.info(`Updated pricing for: ${def.provider}/${modelName}`);
       }
     }

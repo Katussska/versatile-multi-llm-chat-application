@@ -17,8 +17,5 @@ export class ChartDataPointDto {
   tokensOut!: number;
 
   @ApiProperty()
-  tokensCached!: number;
-
-  @ApiProperty()
   cost!: number;
 }

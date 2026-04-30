@@ -57,6 +57,8 @@
     "copiedToClipboard": "Copied to clipboard.",
     "copyFailed": "Failed to copy message to clipboard.",
     "regenerate": "Regenerate",
+    "previousResponse": "Previous response",
+    "nextResponse": "Next response",
     "selectProvider": "Select model",
     "tokenLimitBanner": "Monthly budget limit reached for this provider. You can send new messages from {{- date}}.",
     "tokenLimitErrorNoDate": "Monthly budget limit reached for this provider. Please wait for the reset."
@@ -117,7 +119,7 @@
       "reset": "Reset:",
       "used": "Used ${{used}} of ${{total}}",
       "usedUnlimited": "Used ${{used}} (no limit)",
-      "allModels": "All providers have no limit set.",
+      "allModels": "No budget limit set.",
       "loadError": "Failed to load budget limits."
     }
   },
@@ -154,7 +156,6 @@
       },
       "tokenIn": "Input tokens",
       "tokenOut": "Output tokens",
-      "tokenCached": "Cached tokens",
       "costUsd": "Cost (USD)",
       "allProviders": "All providers"
     },
@@ -175,7 +176,7 @@
       },
       "tokenStep": {
         "title": "Budget settings",
-        "description": "User created. Optionally set monthly budget limits (in USD) per LLM provider.",
+        "description": "Optionally set a monthly budget limit (in USD) for the new user.",
         "done": "Finish"
       }
     },
@@ -220,19 +221,14 @@
       "title": "Manage monthly budget",
       "titleSelected": "Budget: {{email}}",
       "description": "Select a user to manage their monthly budget limits.",
-      "addTitle": "Add limit",
       "editTitle": "Edit limit",
       "loading": "Loading limits...",
-      "empty": "User has no budget limits set.",
+      "empty": "No budget limit set.",
       "loadError": "Failed to load budget limits.",
       "dollars": "USD",
       "resetLabel": "reset",
-      "model": "LLM provider",
-      "selectModel": "Select provider...",
       "dollarLimit": "Monthly limit (USD)",
       "resetAt": "Reset date",
-      "add": "Add limit",
-      "addSubmit": "Add",
       "editSubmit": "Save",
       "addSuccess": "Budget limit added.",
       "addError": "Failed to add budget limit.",
@@ -240,6 +236,7 @@
       "editError": "Failed to update budget limit.",
       "deleteSuccess": "Budget limit deleted.",
       "deleteError": "Failed to delete budget limit.",
+      "add": "Add limit",
       "back": "Back"
     },
     "userTable": {

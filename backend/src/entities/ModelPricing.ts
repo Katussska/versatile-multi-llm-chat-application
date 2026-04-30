@@ -24,62 +24,6 @@ export class ModelPricing extends Base {
   })
   outputPrice!: number;
 
-  // Anthropic
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'cache_write_5m_price',
-    nullable: true,
-  })
-  cacheWrite5mPrice: number | null = null;
-
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'cache_write_1h_price',
-    nullable: true,
-  })
-  cacheWrite1hPrice: number | null = null;
-
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'cache_read_price',
-    nullable: true,
-  })
-  cacheReadPrice: number | null = null;
-
-  // Gemini
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'context_cache_price',
-    nullable: true,
-  })
-  contextCachePrice: number | null = null;
-
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'context_cache_price_long_ctx',
-    nullable: true,
-  })
-  contextCachePriceLongCtx: number | null = null;
-
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'context_cache_storage_price',
-    nullable: true,
-  })
-  contextCacheStoragePrice: number | null = null;
-
   @Property({
     type: 'decimal',
     precision: 10,
@@ -88,16 +32,6 @@ export class ModelPricing extends Base {
     nullable: true,
   })
   thinkingOutputPrice: number | null = null;
-
-  // OpenAI
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'cached_input_price',
-    nullable: true,
-  })
-  cachedInputPrice: number | null = null;
 
   @Property({
     type: 'decimal',
@@ -116,13 +50,4 @@ export class ModelPricing extends Base {
     nullable: true,
   })
   outputPriceLongCtx: number | null = null;
-
-  @Property({
-    type: 'decimal',
-    precision: 10,
-    scale: 6,
-    fieldName: 'cached_input_price_long_ctx',
-    nullable: true,
-  })
-  cachedInputPriceLongCtx: number | null = null;
 }

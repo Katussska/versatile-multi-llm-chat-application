@@ -70,23 +70,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get all available (enabled) models */
-        get: operations["ModelController_getModels"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/chats": {
         parameters: {
             query?: never;
@@ -141,6 +124,74 @@ export interface paths {
         patch: operations["ChatController_patchChat"];
         trace?: never;
     };
+    "/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all available (enabled) models */
+        get: operations["ModelController_getModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chatId}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update message content */
+        patch: operations["ChatController_patchMessage"];
+        trace?: never;
+    };
+    "/chats/{id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stream LLM response for a chat message */
+        post: operations["ChatController_streamMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chats/{chatId}/messages/{messageId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Activate a specific message version */
+        patch: operations["ChatController_activateVersion"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -177,13 +228,6 @@ export interface components {
             length: number;
         };
         GetAIMessageDTO: Record<string, never>;
-        ModelResponseDto: {
-            id: string;
-            provider: string;
-            name: string;
-            displayLabel: string;
-            iconKey: string;
-        };
         CreateChatDto: {
             /** Format: uuid */
             modelId?: string;
@@ -194,33 +238,60 @@ export interface components {
             id: string;
             title: string;
             modelId: string;
-            favourite: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-        };
-        PatchChatDto: {
-            title?: string;
-            favourite?: boolean;
+            favourite: boolean;
         };
         MessageResponseDto: {
             id: string;
             chatId: string;
             content: string;
             path: string;
-            favourite: boolean;
-            parentMessageId: string | null;
-            modelKey: string | null;
-            modelProvider: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            versionGroupId: string | null;
+            isActive: boolean;
+            versions: components["schemas"]["MessageVersionDto"][];
+            parentMessageId: string | null;
+            modelKey: string | null;
+            modelProvider: string | null;
         };
         CreateMessageRequestDto: {
             content: string;
             path: string;
+        };
+        ModelResponseDto: {
+            id: string;
+            provider: string;
+            name: string;
+            displayLabel: string;
+            iconKey: string;
+        };
+        PatchChatDto: {
+            title?: string;
+            favourite?: boolean;
+            /** Format: uuid */
+            modelId?: string;
+        };
+        PatchMessageDto: {
+            content?: string;
+        };
+        StreamMessageDto: {
+            content: string;
+            parentMessageId?: string | null;
+            regenerate?: boolean | null;
+            truncateFromMessageId?: string | null;
+        };
+        MessageVersionDto: {
+            id: string;
+            content: string;
+            modelProvider: string | null;
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;
@@ -231,33 +302,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    ModelController_getModels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of enabled models sorted by creation date */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ModelResponseDto"][];
-                };
-            };
-            /** @description User not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     AppController_getHello: {
         parameters: {
             query?: never;
@@ -550,6 +594,152 @@ export interface operations {
                 content?: never;
             };
             /** @description Chat not found or access denied */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ModelController_getModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of enabled models sorted by creation date */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelResponseDto"][];
+                };
+            };
+            /** @description User not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_patchMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchMessageDto"];
+            };
+        };
+        responses: {
+            /** @description Message successfully updated */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Message not found or access denied */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_streamMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StreamMessageDto"];
+            };
+        };
+        responses: {
+            /** @description Streaming LLM response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chat not found or access denied */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Monthly token limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_activateVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version activated */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Message not found or access denied */
             404: {
                 headers: {
                     [name: string]: unknown;
